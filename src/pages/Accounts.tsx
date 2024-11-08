@@ -3,7 +3,6 @@ import React, { useState, useEffect } from 'react';
 import supabase from '../services/supabaseClient';
 import './styles/Accounts.css';
 
-// Defina o tipo Account com todos os campos retornados pelo Supabase
 interface Account {
   id: string;
   user_id: string;
@@ -15,129 +14,68 @@ interface Account {
 
 const Accounts: React.FC = () => {
   const [accounts, setAccounts] = useState<Account[]>([]);
-  const [platform, setPlatform] = useState('');
-  const [accountName, setAccountName] = useState('');
-  const [accountId, setAccountId] = useState('');
   const [loading, setLoading] = useState(false);
 
-  // Função para buscar contas de anúncios do Supabase
-  const fetchAccounts = async () => {
-    setLoading(true);
-    const { data, error } = await supabase
-      .from('accounts')
-      .select('*')
-      .order('created_at', { ascending: false });
-
-    if (error) {
-      console.error('Erro ao buscar contas:', error.message);
-    } else {
-      setAccounts(data as unknown as Account[]); // Conversão explícita para Account[]
-    }
-    setLoading(false);
+  // Função para vincular a conta do Google Ads usando o Supabase
+  const linkGoogleAds = async () => {
+    const { data, error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        scopes: 'https://www.googleapis.com/auth/adwords', // Escopo para Google Ads
+      },
+    });
+    console.log(data);
+    if (error) console.error('Erro ao vincular conta do Google Ads:', error.message);
   };
 
-
-  // Função para adicionar uma nova conta de anúncio
-  const addAccount = async () => {
+  // Função para buscar campanhas do Google Ads
+  const fetchCampaigns = async () => {
     setLoading(true);
-    const { data: userData } = await supabase.auth.getUser();
-    const user = userData?.user;
-
-    if (!user) {
-      console.error('Erro: usuário não autenticado.');
+    const accessToken = (await supabase.auth.getSession())?.data.session?.access_token;
+    
+    if (!accessToken) {
+      console.error('Erro: usuário não autenticado');
       setLoading(false);
       return;
     }
 
-    // Inserir uma nova conta no Supabase
-    const { error } = await supabase.from('accounts').insert([
-      {
-        user_id: user.id,
-        platform,
-        account_name: accountName,
-        account_id: accountId,
-      },
-    ]);
-
-    if (error) {
-      console.error('Erro ao adicionar conta:', error.message);
-    } else {
-      setPlatform('');
-      setAccountName('');
-      setAccountId('');
-      fetchAccounts(); // Atualiza a lista de contas após adicionar
-    }
-    setLoading(false);
-  };
-  const linkGoogleAds = () => {
-    window.location.href = 'http://localhost:8080/api/oauth/google';
-  };
-
-  const linkFacebookAds = () => {
-    window.location.href = 'http://localhost:8080/api/oauth/facebook';
-  };
-
-  const linkTikTokAds = () => {
-    window.location.href = 'http://localhost:8080/api/oauth/tiktok';
-  };
-
-  // Função para excluir uma conta de anúncio
-  const deleteAccount = async (id: string) => {
-    setLoading(true);
-    const { error } = await supabase.from('accounts').delete().match({ id });
-
-    if (error) {
-      console.error('Erro ao excluir conta:', error.message);
-    } else {
-      fetchAccounts(); // Atualiza a lista de contas após exclusão
+    try {
+      const response = await fetch('http://localhost:8080/api/google-ads/campaigns', {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+      });
+      const campaigns = await response.json();
+      console.log('Campanhas do Google Ads:', campaigns);
+    } catch (error) {
+      console.error('Erro ao buscar campanhas do Google Ads:', error);
     }
     setLoading(false);
   };
 
   useEffect(() => {
+    const fetchAccounts = async () => {
+      const { data, error } = await supabase
+        .from('accounts')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Erro ao buscar contas:', error.message);
+      } else {
+        setAccounts(data as unknown as Account[]);
+      }
+    };
     fetchAccounts();
   }, []);
 
   return (
     <div>
-      <h1>Cadastrar Contas de Anúncio</h1>
+      <h1>Contas de Anúncio do Google</h1>
+      <button onClick={linkGoogleAds} disabled={loading}>
+        Vincular Conta do Google Ads
+      </button>
 
-      {/* Formulário para adicionar uma nova conta */}
-      <div>
-        <h2>Adicionar Nova Conta</h2>
-        <label>
-          Plataforma:
-          <select value={platform} onChange={(e) => setPlatform(e.target.value)}>
-            <option value="">Selecione a plataforma</option>
-            <option value="Meta Ads">Meta Ads</option>
-            <option value="Google Ads">Google Ads</option>
-            <option value="TikTok Ads">TikTok Ads</option>
-          </select>
-        </label>
-        <label>
-          Nome da Conta:
-          <input
-            type="text"
-            value={accountName}
-            onChange={(e) => setAccountName(e.target.value)}
-            placeholder="Ex: Conta Principal"
-          />
-        </label>
-        <label>
-          ID da Conta:
-          <input
-            type="text"
-            value={accountId}
-            onChange={(e) => setAccountId(e.target.value)}
-            placeholder="ID para vinculação API"
-          />
-        </label>
-        <button onClick={addAccount} disabled={loading}>
-          {loading ? 'Adicionando...' : 'Adicionar Conta'}
-        </button>
-      </div>
-
-      {/* Lista de contas cadastradas */}
       <div>
         <h2>Contas Cadastradas</h2>
         {loading && <p>Carregando...</p>}
@@ -146,21 +84,13 @@ const Accounts: React.FC = () => {
           {accounts.map((account) => (
             <li key={account.id}>
               <strong>{account.platform}</strong> - {account.account_name} (ID: {account.account_id})
-              <button onClick={() => deleteAccount(account.id)}>Excluir</button>
             </li>
           ))}
         </ul>
+        <button onClick={fetchCampaigns} disabled={loading}>
+          Listar Campanhas
+        </button>
       </div>
-      <h1>Cadastrar Contas de Anúncio</h1>
-      <button onClick={linkGoogleAds} disabled={loading}>
-        Vincular Conta do Google Ads
-      </button>
-      <div>
-      <h1>Cadastrar Contas de Anúncio</h1>
-      <button onClick={linkGoogleAds}>Vincular Conta do Google Ads</button>
-      <button onClick={linkFacebookAds}>Vincular Conta do Facebook Ads</button>
-      <button onClick={linkTikTokAds}>Vincular Conta do TikTok Ads</button>
-    </div>
     </div>
   );
 };
