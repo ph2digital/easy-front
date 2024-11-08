@@ -1,7 +1,7 @@
 // src/pages/SignOut.tsx
 import React, { useEffect } from 'react';
 import { useDispatch } from 'react-redux';
-import { clearUser } from '../store/authSlice';
+import { clearUser } from '../store/authSlice'; // Corrigir importação
 import { useNavigate } from 'react-router-dom';
 import supabase from '../services/supabaseClient';
 
@@ -12,7 +12,7 @@ const SignOut: React.FC = () => {
   useEffect(() => {
     const signOut = async () => {
       await supabase.auth.signOut();
-      dispatch(clearUser());
+      dispatch(clearUser()); // Dispatch da action correta
       navigate('/login');
     };
     signOut();

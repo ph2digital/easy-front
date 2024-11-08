@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { FaEdit, FaChartLine } from 'react-icons/fa';
 import './styles/Home.css';
 import Sidebar from '../components/Sidebar';
-import Header from '../components/Header';
+// import Header from '../components/Header';
 
 interface Campaign {
   id: number;

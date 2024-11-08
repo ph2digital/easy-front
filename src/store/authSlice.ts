@@ -25,10 +25,14 @@ const authSlice = createSlice({
       state.user = null;
       state.profileImage = null; // Limpa profileImage ao deslogar
     },
+    clearUser: (state) => {
+      state.user = null;
+    },
+
   },
 });
 
-export const { setUser, logout } = authSlice.actions;
+export const { setUser, logout,clearUser } = authSlice.actions;
 export const selectUser = (state: RootState) => state.auth.user;
 export const selectProfileImage = (state: RootState) => state.auth.profileImage; // Selecionador para profileImage
 export default authSlice.reducer;
