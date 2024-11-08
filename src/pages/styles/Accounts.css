@@ -1,0 +1,46 @@
+/* src/pages/Accounts.css */
+
+h1 {
+    color: #333;
+    margin-bottom: 1rem;
+  }
+  
+  label {
+    display: block;
+    margin: 0.5rem 0;
+  }
+  
+  button {
+    margin-top: 1rem;
+    padding: 0.5rem 1rem;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+  }
+  
+  button:disabled {
+    background-color: #ccc;
+  }
+  
+  ul {
+    list-style-type: none;
+    padding: 0;
+  }
+  
+  li {
+    margin: 0.5rem 0;
+    display: flex;
+    align-items: center;
+  }
+  
+  li button {
+    margin-left: 1rem;
+    padding: 0.3rem 0.7rem;
+    background-color: #dc3545;
+    color: white;
+    border: none;
+    border-radius: 4px;
+  }
+  

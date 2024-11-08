@@ -1,0 +1,28 @@
+/* App.css */
+.app-container {
+    display: flex;
+    height: 100vh;
+    flex-direction: column;
+  }
+  
+  .main-content {
+    display: flex;
+    flex-grow: 1;
+    transition: margin-left 0.3s ease;
+  }
+  
+  .expanded .main-content-container {
+    margin-left: 220px; /* largura completa da sidebar quando expandida */
+  }
+  
+  .collapsed .main-content-container {
+    margin-left: 60px; /* largura da sidebar quando colapsada */
+  }
+  
+  /* MainContent.css */
+  .main-content-container {
+    flex-grow: 1;
+    padding: 20px;
+    overflow-y: auto;
+  }
+  

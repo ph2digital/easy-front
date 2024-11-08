@@ -1,0 +1,19 @@
+/* App.css */
+
+.app-container {
+  display: flex;
+  height: 100vh;
+  overflow: hidden; /* Impede a rolagem na página inteira */
+}
+
+.main-content-container {
+  flex: 1;
+  overflow-y: auto; /* Permite a rolagem apenas no conteúdo principal, como tabelas */
+  padding: 20px;
+  transition: margin-left 0.3s ease; /* Animação suave ao expandir/colapsar a sidebar */
+}
+
+.side-and-content {
+  display: flex;
+  font-family: Arial, sans-serif;
+}
