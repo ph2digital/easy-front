@@ -2,8 +2,8 @@ import { ReactNode, useEffect, useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { Navigate, useLocation } from 'react-router-dom';
 import { RootState } from './store/store';
-import { setUser } from './store/authSlice';
-import supabase from './services/supabaseClient';
+import { setUser, setTokens } from './store/authSlice';
+import { getSessionFromLocalStorage, saveGoogleSessionToDatabase } from './services/authService';
 
 interface PrivateRouteProps {
   children: ReactNode;
@@ -17,50 +17,18 @@ const PrivateRoute = ({ children }: PrivateRouteProps) => {
 
   useEffect(() => {
     const checkAuthFromStorage = async () => {
-      try {
-        const { data: sessionData } = await supabase.auth.getSession();
-
-        if (!sessionData?.session) {
-          // Caso contrário, tenta configurar a sessão a partir dos tokens do Local Storage
-          const storedToken = localStorage.getItem('sb-wawkkvukaanyjzznaskk-auth-token');
-          
-          if (storedToken) {
-            const parsedToken = JSON.parse(storedToken);
-            const { access_token, refresh_token } = parsedToken;
-            
-            if (access_token && refresh_token) {
-              const { error, data } = await supabase.auth.setSession({
-                access_token,
-                refresh_token,
-              });
-
-              if (error) {
-                console.error('Erro ao restaurar sessão:', error.message);
-              } else if (data.session) {
-                // Armazena os dados do usuário no Redux
-                dispatch(
-                  setUser({
-                    user: data.session.user,
-                    profileImage: data.session.user.user_metadata?.avatar_url || '',
-                  })
-                );
-              }
-            }
-          }
-        } else {
-          // Atualiza o Redux com a sessão existente
-          dispatch(
-            setUser({
-              user: sessionData.session.user,
-              profileImage: sessionData.session.user.user_metadata?.avatar_url || '',
-            })
-          );
+      const session = getSessionFromLocalStorage();
+      if (session) {
+        const { access_token, refresh_token } = session;
+        dispatch(setTokens({ accessToken: access_token, refreshToken: refresh_token }));
+        try {
+          const user = await saveGoogleSessionToDatabase(access_token, refresh_token);
+          dispatch(setUser({ user, profileImage: user.picture }));
+        } catch (error) {
+          console.error('Erro ao salvar sessão no banco de dados:', error);
         }
-      } catch (error) {
-        console.error('Erro ao verificar sessão:', error);
       }
-
-      setIsLoading(false); // Conclui o carregamento após verificar a sessão
+      setIsLoading(false);
     };
 
     if (!user) {
@@ -70,13 +38,11 @@ const PrivateRoute = ({ children }: PrivateRouteProps) => {
     }
   }, [user, dispatch]);
 
-  // Exibe uma mensagem de carregamento enquanto verifica a sessão
   if (isLoading) {
     return <div>Carregando...</div>;
   }
 
-  // Redireciona para login se o usuário não estiver autenticado e não houver sessão
-  if (!user && !localStorage.getItem('sb-wawkkvukaanyjzznaskk-auth-token')) {
+  if (!user && !localStorage.getItem('auth-token')) {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 

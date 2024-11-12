@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { RiDashboardLine, RiMoneyDollarCircleLine, RiFocusLine, RiLineChartFill  } from 'react-icons/ri';
+import { RiDashboardLine, RiMoneyDollarCircleLine, RiFocusLine, RiLineChartFill } from 'react-icons/ri';
 import { Link, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { RootState } from '../store/store';
@@ -11,7 +11,6 @@ interface SidebarProps {
   isOpen: boolean;
   toggleSidebar: () => void;
 }
-
 
 const Sidebar: React.FC<SidebarProps> = ({ isOpen, toggleSidebar }) => {
   const profileImage = useSelector((state: RootState) => state.auth.profileImage);
@@ -48,33 +47,33 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, toggleSidebar }) => {
         </div>
         {isMenuOpen && (
           <ul className="profile-menu">
-          <li>
-            <Link to="/new-project">
-              <FaLayerGroup className="dropdown-icon" /> Trocar workspace
-            </Link>
-          </li>
-          <li>
-            <Link to="/accounts">
-              <FaWallet className="dropdown-icon" /> Cadastrar contas
-            </Link>
-          </li>
-          <li>
-            <Link to="/settings">
-              <FaCogs className="dropdown-icon" /> Settings
-            </Link>
-          </li>
-          <li>
-            <Link to="/profile">
-              <FaUserCircle className="dropdown-icon" /> Profile
-            </Link>
-          </li>
-          <li><hr className="dropdown-divider" /></li>
-          <li>
-          <button onClick={handleLogout} className="logout-button">
+            <li>
+              <Link to="/new-project">
+                <FaLayerGroup className="dropdown-icon" /> Trocar workspace
+              </Link>
+            </li>
+            <li>
+              <Link to="/accounts">
+                <FaWallet className="dropdown-icon" /> Cadastrar contas
+              </Link>
+            </li>
+            <li>
+              <Link to="/settings">
+                <FaCogs className="dropdown-icon" /> Settings
+              </Link>
+            </li>
+            <li>
+              <Link to="/profile">
+                <FaUserCircle className="dropdown-icon" /> Profile
+              </Link>
+            </li>
+            <li><hr className="dropdown-divider" /></li>
+            <li>
+              <button onClick={handleLogout} className="logout-button">
                 <FaSignOutAlt className="dropdown-icon" /> Sign out
               </button>
-          </li>
-        </ul>
+            </li>
+          </ul>
         )}
       </div>
 
@@ -85,7 +84,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, toggleSidebar }) => {
           {isOpen && <span>Painel</span>}
         </Link>
         <Link to="/dashboard" className="menu-item">
-          <RiLineChartFill  className="sidebar-icon" />
+          <RiLineChartFill className="sidebar-icon" />
           {isOpen && <span>Dashboard</span>}
         </Link>
         <Link to="/finance" className="menu-item">

@@ -2,8 +2,8 @@
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
-import { setUser } from '../store/authSlice';
-import supabase from '../services/supabaseClient';
+import { setTokens, setUser } from '../store/authSlice';
+import { saveGoogleSessionToDatabase, setSession } from '../services/authService';
 
 const AuthCallback = () => {
   const navigate = useNavigate();
@@ -11,16 +11,24 @@ const AuthCallback = () => {
 
   useEffect(() => {
     const handleAuthCallback = async () => {
-      const { data, error } = await supabase.auth.exchangeCodeForSession(window.location.href);
-      if (error) {
-        console.error('Error retrieving session:', error.message);
+      const urlParams = new URLSearchParams(window.location.search);
+      const accessToken = urlParams.get('access_token');
+      const refreshToken = urlParams.get('refresh_token');
+
+      if (accessToken && refreshToken) {
+        try {
+          const user = await saveGoogleSessionToDatabase(accessToken, refreshToken);
+          dispatch(setTokens({ accessToken, refreshToken }));
+          dispatch(setUser({ user, profileImage: user.picture }));
+          setSession(accessToken, refreshToken); // Store tokens in local storage
+          navigate('/home');
+        } catch (error) {
+          console.error('Error saving session:', error);
+          navigate('/login');
+        }
+      } else {
+        console.error('No access token or refresh token found');
         navigate('/login');
-        return;
-      }
-      if (data.session) {
-        console.log(data.session)
-        dispatch(setUser(data.session.user));
-        navigate('/');
       }
     };
 

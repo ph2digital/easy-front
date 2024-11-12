@@ -2,8 +2,7 @@ import { useEffect, useState } from 'react';
 import { useDispatch } from 'react-redux';
 import { Routes, Route } from 'react-router-dom';
 import { setUser, setTokens } from './store/authSlice';
-import supabase from './services/supabaseClient';
-import { saveGoogleSessionToDatabase } from './services/authService'; // importação da nova função
+import { getSessionFromLocalStorage, saveGoogleSessionToDatabase } from './services/authService';
 import Home from './pages/Home';
 import Login from './pages/Login';
 import Campaigns from './pages/Campaigns';
@@ -15,6 +14,7 @@ import Profile from './pages/Profile';
 import NewProject from './pages/NewProject';
 import PrivateRoute from './PrivateRoute';
 import Accounts from './pages/Accounts';
+import AuthCallback from './pages/AuthCallback';
 
 const App = () => {
   const dispatch = useDispatch();
@@ -24,33 +24,15 @@ const App = () => {
     const checkSession = async () => {
       console.log('Iniciando checkSession');
 
-      const hash = window.location.hash;
-      const urlParams = new URLSearchParams(hash.slice(1));
-      const accessToken = urlParams.get('access_token');
-      const refreshToken = urlParams.get('refresh_token');
-
-      if (accessToken && refreshToken) {
-        console.log('Tokens encontrados, configurando sessão');
-        const { error } = await supabase.auth.setSession({
-          access_token: accessToken,
-          refresh_token: refreshToken,
-        });
-
-        if (error) {
-          console.error('Erro ao configurar sessão:', error.message);
-        } else {
-          dispatch(setTokens({ accessToken, refreshToken }));
-          const { data: sessionData } = await supabase.auth.getSession();
-          if (sessionData?.session) {
-            dispatch(
-              setUser({
-                user: sessionData.session.user,
-                profileImage: sessionData.session.user.user_metadata.avatar_url,
-              })
-            );
-            // Salva a sessão no banco de dados
-            await saveGoogleSessionToDatabase(sessionData.session);
-          }
+      const session = getSessionFromLocalStorage();
+      if (session) {
+        const { access_token, refresh_token } = session;
+        dispatch(setTokens({ accessToken: access_token, refreshToken: refresh_token }));
+        try {
+          const user = await saveGoogleSessionToDatabase(access_token, refresh_token);
+          dispatch(setUser({ user, profileImage: user.picture }));
+        } catch (error) {
+          console.error('Erro ao salvar sessão no banco de dados:', error);
         }
       }
 
@@ -68,7 +50,7 @@ const App = () => {
     <Routes>
       <Route path="/login" element={<Login />} />
       <Route
-        path="/"
+        path="/home"
         element={
           <PrivateRoute>
             <Home />
@@ -139,6 +121,7 @@ const App = () => {
           </PrivateRoute>
         }
       />
+      <Route path="/auth-callback" element={<AuthCallback />} />
     </Routes>
   );
 };
