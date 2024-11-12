@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
 import { useDispatch } from 'react-redux';
 import { Routes, Route } from 'react-router-dom';
-import { setUser } from './store/authSlice';
+import { setUser, setTokens } from './store/authSlice';
 import supabase from './services/supabaseClient';
+import { saveGoogleSessionToDatabase } from './services/authService'; // importação da nova função
 import Home from './pages/Home';
 import Login from './pages/Login';
 import Campaigns from './pages/Campaigns';
@@ -24,14 +25,9 @@ const App = () => {
       console.log('Iniciando checkSession');
 
       const hash = window.location.hash;
-      console.log('Hash da URL:', hash);
-
       const urlParams = new URLSearchParams(hash.slice(1));
       const accessToken = urlParams.get('access_token');
       const refreshToken = urlParams.get('refresh_token');
-
-      console.log('Access Token:', accessToken);
-      console.log('Refresh Token:', refreshToken);
 
       if (accessToken && refreshToken) {
         console.log('Tokens encontrados, configurando sessão');
@@ -43,25 +39,27 @@ const App = () => {
         if (error) {
           console.error('Erro ao configurar sessão:', error.message);
         } else {
+          dispatch(setTokens({ accessToken, refreshToken }));
           const { data: sessionData } = await supabase.auth.getSession();
           if (sessionData?.session) {
             dispatch(
               setUser({
                 user: sessionData.session.user,
-                profileImage: sessionData.session.user.user_metadata.avatar_url, // Salva a imagem do perfil
+                profileImage: sessionData.session.user.user_metadata.avatar_url,
               })
             );
+            // Salva a sessão no banco de dados
+            await saveGoogleSessionToDatabase(sessionData.session);
           }
         }
       }
 
-      setIsLoading(false); // Conclui o carregamento após verificar a sessão
+      setIsLoading(false);
     };
 
     checkSession();
   }, [dispatch]);
 
-  // Exibe uma mensagem de carregamento enquanto verifica a sessão
   if (isLoading) {
     return <div>Carregando...</div>;
   }
@@ -141,7 +139,6 @@ const App = () => {
           </PrivateRoute>
         }
       />
-
     </Routes>
   );
 };
