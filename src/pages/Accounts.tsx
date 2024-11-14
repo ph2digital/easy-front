@@ -36,6 +36,9 @@ const Accounts: React.FC = () => {
   const [accountName, setAccountName] = useState('');
   const [platform, setPlatform] = useState('');
   const selectedCustomers = useSelector((state: RootState) => (state.selectedCustomers as any).selectedCustomers);
+  const [keywords, setKeywords] = useState<any[]>([]);
+  const [locations, setLocations] = useState<any[]>([]);
+  const [devices, setDevices] = useState<any[]>([]);
 
   const fetchGoogleAdsAccounts = async () => {
     if (!accessToken) {
@@ -51,7 +54,7 @@ const Accounts: React.FC = () => {
       const response = await fetch('http://localhost:8080/api/accounts/google-ads/accounts', {
         method: 'GET',
         headers: {
-          Authorization: `Bearer ${accessToken}`, // Confirma que `accessToken` está correto aqui
+          Authorization: `Bearer ${accessToken}`,
           'Content-Type': 'application/json',
         },
       });
@@ -64,27 +67,14 @@ const Accounts: React.FC = () => {
       const data = await response.json();
       console.log('Contas obtidas do Google Ads:', data);
 
-      const accountsWithCampaigns = await Promise.all(
-        (data.accounts || []).map(async (account: Account) => {
-          const campaignsResponse = await fetch(`http://localhost:8080/api/google-ads/accounts/${account.customerId}/campaigns`, {
-            method: 'GET',
-            headers: {
-              Authorization: `Bearer ${accessToken}`,
-              'Content-Type': 'application/json',
-            },
-          });
+      const accountsData = data.customerIds.map((customerId: string) => ({
+        customerId,
+        descriptiveName: `Conta ${customerId}`,
+        currencyCode: 'BRL',
+        timeZone: 'America/Sao_Paulo',
+      }));
 
-          if (!campaignsResponse.ok) {
-            console.error(`Erro ao buscar campanhas para a conta ${account.customerId}: ${campaignsResponse.status} - ${campaignsResponse.statusText}`);
-            return account;
-          }
-
-          const campaignsData = await campaignsResponse.json();
-          return { ...account, campaigns: campaignsData };
-        })
-      );
-
-      setAccounts(accountsWithCampaigns);
+      setAccounts(accountsData);
     } catch (error) {
       console.error('Erro ao buscar contas do Google Ads:', error);
     } finally {
@@ -217,78 +207,107 @@ const Accounts: React.FC = () => {
       <h1>Contas do Google Ads</h1>
       {loading && <p>Carregando dados...</p>}
       {!loading && accounts.length === 0 && <p>Nenhuma conta encontrada.</p>}
-      <button onClick={linkMetaAds}>Vincular Meta Ads</button>
-      <button onClick={() => fetchGoogleAdsDataForSelectedCustomers('campaigns', setCampaigns)}>Buscar Campanhas</button>
-      <button onClick={() => fetchGoogleAdsDataForSelectedCustomers('ad-groups', setAdGroups)}>Buscar Grupos de Anúncios</button>
-      <button onClick={() => fetchGoogleAdsDataForSelectedCustomers('ads', setAds)}>Buscar Anúncios</button>
-      <form onSubmit={handleSubmit}>
-        <input
-          type="text"
-          value={accountName}
-          onChange={(e) => setAccountName(e.target.value)}
-          placeholder="Account Name"
-        />
-        <input
-          type="text"
-          value={platform}
-          onChange={(e) => setPlatform(e.target.value)}
-          placeholder="Platform"
-        />
-        <button type="submit">Update Account</button>
-      </form>
-      <ul>
-        {accounts.map((account) => (
-          <li key={account.customerId}>
-            <input
-                type="checkbox"
-                checked={selectedCustomers.includes(account.customerId)}
-                onChange={() => handleCustomerSelection(account.customerId)}
-            />
-            <strong>{account.descriptiveName}</strong> - ID: {account.customerId}
-            <p>Moeda: {account.currencyCode}</p>
-            <p>Fuso horário: {account.timeZone}</p>
-            {account.campaigns && (
-              <ul>
-                {account.campaigns.map((campaign) => (
-                  <li key={campaign.id}>
-                    <strong>{campaign.name}</strong> - Status: {campaign.status}
-                    <p>Servindo: {campaign.servingStatus}</p>
-                    <p>Início: {campaign.startDate}</p>
-                    <p>Fim: {campaign.endDate}</p>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </li>
-        ))}
-      </ul>
-      <h2>Campanhas</h2>
-      <ul>
-        {campaigns.map((campaign) => (
-          <li key={campaign.id}>
-            <strong>{campaign.name}</strong> - Status: {campaign.status}
-            <p>Servindo: {campaign.servingStatus}</p>
-            <p>Início: {campaign.startDate}</p>
-            <p>Fim: {campaign.endDate}</p>
-          </li>
-        ))}
-      </ul>
-      <h2>Grupos de Anúncios</h2>
-      <ul>
-        {adGroups.map((adGroup) => (
-          <li key={adGroup.id}>
-            <strong>{adGroup.name}</strong> - Status: {adGroup.status}
-          </li>
-        ))}
-      </ul>
-      <h2>Anúncios</h2>
-      <ul>
-        {ads.map((ad) => (
-          <li key={ad.id}>
-            <strong>{ad.name}</strong> - Status: {ad.status}
-          </li>
-        ))}
-      </ul>
+      <div>
+        <button onClick={linkMetaAds}>Vincular Meta Ads</button>
+        <button onClick={() => fetchGoogleAdsDataForSelectedCustomers('campaigns', setCampaigns)}>Buscar Campanhas</button>
+        <button onClick={() => fetchGoogleAdsDataForSelectedCustomers('ad-groups', setAdGroups)}>Buscar Grupos de Anúncios</button>
+        <button onClick={() => fetchGoogleAdsDataForSelectedCustomers('ads', setAds)}>Buscar Anúncios</button>
+        <button onClick={() => fetchGoogleAdsDataForSelectedCustomers('keywords', setKeywords)}>Buscar Palavras-chave</button>
+        <button onClick={() => fetchGoogleAdsDataForSelectedCustomers('locations', setLocations)}>Buscar Localizações</button>
+        <button onClick={() => fetchGoogleAdsDataForSelectedCustomers('devices', setDevices)}>Buscar Dispositivos</button>
+        <form onSubmit={handleSubmit}>
+          <input
+            type="text"
+            value={accountName}
+            onChange={(e) => setAccountName(e.target.value)}
+            placeholder="Account Name"
+          />
+          <input
+            type="text"
+            value={platform}
+            onChange={(e) => setPlatform(e.target.value)}
+            placeholder="Platform"
+          />
+          <button type="submit">Update Account</button>
+        </form>
+        <ul>
+          {accounts.map((account) => (
+            <li key={account.customerId}>
+              <input
+                  type="checkbox"
+                  checked={selectedCustomers.includes(account.customerId)}
+                  onChange={() => handleCustomerSelection(account.customerId)}
+              />
+              <strong>{account.descriptiveName}</strong> - ID: {account.customerId}
+              <p>Moeda: {account.currencyCode}</p>
+              <p>Fuso horário: {account.timeZone}</p>
+              {account.campaigns && (
+                <ul>
+                  {account.campaigns.map((campaign) => (
+                    <li key={campaign.id}>
+                      <strong>{campaign.name}</strong> - Status: {campaign.status}
+                      <p>Servindo: {campaign.servingStatus}</p>
+                      <p>Início: {campaign.startDate}</p>
+                      <p>Fim: {campaign.endDate}</p>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </li>
+          ))}
+        </ul>
+        <h2>Campanhas</h2>
+        <ul>
+          {campaigns.map((campaign) => (
+            <li key={campaign.id}>
+              <strong>{campaign.name}</strong> - Status: {campaign.status}
+              <p>Servindo: {campaign.servingStatus}</p>
+              <p>Início: {campaign.startDate}</p>
+              <p>Fim: {campaign.endDate}</p>
+            </li>
+          ))}
+        </ul>
+        <h2>Grupos de Anúncios</h2>
+        <ul>
+          {adGroups.map((adGroup) => (
+            <li key={adGroup.id}>
+              <strong>{adGroup.name}</strong> - Status: {adGroup.status}
+            </li>
+          ))}
+        </ul>
+        <h2>Anúncios</h2>
+        <ul>
+          {ads.map((ad) => (
+            <li key={ad.id}>
+              <strong>{ad.name}</strong> - Status: {ad.status}
+            </li>
+          ))}
+        </ul>
+        <h2>Palavras-chave</h2>
+        <ul>
+          {keywords.map((keyword) => (
+            <li key={keyword.id}>
+              <strong>{keyword.text}</strong> - Status: {keyword.status}
+            </li>
+          ))}
+        </ul>
+        <h2>Localizações</h2>
+        <ul>
+          {locations.map((location) => (
+            <li key={location.id}>
+              <strong>{location.name}</strong> - Status: {location.status}
+            </li>
+          ))}
+        </ul>
+        <h2>Dispositivos</h2>
+        <ul>
+          {devices.map((device) => (
+            <li key={device.id}>
+              <strong>{device.name}</strong> - Status: {device.status}
+            </li>
+          ))}
+        </ul>
+      </div>
     </div>
   );
 };

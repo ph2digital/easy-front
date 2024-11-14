@@ -14,7 +14,7 @@ interface Campaign {
   status: string;
   startDate: string;
   endDate: string;
-}
+} 
 
 const mockCampaigns: Campaign[] = [
   { id: 1, name: 'Black Friday Sales', platform: 'Google Ads', objective: 'Conversions', budget: '$1,000', status: 'Active', startDate: '01/11/2024', endDate: '30/11/2024' },
