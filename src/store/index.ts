@@ -1,16 +1,24 @@
 // src/store/index.ts
-import { configureStore } from '@reduxjs/toolkit';
-import authReducer from './authSlice';
-import campaignReducer from './campaignSlice';
 
+// Import necessary functions and reducers
+import { configureStore } from '@reduxjs/toolkit';
+import authReducer, { validateToken } from './authSlice';
+import campaignReducer from './campaignSlice';
+import selectedCustomersReducer from './selectedCustomersSlice';
+
+// Configure the store with the reducers
 const store = configureStore({
     reducer: {
         auth: authReducer,
         campaigns: campaignReducer,
+        selectedCustomers: selectedCustomersReducer,
     },
 });
 
+// Define RootState and AppDispatch types
 export type RootState = ReturnType<typeof store.getState>;
 export type AppDispatch = typeof store.dispatch;
+
+export { validateToken };
 
 export default store;

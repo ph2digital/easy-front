@@ -11,15 +11,23 @@ const AuthCallback = () => {
 
   useEffect(() => {
     const handleAuthCallback = async () => {
+      console.log('AuthCallback: Iniciando handleAuthCallback');
       const urlParams = new URLSearchParams(window.location.search);
       const accessToken = urlParams.get('access_token');
       const refreshToken = urlParams.get('refresh_token');
+      console.log('AuthCallback: Obtidos accessToken e refreshToken:', accessToken, refreshToken);
 
       if (accessToken && refreshToken) {
         try {
-          const user = await saveGoogleSessionToDatabase(accessToken, refreshToken);
-          dispatch(setTokens({ accessToken, refreshToken }));
-          dispatch(setUser({ user, profileImage: user.picture }));
+          const response = await saveGoogleSessionToDatabase(accessToken, refreshToken);
+          console.log('AuthCallback: User data from saveGoogleSessionToDatabase:', response);
+          if (response.user) {
+            dispatch(setTokens({ accessToken, refreshToken }));
+            dispatch(setUser({ user: response.user, profileImage: response.user.picture }));
+            localStorage.setItem('user', JSON.stringify(response.user));
+          } else {
+            console.error('Error saving session: User data is undefined');
+          }
           setSession(accessToken, refreshToken); // Store tokens in local storage
           navigate('/home');
         } catch (error) {

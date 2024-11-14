@@ -2,9 +2,9 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import 'bootstrap/dist/css/bootstrap.min.css';
-import './Header.css';
+import './styles/Header.css';
 import { useSelector } from 'react-redux';
-import { RootState } from '../store/store';
+import { RootState } from '../store/index';
 
 const Header: React.FC = () => {
   const profileImage = useSelector((state: RootState) => state.auth.profileImage);

@@ -1,9 +1,9 @@
 import { ReactNode, useEffect, useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { Navigate, useLocation } from 'react-router-dom';
-import { RootState } from './store/store';
-import { setUser, setTokens } from './store/authSlice';
-import { getSessionFromLocalStorage, saveGoogleSessionToDatabase } from './services/authService';
+import { RootState } from './store/index';
+import { validateToken } from './store/authSlice';
+import { getSessionFromLocalStorage, clearSession } from './services/authService';
 
 interface PrivateRouteProps {
   children: ReactNode;
@@ -19,13 +19,11 @@ const PrivateRoute = ({ children }: PrivateRouteProps) => {
     const checkAuthFromStorage = async () => {
       const session = getSessionFromLocalStorage();
       if (session) {
-        const { access_token, refresh_token } = session;
-        dispatch(setTokens({ accessToken: access_token, refreshToken: refresh_token }));
+        const { access_token } = session;
         try {
-          const user = await saveGoogleSessionToDatabase(access_token, refresh_token);
-          dispatch(setUser({ user, profileImage: user.picture }));
+          await dispatch<any>(validateToken(access_token)).unwrap();
         } catch (error) {
-          console.error('Erro ao salvar sessão no banco de dados:', error);
+          clearSession();
         }
       }
       setIsLoading(false);
@@ -50,3 +48,4 @@ const PrivateRoute = ({ children }: PrivateRouteProps) => {
 };
 
 export default PrivateRoute;
+

@@ -1,4 +1,3 @@
-// src/services/campaignService.ts
 import api from './api';
 import { Campaign } from '../types';
 

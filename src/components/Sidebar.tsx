@@ -2,10 +2,11 @@ import React, { useState } from 'react';
 import { RiDashboardLine, RiMoneyDollarCircleLine, RiFocusLine, RiLineChartFill } from 'react-icons/ri';
 import { Link, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
-import { RootState } from '../store/store';
-import './Sidebar.css';
+import { RootState } from '../store/index';
+import './styles/Sidebar.css';
 import { FaBars, FaSignOutAlt, FaUserCircle, FaCogs, FaLayerGroup, FaWallet } from 'react-icons/fa';
 import { logoutUser } from '../services/authService';
+import { selectProfileImage } from '../store/authSlice';
 
 interface SidebarProps {
   isOpen: boolean;
@@ -13,7 +14,7 @@ interface SidebarProps {
 }
 
 const Sidebar: React.FC<SidebarProps> = ({ isOpen, toggleSidebar }) => {
-  const profileImage = useSelector((state: RootState) => state.auth.profileImage);
+  const profileImage = useSelector(selectProfileImage);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const dispatch = useDispatch();
   const navigate = useNavigate();

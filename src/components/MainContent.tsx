@@ -1,6 +1,6 @@
 // MainContent.tsx
 import React from 'react';
-import './MainContent.css';
+import './styles/MainContent.css';
 
 const MainContent: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   return (
