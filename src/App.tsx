@@ -27,8 +27,10 @@ const App = () => {
       if (session) {
         const { access_token, refresh_token } = session;
         dispatch(setTokens({ accessToken: access_token, refreshToken: refresh_token }));
-        const user = JSON.parse(localStorage.getItem('user') || '{}');
-        dispatch(setUser({ user, profileImage: user.picture }));
+        const user = localStorage.getItem('user');
+        if (user && user !== 'undefined') {
+          dispatch(setUser({ user: JSON.parse(user), profileImage: JSON.parse(user).picture }));
+        }
       }
       setIsLoading(false);
     };
@@ -44,7 +46,7 @@ const App = () => {
         try {
           await dispatch<any>(validateToken(access_token));
         } catch (error) {
-          navigate('/login');
+          console.error('Token validation failed:', error);
         }
       }
     };
@@ -52,7 +54,7 @@ const App = () => {
     if (!isLoading && isAuthenticated) {
       validateUserToken();
     }
-  }, [location, isLoading, isAuthenticated, dispatch, navigate]);
+  }, [location, isLoading, isAuthenticated, dispatch]);
 
   if (isLoading) {
     return <div>Carregando...</div>;

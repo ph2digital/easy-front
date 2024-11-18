@@ -9,6 +9,8 @@ interface PrivateRouteProps {
   children: ReactNode;
 }
 
+const STORAGE_KEY = import.meta.env.VITE_STORAGE_KEY || 'default-auth-token';
+
 const PrivateRoute = ({ children }: PrivateRouteProps) => {
   const user = useSelector((state: RootState) => state.auth.user);
   const location = useLocation();
@@ -40,7 +42,7 @@ const PrivateRoute = ({ children }: PrivateRouteProps) => {
     return <div>Carregando...</div>;
   }
 
-  if (!user && !localStorage.getItem('auth-token')) {
+  if (!user && !localStorage.getItem(STORAGE_KEY)) {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 

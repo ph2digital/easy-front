@@ -1,5 +1,4 @@
-import { createSlice as reduxCreateSlice } from '@reduxjs/toolkit';
-import { createAsyncThunk as reduxCreateAsyncThunk } from '@reduxjs/toolkit';
+import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 
 // other imports and code
 
@@ -23,28 +22,15 @@ const accountSlice = createSlice({
 });
 
 export const updateAccount = createAsyncThunk(
+  'account/updateAccount',
+  async (accountData: { accountName: string; platform: string }) => {
+    // Example usage of accountData
+    const { accountName, platform } = accountData;
+    console.log(`Account Name: ${accountName}, Platform: ${platform}`);
+    // Your async logic here
+  }
+);
 
-    'account/updateAccount',
-  
-    async (accountData: { accountName: string; platform: string }) => {
-      // Example usage of accountData
-      const { accountName, platform } = accountData;
-      console.log(`Account Name: ${accountName}, Platform: ${platform}`);
-      // Your async logic here
-    }
-  
-  );export const accountReducer = accountSlice.reducer;
+export const accountReducer = accountSlice.reducer;
 
-function createSlice(options: {
-    name: string;
-    initialState: { accountName: string; platform: string; };
-    reducers: {
-        updateAccount: (state: any, action: any) => void;
-    };
-}) {
-    return reduxCreateSlice(options);
-}
-
-function createAsyncThunk(typePrefix: string, payloadCreator: (accountData: { accountName: string; platform: string }) => Promise<void>) {
-    return reduxCreateAsyncThunk(typePrefix, payloadCreator);
-}
+// Removed redefinitions of createSlice and createAsyncThunk

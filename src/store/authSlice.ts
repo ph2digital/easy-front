@@ -24,15 +24,12 @@ const initialState: AuthState = {
   error: null,
 };
 
-export const login = createAsyncThunk('auth/login', async (credentials: { email: string; password: string }) => {
-  const response = await axios.post(`${import.meta.env.VITE_API_URL}/auth/login`, credentials);
-  return response.data;
-});
-
 export const validateToken = createAsyncThunk('auth/validateToken', async (token: string) => {
   const response = await axios.post(`${import.meta.env.VITE_API_URL}/auth/validate-token`, { token });
   return response.data;
 });
+
+const STORAGE_KEY = import.meta.env.VITE_STORAGE_KEY || 'default-auth-token';
 
 const authSlice = createSlice({
   name: 'auth',
@@ -46,10 +43,13 @@ const authSlice = createSlice({
     setTokens: (state, action: PayloadAction<{ accessToken: string; refreshToken: string }>) => {
       state.accessToken = action.payload.accessToken;
       state.refreshToken = action.payload.refreshToken;
-      localStorage.setItem('auth-token', JSON.stringify({ access_token: state.accessToken, refresh_token: state.refreshToken }));
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ access_token: state.accessToken, refresh_token: state.refreshToken }));
       console.log('Tokens definidos:', state.accessToken, state.refreshToken);
     },
     setToken: (state, action: PayloadAction<string>) => {
+      state.token = action.payload;
+    },
+    setFacebookToken: (state, action: PayloadAction<string>) => {
       state.token = action.payload;
     },
     logout: (state) => {
@@ -60,32 +60,19 @@ const authSlice = createSlice({
       state.token = null;
       state.status = 'idle';
       state.error = null;
-      localStorage.removeItem('auth-token');
+      localStorage.removeItem(STORAGE_KEY);
       localStorage.removeItem('user');
       console.log('Estado de autenticação redefinido para logout');
     },
   },
   extraReducers: (builder) => {
     builder
-      .addCase(login.pending, (state) => {
-        state.status = 'loading';
-      })
-      .addCase(login.fulfilled, (state, action) => {
-        state.status = 'succeeded';
-        state.user = action.payload.user;
-        state.accessToken = action.payload.token;
-        state.profileImage = action.payload.user.picture; // Ensure profileImage is set
-        localStorage.setItem('user', JSON.stringify(action.payload.user)); // Store user info in local storage
-      })
-      .addCase(login.rejected, (state, action) => {
-        state.status = 'failed';
-        state.error = action.error.message ?? null;
-      })
       .addCase(validateToken.fulfilled, (state, action) => {
         state.user = action.payload.user;
         state.accessToken = action.payload.token;
         state.profileImage = action.payload.user.picture; // Ensure profileImage is set
         localStorage.setItem('user', JSON.stringify(action.payload.user)); // Store user info in local storage
+        localStorage.setItem(STORAGE_KEY, JSON.stringify({ access_token: action.payload.token, refresh_token: action.payload.refreshToken }));
         state.status = 'succeeded';
       })
       .addCase(validateToken.rejected, (state) => {
@@ -99,7 +86,7 @@ const authSlice = createSlice({
   },
 });
 
-export const { setUser, setTokens, setToken, logout } = authSlice.actions;
+export const { setUser, setTokens, setToken, logout, setFacebookToken } = authSlice.actions;
 
 // Selectors para acessar os dados de autenticação
 export const selectUser = (state: RootState) => state.auth.user;
@@ -109,5 +96,8 @@ export const selectRefreshToken = (state: RootState) => state.auth.refreshToken;
 
 // Selector to check if the user is authenticated
 export const selectIsAuthenticated = (state: RootState) => !!state.auth.accessToken;
+
+// Selector to get the user's email
+export const selectUserEmail = (state: RootState) => state.auth.user?.email;
 
 export default authSlice.reducer;

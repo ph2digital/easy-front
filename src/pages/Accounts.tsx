@@ -2,10 +2,13 @@
 
 import React, { useEffect, useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
+import axios from 'axios';
 import { selectAccessToken, logout } from '../store/authSlice';
 import { updateAccount } from '../store/accountSlice'; // Ensure this path is correct
 import { RootState, AppDispatch } from '../store';
 import { addCustomer, removeCustomer, setCustomers } from '../store/selectedCustomersSlice';
+import { setUser, setTokens } from '../store/authSlice';
+const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8080';
 
 interface Account {
   customerId: string;
@@ -112,17 +115,95 @@ const Accounts: React.FC = () => {
     }
   };
 
-  const linkMetaAds = async () => {
+  const fetchMetaAdsData = async (endpoint: string, setData: React.Dispatch<React.SetStateAction<any[]>>) => {
+    if (!accessToken) {
+      console.error('AccessToken não encontrado');
+      return;
+    }
+
+    setLoading(true);
     try {
-      const response = await fetch('http://localhost:8080/api/accounts/link/meta-ads', {
+      const response = await fetch(`http://localhost:8080/api/meta-ads/${endpoint}`, {
         method: 'GET',
-        credentials: 'include',
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
+        },
       });
-      if (response.redirected) {
-        window.location.href = response.url;
+
+      if (!response.ok) {
+        console.error(`Erro ao buscar ${endpoint}: ${response.status} - ${response.statusText}`);
+        throw new Error(`Erro ao buscar ${endpoint}: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      setData(data);
+    } catch (error) {
+      console.error(`Erro ao buscar ${endpoint}:`, error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const linkMetaAds = () => {
+    const clientId = process.env.REACT_APP_FACEBOOK_CLIENT_ID;
+    const redirectUri = process.env.REACT_APP_FACEBOOK_REDIRECT_URI;
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    const id = user.id;
+  
+    if (!clientId || !redirectUri || !id) {
+      console.error('Facebook OAuth environment variables are not set: ',clientId, redirectUri, id);
+      return;
+    }
+  
+    const metaOAuthURL = `https://www.facebook.com/v10.0/dialog/oauth?client_id=${clientId}&redirect_uri=${redirectUri}?id=${id}&response_type=code&scope=ads_management`;
+    const newWindow = window.open(metaOAuthURL, 'metaOAuth', 'width=600,height=400');
+  
+    const checkWindowClosed = setInterval(() => {
+      if (newWindow?.closed) {
+        clearInterval(checkWindowClosed);
+        fetchFacebookOAuthStatus();
+      }
+    }, 1000);
+  
+    const checkFacebookOAuthStatusInterval = setInterval(() => {
+      fetchFacebookOAuthStatus();
+    }, 60000); // Check every 1 minute
+  
+    window.addEventListener('message', (event) => {
+      if (event.origin !== window.location.origin) return;
+  
+      const { accessToken, user } = event.data;
+      if (accessToken && user) {
+        console.log('Facebook OAuth successful:', event.data);
+        // Save the response data in the frontend
+        dispatch(setTokens({ accessToken, refreshToken: '' }));
+        dispatch(setUser({ user, profileImage: user.picture.data.url }));
+        localStorage.setItem('user', JSON.stringify(user));
+        setSession(accessToken, '');
+        clearInterval(checkFacebookOAuthStatusInterval);
+        if (newWindow) {
+          newWindow.close();
+        }
+      }
+    });
+  };
+  
+  const fetchFacebookOAuthStatus = async () => {
+    try {
+      const response = await axios.get(`${API_URL}/auth/facebook-oauth-status`);
+      if (response.data.accessToken) {
+        console.log('Facebook OAuth successful:', response.data);
+        // Save the response data in the frontend
+        dispatch(setTokens({ accessToken: response.data.accessToken, refreshToken: '' }));
+        dispatch(setUser({ user: response.data.user, profileImage: response.data.user.picture.data.url }));
+        localStorage.setItem('user', JSON.stringify(response.data.user));
+        setSession(response.data.accessToken, '');
+      } else {
+        console.error('Facebook OAuth failed or not completed');
       }
     } catch (error) {
-      console.error('Erro ao iniciar o fluxo de autenticação do Meta Ads:', error);
+      console.error('Error fetching Facebook OAuth status:', error);
     }
   };
 
@@ -176,6 +257,15 @@ const Accounts: React.FC = () => {
     }
   };
 
+  const handleFetchUserEmail = () => {
+    const email = getUserEmailFromSession();
+    if (email) {
+      alert(`User email: ${email}`);
+    } else {
+      alert('No user email found');
+    }
+  };
+
   useEffect(() => {
     console.log('AccessToken verificado no useEffect:', accessToken);
     if (accessToken) {
@@ -215,6 +305,10 @@ const Accounts: React.FC = () => {
         <button onClick={() => fetchGoogleAdsDataForSelectedCustomers('keywords', setKeywords)}>Buscar Palavras-chave</button>
         <button onClick={() => fetchGoogleAdsDataForSelectedCustomers('locations', setLocations)}>Buscar Localizações</button>
         <button onClick={() => fetchGoogleAdsDataForSelectedCustomers('devices', setDevices)}>Buscar Dispositivos</button>
+        <button onClick={() => fetchMetaAdsData('campaigns', setCampaigns)}>Buscar Campanhas Meta Ads</button>
+        <button onClick={() => fetchMetaAdsData('adsets', setAdGroups)}>Buscar Conjuntos de Anúncios Meta Ads</button>
+        <button onClick={() => fetchMetaAdsData('ads', setAds)}>Buscar Anúncios Meta Ads</button>
+        <button onClick={handleFetchUserEmail}>Fetch User Email</button>
         <form onSubmit={handleSubmit}>
           <input
             type="text"
@@ -313,3 +407,18 @@ const Accounts: React.FC = () => {
 };
 
 export default Accounts;
+function getUserEmailFromSession(): string | null {
+  const session = sessionStorage.getItem('userSession');
+  if (session) {
+    const userSession = JSON.parse(session);
+    return userSession.email || null;
+  }
+  return null;
+}
+
+function setSession(accessToken: string, refreshToken: string) {
+  sessionStorage.setItem('accessToken', accessToken);
+  sessionStorage.setItem('refreshToken', refreshToken);
+}
+
+
