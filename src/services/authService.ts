@@ -179,3 +179,56 @@ export const linkMetaAds = (isLoggedIn: boolean) => {
     }
   });
 };
+
+export const fetchGoogleAdsAccounts = async (accessToken: string, userId: string) => {
+  const response = await api.get(`/accounts/google-ads/${userId}`, {
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+    },
+  });
+  return response.data;
+};
+
+export const fetchFacebookAdAccounts = async (accessToken: string, userId: string) => {
+  const response = await api.get(`/accounts/facebook-ads/${userId}`, {
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+    },
+  });
+  return response.data;
+};
+
+export const checkAdsAccounts = async (accessToken: string, userId: string) => {
+  const response = await api.get(`/accounts/customers/${userId}`, {
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+    },
+  });
+  return response.data;
+};
+
+export const checkFacebookAdAccounts = async (accessToken: string, userId: string) => {
+  const response = await api.get(`/accounts/facebook-ads/check/${userId}`, {
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+    },
+  });
+  return response.data;
+};
+
+export const activateAccount = async (accessToken: string, accountId: string, platform: string) => {
+  try {
+    const response = await axios.put(`${API_URL}/accounts/activate`, {
+      accountId,
+      platform,
+    }, {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error activating account:', error);
+    throw error;
+  }
+};

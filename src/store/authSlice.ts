@@ -12,6 +12,7 @@ interface AuthState {
   token: string | null;
   status: 'idle' | 'loading' | 'succeeded' | 'failed';
   error: string | null;
+  isCustomerLinked: boolean;
 }
 
 const initialState: AuthState = {
@@ -22,6 +23,7 @@ const initialState: AuthState = {
   token: null,
   status: 'idle',
   error: null,
+  isCustomerLinked: false,
 };
 
 export const validateToken = createAsyncThunk('auth/validateToken', async (token: string) => {
@@ -51,6 +53,9 @@ const authSlice = createSlice({
     },
     setFacebookToken: (state, action: PayloadAction<string>) => {
       state.token = action.payload;
+    },
+    setIsCustomerLinked: (state, action: PayloadAction<boolean>) => {
+      state.isCustomerLinked = action.payload;
     },
     logout: (state) => {
       state.user = null;
@@ -86,7 +91,7 @@ const authSlice = createSlice({
   },
 });
 
-export const { setUser, setTokens, setToken, logout, setFacebookToken } = authSlice.actions;
+export const { setUser, setTokens, setToken, logout, setFacebookToken, setIsCustomerLinked } = authSlice.actions;
 
 // Selectors para acessar os dados de autenticação
 export const selectUser = (state: RootState) => state.auth.user;
