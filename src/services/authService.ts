@@ -141,3 +141,38 @@ export const validateToken = async (token: string) => {
   return response.data;
 };
 
+export const linkMetaAds = (isLoggedIn: boolean) => {
+  const clientId = import.meta.env.VITE_FACEBOOK_CLIENT_ID;
+  const redirectUri = import.meta.env.VITE_FACEBOOK_REDIRECT_URI;
+  let metaOAuthURL = `https://www.facebook.com/v10.0/dialog/oauth?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=code&scope=ads_management`;
+
+
+  if (isLoggedIn) {
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    const id = user.id;
+
+    if (!clientId || !redirectUri || !id) {
+      console.error('Facebook OAuth environment variables are not set: ', clientId, redirectUri, id);
+      return;
+    }
+
+    metaOAuthURL = `https://www.facebook.com/v10.0/dialog/oauth?client_id=${clientId}&redirect_uri=${redirectUri}?id=${id}&response_type=code&scope=ads_management`;
+  }
+
+  const newWindow = window.open(metaOAuthURL, 'metaOAuth', 'width=600,height=400');
+
+  window.addEventListener('message', (event) => {
+    if (event.origin !== window.location.origin) return;
+
+    const { accessToken, user } = event.data;
+    if (accessToken && user) {
+      console.log('Facebook OAuth successful:', event.data);
+      // Save the response data in the frontend
+      setSession(accessToken, '');
+      localStorage.setItem('user', JSON.stringify(user));
+      if (newWindow) {
+        newWindow.close();
+      }
+    }
+  });
+};

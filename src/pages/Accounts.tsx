@@ -48,35 +48,43 @@ const Accounts: React.FC = () => {
       console.error('AccessToken não encontrado');
       return;
     }
-
+  
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    const userId = user.id;
+  
+    if (!userId) {
+      console.error('User ID não encontrado no local storage');
+      return;
+    }
+  
     setLoading(true);
     try {
       console.log('Iniciando requisição para buscar contas do Google Ads');
       console.log('AccessToken atual:', accessToken);
-
-      const response = await fetch('http://localhost:8080/api/accounts/google-ads/accounts', {
+  
+      const response = await fetch(`${API_URL}/accounts/${userId}`, {
         method: 'GET',
         headers: {
           Authorization: `Bearer ${accessToken}`,
           'Content-Type': 'application/json',
         },
       });
-
+  
       if (!response.ok) {
         console.error(`Erro ao buscar contas: ${response.status} - ${response.statusText}`);
         throw new Error(`Erro ao buscar contas: ${response.statusText}`);
       }
-
+  
       const data = await response.json();
       console.log('Contas obtidas do Google Ads:', data);
-
+  
       const accountsData = data.customerIds.map((customerId: string) => ({
         customerId,
         descriptiveName: `Conta ${customerId}`,
         currencyCode: 'BRL',
         timeZone: 'America/Sao_Paulo',
       }));
-
+  
       setAccounts(accountsData);
     } catch (error) {
       console.error('Erro ao buscar contas do Google Ads:', error);
@@ -159,17 +167,7 @@ const Accounts: React.FC = () => {
     const metaOAuthURL = `https://www.facebook.com/v10.0/dialog/oauth?client_id=${clientId}&redirect_uri=${redirectUri}?id=${id}&response_type=code&scope=ads_management`;
     const newWindow = window.open(metaOAuthURL, 'metaOAuth', 'width=600,height=400');
   
-    const checkWindowClosed = setInterval(() => {
-      if (newWindow?.closed) {
-        clearInterval(checkWindowClosed);
-        fetchFacebookOAuthStatus();
-      }
-    }, 1000);
-  
-    const checkFacebookOAuthStatusInterval = setInterval(() => {
-      fetchFacebookOAuthStatus();
-    }, 60000); // Check every 1 minute
-  
+
     window.addEventListener('message', (event) => {
       if (event.origin !== window.location.origin) return;
   
@@ -181,7 +179,6 @@ const Accounts: React.FC = () => {
         dispatch(setUser({ user, profileImage: user.picture.data.url }));
         localStorage.setItem('user', JSON.stringify(user));
         setSession(accessToken, '');
-        clearInterval(checkFacebookOAuthStatusInterval);
         if (newWindow) {
           newWindow.close();
         }
@@ -189,23 +186,7 @@ const Accounts: React.FC = () => {
     });
   };
   
-  const fetchFacebookOAuthStatus = async () => {
-    try {
-      const response = await axios.get(`${API_URL}/auth/facebook-oauth-status`);
-      if (response.data.accessToken) {
-        console.log('Facebook OAuth successful:', response.data);
-        // Save the response data in the frontend
-        dispatch(setTokens({ accessToken: response.data.accessToken, refreshToken: '' }));
-        dispatch(setUser({ user: response.data.user, profileImage: response.data.user.picture.data.url }));
-        localStorage.setItem('user', JSON.stringify(response.data.user));
-        setSession(response.data.accessToken, '');
-      } else {
-        console.error('Facebook OAuth failed or not completed');
-      }
-    } catch (error) {
-      console.error('Error fetching Facebook OAuth status:', error);
-    }
-  };
+
 
   const handleLogout = () => {
     dispatch(logout());
