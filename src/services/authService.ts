@@ -146,7 +146,6 @@ export const linkMetaAds = (isLoggedIn: boolean) => {
   const redirectUri = import.meta.env.VITE_FACEBOOK_REDIRECT_URI;
   let metaOAuthURL = `https://www.facebook.com/v10.0/dialog/oauth?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=code&scope=ads_management`;
 
-
   if (isLoggedIn) {
     const user = JSON.parse(localStorage.getItem('user') || '{}');
     const id = user.id;
@@ -162,16 +161,20 @@ export const linkMetaAds = (isLoggedIn: boolean) => {
   const newWindow = window.open(metaOAuthURL, 'metaOAuth', 'width=600,height=400');
 
   window.addEventListener('message', (event) => {
+    console.log('Mensagem recebida na janela:', event);
     if (event.origin !== window.location.origin) return;
 
-    const { accessToken, user } = event.data;
-    if (accessToken && user) {
-      console.log('Facebook OAuth successful:', event.data);
-      // Save the response data in the frontend
-      setSession(accessToken, '');
-      localStorage.setItem('user', JSON.stringify(user));
-      if (newWindow) {
-        newWindow.close();
+    const { accessToken, user, type } = event.data;
+    if (type === 'facebook-login') {
+      if (accessToken && user) {
+        console.log('Facebook OAuth successful:', event.data);
+        setSession(accessToken, '');
+        localStorage.setItem('user', JSON.stringify(user));
+        if (newWindow) {
+          newWindow.close();
+        }
+      } else {
+        console.error('Facebook OAuth failed:', event.data);
       }
     }
   });
