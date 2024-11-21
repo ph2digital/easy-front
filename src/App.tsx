@@ -13,6 +13,7 @@ import Profile from './pages/Profile';
 import PrivateRoute from './PrivateRoute';
 import Accounts from './pages/Accounts';
 import AuthCallback from './pages/AuthCallback';
+import CampaignDetails from './pages/CampaignDetails';
 
 const App = () => {
   const dispatch = useDispatch();
@@ -120,6 +121,14 @@ const App = () => {
         }
       />
       <Route path="/auth-callback" element={<AuthCallback />} />
+      <Route
+        path="/campaign-details/:id"
+        element={
+          <PrivateRoute>
+            <CampaignDetails />
+          </PrivateRoute>
+        }
+      />
     </Routes>
   );
 };

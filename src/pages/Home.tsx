@@ -1,19 +1,17 @@
 import React, { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
-import { FaEdit, FaChartLine } from 'react-icons/fa';
+import { FaEdit, FaChartLine, FaChevronDown, FaChevronUp } from 'react-icons/fa';
 import './styles/Home.css';
 import Sidebar from '../components/Sidebar';
 import { RootState } from '../store';
-import { checkAdsAccounts, checkFacebookAdAccounts, fetchGoogleAdsAccounts, fetchFacebookAdAccounts, activateAccount } from '../services/authService';
+import { checkAdsAccounts, fetchGoogleAdsAccounts, fetchFacebookAdAccounts, activateAccount, fetchMetaAdsCampaigns, fetchMetaAdsAdsets, fetchMetaAdsAds } from '../services/authService';
 import { setIsCustomerLinked } from '../store/authSlice';
-import './styles/Login.css';
-import { setUser, setTokens } from '../store/authSlice';
-import { signInWithGoogle, linkMetaAds } from '../services/authService'; // Ensure this path is correct
+import { signInWithGoogle, linkMetaAds } from '../services/authService';
 import easyAdsImage from '../assets/easy.jpg'; // Correct image import
 
 interface Campaign {
-  id: number;
+  id: string;
   name: string;
   platform: string;
   objective: string;
@@ -21,13 +19,26 @@ interface Campaign {
   status: string;
   startDate: string;
   endDate: string;
-} 
+  adsets?: Adset[];
+}
 
-const mockCampaigns: Campaign[] = [
-  { id: 1, name: 'Black Friday Sales', platform: 'Google Ads', objective: 'Conversions', budget: '$1,000', status: 'Active', startDate: '01/11/2024', endDate: '30/11/2024' },
-  { id: 2, name: 'Holiday Campaign', platform: 'Meta Ads', objective: 'Traffic', budget: '$2,500', status: 'Paused', startDate: '01/12/2024', endDate: '31/12/2024' },
-  { id: 3, name: 'New Year Promo', platform: 'TikTok Ads', objective: 'Engagement', budget: '$500', status: 'Scheduled', startDate: '01/01/2025', endDate: '31/01/2025' },
-];
+interface Adset {
+  id: string;
+  name: string;
+  status: string;
+  dailyBudget: string;
+  startDate: string;
+  endDate: string;
+  ads?: Ad[];
+}
+
+interface Ad {
+  id: string;
+  name: string;
+  status: string;
+  createdTime: string;
+  updatedTime: string;
+}
 
 const formatCurrency = (amount: string, currency: string) => {
   const number = parseFloat(amount) / 100; // Assuming the amount is in cents
@@ -37,39 +48,69 @@ const formatCurrency = (amount: string, currency: string) => {
 const Home: React.FC = () => {
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [googleAccounts, setGoogleAccounts] = useState<any[]>([]);
-  interface FacebookAccount {
-    id: string;
-    name: string;
-  }
-  
   const [facebookAccounts, setFacebookAccounts] = useState<any[]>([]);
+  const [activeCustomers, setActiveCustomers] = useState<any[]>([]);
+  const [expandedCampaigns, setExpandedCampaigns] = useState<string[]>([]);
+  const [expandedAdsets, setExpandedAdsets] = useState<string[]>([]);
   const navigate = useNavigate();
   const dispatch = useDispatch();
-  const accessToken = useSelector((state: RootState) => state.auth.accessToken);
-  const userId = useSelector((state: RootState) => state.auth.user?.id);
+  const accessToken: string | null = useSelector((state: RootState) => state.auth.accessToken);
+  const userId: string | undefined = useSelector((state: RootState) => state.auth.user?.id);
   const isCustomerLinked = useSelector((state: RootState) => state.auth.isCustomerLinked);
   const [showPopup, setShowPopup] = useState(false);
   const [loadingGoogleAccounts, setLoadingGoogleAccounts] = useState(true);
   const [loadingFacebookAccounts, setLoadingFacebookAccounts] = useState(true);
 
   useEffect(() => {
-    // Simula a chamada à API com um mockup
-    setTimeout(() => {
-      setCampaigns(mockCampaigns);
-    }, 1000);
-  }, []);
+    const fetchCampaigns = async () => {
+      const storedActiveCustomers = JSON.parse(localStorage.getItem('activeCustomers') || '[]');
+      setActiveCustomers(storedActiveCustomers);
+
+      if (storedActiveCustomers.length > 0) {
+        const campaignsData: Campaign[] = [];
+        for (const customer of storedActiveCustomers) {
+          if (customer.type === 'meta_ads') {
+            if (accessToken) {
+              try {
+                const campaignsResponse = await fetchMetaAdsCampaigns(accessToken, customer.customer_id);
+
+                const campaignsWithDetails = campaignsResponse.map((campaign: any) => ({
+                  id: campaign.id,
+                  name: campaign.name,
+                  platform: 'Meta Ads',
+                  objective: campaign.objective,
+                  budget: 'N/A',
+                  status: campaign.status,
+                  startDate: campaign.created_time,
+                  endDate: campaign.updated_time,
+                }));
+
+                campaignsData.push(...campaignsWithDetails);
+              } catch (error) {
+                console.error('Error fetching campaigns:', error);
+              }
+            }
+          }
+        }
+        setCampaigns(campaignsData);
+      }
+    };
+
+    fetchCampaigns();
+  }, [accessToken, isCustomerLinked]);
 
   const handleFacebookLogin = () => {
     console.log('Iniciando login com Facebook...');
     linkMetaAds(false);
   };
-  
+
   const checkActiveCustomers = async () => {
     if (accessToken && userId) {
       try {
         console.log('Checking active customers...');
-        const response = await checkAdsAccounts(accessToken,userId);
+        const response = await checkAdsAccounts(accessToken, userId);
         console.log('Active customers:', response);
+        localStorage.setItem('activeCustomers', JSON.stringify(response.linked_customers));
         return response.linked_customers.length > 0;
       } catch (error) {
         console.error('Error checking active customers:', error);
@@ -99,11 +140,11 @@ const Home: React.FC = () => {
     }
   };
 
-  const fetchLinkedAccountsMeta= async () => {
-    if (accessToken&&userId) {
+  const fetchLinkedAccountsMeta = async () => {
+    if (accessToken && userId) {
       try {
         console.log('Fetching Facebook Ad accounts...');
-        const facebookAdAccounts = await fetchFacebookAdAccounts(accessToken,userId);
+        const facebookAdAccounts = await fetchFacebookAdAccounts(accessToken, userId);
         console.log('Facebook Ad accounts fetched:', facebookAdAccounts);
         setFacebookAccounts(facebookAdAccounts.adAccounts);
         localStorage.setItem('facebookAccounts', JSON.stringify(facebookAdAccounts.adAccounts));
@@ -132,16 +173,16 @@ const Home: React.FC = () => {
     checkLinkedAccounts();
   }, [accessToken, userId, dispatch]);
 
-  const handleEdit = (id: number) => {
+  const handleEdit = (id: string) => {
     console.log(`Editando campanha ${id}`);
   };
 
-  const handleViewReports = (id: number) => {
+  const handleViewReports = (id: string) => {
     console.log(`Visualizando relatórios da campanha ${id}`);
   };
 
-  const handleCampaignClick = (id: number) => {
-    navigate(`/configurations/${id}`);
+  const handleCampaignClick = (id: string) => {
+    navigate(`/campaign-details/${id}`);
   };
 
   const handleActivateAccount = async (accountId: string, platform: string) => {
@@ -161,6 +202,50 @@ const Home: React.FC = () => {
     }
   };
 
+  const toggleCampaign = (campaignId: string) => {
+    setExpandedCampaigns((prev) =>
+      prev.includes(campaignId) ? prev.filter((id) => id !== campaignId) : [...prev, campaignId]
+    );
+  };
+
+  const toggleAdset = async (adsetId: string, campaignId: string) => {
+    if (!expandedAdsets.includes(adsetId)) {
+      try {
+        const adsetsResponse = await fetchMetaAdsAdsets(accessToken!, campaignId);
+        const adsResponse = await fetchMetaAdsAds(accessToken!, campaignId);
+
+        const adsetsWithDetails = adsetsResponse.filter((adset: any) => adset.campaign_id === campaignId).map((adset: any) => ({
+          id: adset.id,
+          name: adset.name,
+          status: adset.status,
+          dailyBudget: adset.daily_budget,
+          startDate: adset.created_time,
+          endDate: adset.updated_time,
+          ads: adsResponse.filter((ad: any) => ad.adset_id === adset.id).map((ad: any) => ({
+            id: ad.id,
+            name: ad.name,
+            status: ad.status,
+            createdTime: ad.created_time,
+            updatedTime: ad.updated_time,
+          })),
+        }));
+
+        setCampaigns((prevCampaigns) =>
+          prevCampaigns.map((campaign) =>
+            campaign.id === campaignId
+              ? { ...campaign, adsets: adsetsWithDetails }
+              : campaign
+          )
+        );
+      } catch (error) {
+        console.error('Error fetching adsets:', error);
+      }
+    }
+
+    setExpandedAdsets((prev) =>
+      prev.includes(adsetId) ? prev.filter((id) => id !== adsetId) : [...prev, adsetId]
+    );
+  };
 
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
@@ -242,31 +327,84 @@ const Home: React.FC = () => {
                 <th>Status</th>
                 <th>Período</th>
                 <th>Ações</th>
+                <th>Expandir</th>
               </tr>
             </thead>
             <tbody>
               {campaigns.map((campaign) => (
-                <tr key={campaign.id}>
-                  <td>{campaign.id}</td>
-                  <td onClick={() => handleCampaignClick(campaign.id)} className="campaign-name">
-                    {campaign.name}
-                  </td>
-                  <td>{campaign.platform}</td>
-                  <td>{campaign.objective}</td>
-                  <td>{campaign.budget}</td>
-                  <td>
-                    <span className={`status ${campaign.status.toLowerCase()}`}>{campaign.status}</span>
-                  </td>
-                  <td>{campaign.startDate} - {campaign.endDate}</td>
-                  <td>
-                    <button className="action-button edit" onClick={() => handleEdit(campaign.id)}>
-                      <FaEdit /> Editar
-                    </button>
-                    <button className="action-button report" onClick={() => handleViewReports(campaign.id)}>
-                      <FaChartLine /> Relatórios
-                    </button>
-                  </td>
-                </tr>
+                <React.Fragment key={campaign.id}>
+                  <tr>
+                    <td>{campaign.id}</td>
+                    <td onClick={() => handleCampaignClick(campaign.id)} className="campaign-name">
+                      {campaign.name}
+                    </td>
+                    <td>{campaign.platform}</td>
+                    <td>{campaign.objective}</td>
+                    <td>{campaign.budget}</td>
+                    <td>
+                      <span className={`status ${campaign.status.toLowerCase()}`}>{campaign.status}</span>
+                    </td>
+                    <td>{campaign.startDate} - {campaign.endDate}</td>
+                    <td>
+                      <button className="action-button edit" onClick={() => handleEdit(campaign.id)}>
+                        <FaEdit /> Editar
+                      </button>
+                      <button className="action-button report" onClick={() => handleViewReports(campaign.id)}>
+                        <FaChartLine /> Relatórios
+                      </button>
+                    </td>
+                    <td>
+                      <button onClick={() => toggleCampaign(campaign.id)}>
+                        {expandedCampaigns.includes(campaign.id) ? <FaChevronUp /> : <FaChevronDown />}
+                      </button>
+                    </td>
+                  </tr>
+                  {expandedCampaigns.includes(campaign.id) && campaign.adsets && campaign.adsets.map((adset) => (
+                    <React.Fragment key={adset.id}>
+                      <tr className="adset-row">
+                        <td colSpan={9}>
+                          <div className="adset-details">
+                            <div className="adset-header" onClick={() => toggleAdset(adset.id, campaign.id)}>
+                              <span>{adset.name}</span>
+                              <span>{adset.status}</span>
+                              <span>{adset.dailyBudget}</span>
+                              <span>{adset.startDate} - {adset.endDate}</span>
+                              <button>
+                                {expandedAdsets.includes(adset.id) ? <FaChevronUp /> : <FaChevronDown />}
+                              </button>
+                            </div>
+                            {expandedAdsets.includes(adset.id) && adset.ads && (
+                              <div className="ads-details">
+                                <table>
+                                  <thead>
+                                    <tr>
+                                      <th>ID</th>
+                                      <th>Nome</th>
+                                      <th>Status</th>
+                                      <th>Criado em</th>
+                                      <th>Atualizado em</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody>
+                                    {adset.ads.map((ad) => (
+                                      <tr key={ad.id}>
+                                        <td>{ad.id}</td>
+                                        <td>{ad.name}</td>
+                                        <td>{ad.status}</td>
+                                        <td>{ad.createdTime}</td>
+                                        <td>{ad.updatedTime}</td>
+                                      </tr>
+                                    ))}
+                                  </tbody>
+                                </table>
+                              </div>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    </React.Fragment>
+                  ))}
+                </React.Fragment>
               ))}
             </tbody>
           </table>

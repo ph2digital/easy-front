@@ -200,7 +200,7 @@
   color: #333;
 }
 
-.close-button:hover {
+close-button:hover {
   color: #e74c3c;
 }
 
@@ -247,4 +247,49 @@
 
 .link-buttons button:hover {
   background-color: #005bb5;
+}
+
+.adset-row {
+  background-color: #f9fafb;
+}
+
+.adset-details {
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 5px;
+  margin-top: 10px;
+}
+
+.adset-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+}
+
+.ads-details {
+  margin-top: 10px;
+}
+
+.ads-details table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.ads-details th,
+.ads-details td {
+  padding: 8px;
+  text-align: left;
+  border: 1px solid #ddd;
+}
+
+.ads-details th {
+  background-color: #f4f6f8;
+  font-weight: 600;
+  color: #333;
+}
+
+.ads-details td {
+  background-color: #fff;
+  color: #555;
 }

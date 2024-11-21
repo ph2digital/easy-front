@@ -232,3 +232,95 @@ export const activateAccount = async (accessToken: string, accountId: string, pl
     throw error;
   }
 };
+
+export const fetchMetaAdsCampaigns = async (accessToken: string, accountId: string) => {
+  try {
+    const response = await api.get(`/meta-ads/${accountId}/campaigns`, {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    });
+    return response.data;
+  } catch (error) {
+    if (axios.isAxiosError(error)) {
+      console.error('Error fetching Meta Ads campaigns:', error.response ? error.response.data : error.message);
+    } else {
+      console.error('Error fetching Meta Ads campaigns:', error);
+    }
+    throw error;
+  }
+};
+
+export const fetchMetaAdsAdsets = async (accessToken: string, campaignId: string) => {
+  const response = await api.get(`/meta-ads/campaigns/${campaignId}/adsets`, {
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+    },
+  });
+  return response.data;
+};
+
+export const fetchMetaAdsAds = async (accessToken: string, adsetId: string) => {
+  const response = await api.get(`/meta-ads/adsets/${adsetId}/ads`, {
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+    },
+  });
+  return response.data;
+};
+
+export const fetchMetaAdsCampaignDetails = async (accessToken: string, campaignId: string) => {
+  try {
+    const response = await api.get(`/meta-ads/campaigns/${campaignId}`, {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching Meta Ads campaign details:', error);
+    throw error;
+  }
+};
+
+export const fetchMetaAdsAdsetDetails = async (accessToken: string, adsetId: string) => {
+  try {
+    const response = await api.get(`/meta-ads/adsets/${adsetId}`, {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching Meta Ads adset details:', error);
+    throw error;
+  }
+};
+
+export const fetchMetaAdsAdDetails = async (accessToken: string, adId: string) => {
+  try {
+    const response = await api.get(`/meta-ads/ads/${adId}`, {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching Meta Ads ad details:', error);
+    throw error;
+  }
+};
+
+export const fetchMetaAdsFullAdDetails = async (accessToken: string, adId: string) => {
+  try {
+    const response = await api.get(`/meta-ads/ads/full/${adId}`, {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching Meta Ads full ad details:', error);
+    throw error;
+  }
+};
