@@ -33,9 +33,12 @@ const campaignSlice = createSlice({
             state.error = action.payload;
             state.loading = false;
         },
+        createCampaign(state, action: PayloadAction<Campaign>) {
+            state.campaigns.push(action.payload);
+        },
     },
 });
 
 // Export the actions and reducer
-export const { fetchCampaignsStart, fetchCampaignsSuccess, fetchCampaignsFailure } = campaignSlice.actions;
+export const { fetchCampaignsStart, fetchCampaignsSuccess, fetchCampaignsFailure, createCampaign } = campaignSlice.actions;
 export default campaignSlice.reducer;

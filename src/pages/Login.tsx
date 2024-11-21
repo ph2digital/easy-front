@@ -2,7 +2,7 @@ import './styles/Login.css';
 import { useEffect } from 'react';
 import { useDispatch } from 'react-redux';
 import { setUser, setTokens } from '../store/authSlice';
-import { signInWithGoogle, linkMetaAds } from '../services/authService'; // Ensure this path is correct
+import { signInWithGoogle, linkMetaAds } from '../services/api'; // Ensure this path is correct
 import easyAdsImage from '../assets/easy.jpg'; // Correct image import
 
 const Login = () => {

@@ -293,3 +293,15 @@ close-button:hover {
   background-color: #fff;
   color: #555;
 }
+
+.expanded-row {
+  background-color: #f9fafb;
+}
+
+.expanded-content {
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 5px;
+  margin-top: 10px;
+  background-color: #fff;
+}

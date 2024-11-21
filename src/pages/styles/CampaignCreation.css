@@ -1,0 +1,45 @@
+.campaign-creation {
+    padding: 20px;
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+.mode-buttons button {
+    margin-right: 10px;
+}
+
+.campaign-form {
+    margin-top: 20px;
+}
+
+.campaign-form label {
+    display: block;
+    margin-top: 10px;
+}
+
+.campaign-form input {
+    width: 100%;
+    padding: 8px;
+    margin-top: 5px;
+}
+
+.ad-form {
+    margin-top: 20px;
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+}
+
+.create-campaign-button {
+    margin-top: 20px;
+    padding: 10px 20px;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+.create-campaign-button:hover {
+    background-color: #0056b3;
+}

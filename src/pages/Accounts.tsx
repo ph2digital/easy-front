@@ -4,6 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import axios from 'axios';
 import { selectAccessToken, logout } from '../store/authSlice';
+import { createMetaAdsCampaign,createFacebookAdAccount,createFacebookBusinessManager } from '../services/api';
 import { updateAccount } from '../store/accountSlice'; // Ensure this path is correct
 import { RootState, AppDispatch } from '../store';
 import { addCustomer, removeCustomer, setCustomers } from '../store/selectedCustomersSlice';
@@ -187,6 +188,66 @@ const Accounts: React.FC = () => {
   };
   
 
+  const handleCreateMetaAdsCampaign = async () => {
+    const campaignData = {
+      name: 'New Campaign',
+      objective: 'LINK_CLICKS',
+      status: 'PAUSED',
+      // Add other necessary campaign data here
+    };
+  
+    try {
+      if (accessToken) {
+        const response = await createMetaAdsCampaign(accessToken, campaignData);
+        console.log('Campanha criada com sucesso:', response);
+      } else {
+        console.error('AccessToken não encontrado');
+      }
+    } catch (error) {
+      console.error('Erro ao criar campanha do Meta Ads:', error);
+    }
+  };
+  
+
+  const handleCreateFacebookBusinessManager = async () => {
+    const businessData = {
+      name: 'New Business',
+      vertical: 'ADVERTISING',
+      // Add other necessary business data here
+    };
+  
+    try {
+      if (accessToken && user) {
+        const response = await createFacebookBusinessManager(accessToken, user.id, businessData);
+        console.log('Business Manager criado com sucesso:', response);
+      } else {
+        console.error('AccessToken ou User não encontrado');
+      }
+    } catch (error) {
+      console.error('Erro ao criar Business Manager do Facebook:', error);
+    }
+  };
+  
+  const handleCreateFacebookAdAccount = async (businessId: string) => {
+    const adAccountData = {
+      name: 'New Ad Account',
+      currency: 'USD',
+      timezone_id: 1,
+      // Add other necessary ad account data here
+    };
+  
+    try {
+      if (accessToken) {
+        const response = await createFacebookAdAccount(accessToken, businessId, adAccountData);
+        console.log('Ad Account criada com sucesso:', response);
+      } else {
+        console.error('AccessToken não encontrado');
+      }
+    } catch (error) {
+      console.error('Erro ao criar Ad Account do Facebook:', error);
+    }
+  };
+  
 
   const handleLogout = () => {
     dispatch(logout());
@@ -289,6 +350,9 @@ const Accounts: React.FC = () => {
         <button onClick={() => fetchMetaAdsData('campaigns', setCampaigns)}>Buscar Campanhas Meta Ads</button>
         <button onClick={() => fetchMetaAdsData('adsets', setAdGroups)}>Buscar Conjuntos de Anúncios Meta Ads</button>
         <button onClick={() => fetchMetaAdsData('ads', setAds)}>Buscar Anúncios Meta Ads</button>
+        <button onClick={handleCreateMetaAdsCampaign}>Criar Campanha Meta Ads</button>
+        <button onClick={handleCreateFacebookBusinessManager}>Criar Business Manager do Facebook</button>
+        <button onClick={() => handleCreateFacebookAdAccount('business-id')}>Criar Ad Account do Facebook</button>
         <button onClick={handleFetchUserEmail}>Fetch User Email</button>
         <form onSubmit={handleSubmit}>
           <input

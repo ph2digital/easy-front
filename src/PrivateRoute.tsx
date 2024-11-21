@@ -3,7 +3,7 @@ import { useSelector, useDispatch } from 'react-redux';
 import { Navigate, useLocation } from 'react-router-dom';
 import { RootState } from './store/index';
 import { validateToken } from './store/authSlice';
-import { getSessionFromLocalStorage, clearSession } from './services/authService';
+import { getSessionFromLocalStorage, clearSession } from './services/api';
 
 interface PrivateRouteProps {
   children: ReactNode;

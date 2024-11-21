@@ -3,7 +3,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
 import { useNavigate } from 'react-router-dom';
 import { setUser, setTokens, selectIsAuthenticated, validateToken } from './store/authSlice';
-import { getSessionFromLocalStorage } from './services/authService';
+import { getSessionFromLocalStorage } from './services/api';
 import Home from './pages/Home';
 import Login from './pages/Login';
 import Campaigns from './pages/Campaigns';
@@ -14,6 +14,7 @@ import PrivateRoute from './PrivateRoute';
 import Accounts from './pages/Accounts';
 import AuthCallback from './pages/AuthCallback';
 import CampaignDetails from './pages/CampaignDetails';
+import CampaignCreation from './pages/CampaignCreation';
 
 const App = () => {
   const dispatch = useDispatch();
@@ -129,8 +130,23 @@ const App = () => {
           </PrivateRoute>
         }
       />
+      <Route
+        path="/create-campaign"
+        element={
+          <PrivateRoute>
+            <CampaignCreation />
+          </PrivateRoute>
+        }
+      />
     </Routes>
   );
 };
 
 export default App;
+
+
+
+
+
+
+

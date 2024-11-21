@@ -5,9 +5,8 @@ import { FaEdit, FaChartLine, FaChevronDown, FaChevronUp } from 'react-icons/fa'
 import './styles/Home.css';
 import Sidebar from '../components/Sidebar';
 import { RootState } from '../store';
-import { checkAdsAccounts, fetchGoogleAdsAccounts, fetchFacebookAdAccounts, activateAccount, fetchMetaAdsCampaigns, fetchMetaAdsAdsets, fetchMetaAdsAds } from '../services/authService';
+import { checkAdsAccounts, fetchGoogleAdsAccounts, fetchFacebookAdAccounts, activateAccount, fetchMetaAdsCampaigns, fetchMetaAdsAdsets, fetchMetaAdsAds, signInWithGoogle, linkMetaAds } from '../services/api';
 import { setIsCustomerLinked } from '../store/authSlice';
-import { signInWithGoogle, linkMetaAds } from '../services/authService';
 import easyAdsImage from '../assets/easy.jpg'; // Correct image import
 
 interface Campaign {
@@ -19,6 +18,14 @@ interface Campaign {
   status: string;
   startDate: string;
   endDate: string;
+  impressions: string;
+  clicks: string;
+  spend: string;
+  ctr: string;
+  cpc: string;
+  cpm: string;
+  reach: string;
+  frequency: string;
   adsets?: Adset[];
 }
 
@@ -74,16 +81,27 @@ const Home: React.FC = () => {
               try {
                 const campaignsResponse = await fetchMetaAdsCampaigns(accessToken, customer.customer_id);
 
-                const campaignsWithDetails = campaignsResponse.map((campaign: any) => ({
-                  id: campaign.id,
-                  name: campaign.name,
-                  platform: 'Meta Ads',
-                  objective: campaign.objective,
-                  budget: 'N/A',
-                  status: campaign.status,
-                  startDate: campaign.created_time,
-                  endDate: campaign.updated_time,
-                }));
+                const campaignsWithDetails = campaignsResponse.map((campaign: any) => {
+                  const insights = campaign.insights?.data?.[0] || {};
+                  return {
+                    id: campaign.id,
+                    name: campaign.name,
+                    platform: 'Meta Ads',
+                    objective: campaign.objective,
+                    budget: campaign.daily_budget,
+                    status: campaign.status,
+                    startDate: campaign.start_time,
+                    endDate: campaign.updated_time,
+                    impressions: insights.impressions || 'N/A',
+                    clicks: insights.clicks || 'N/A',
+                    spend: insights.spend || 'N/A',
+                    ctr: insights.ctr || 'N/A',
+                    cpc: insights.cpc || 'N/A',
+                    cpm: insights.cpm || 'N/A',
+                    reach: insights.reach || 'N/A',
+                    frequency: insights.frequency || 'N/A',
+                  };
+                });
 
                 campaignsData.push(...campaignsWithDetails);
               } catch (error) {
@@ -319,22 +337,20 @@ const Home: React.FC = () => {
           <table className="campaign-table">
             <thead>
               <tr>
-                <th>ID</th>
                 <th>Campanha</th>
                 <th>Plataforma</th>
                 <th>Objetivo</th>
                 <th>Orçamento</th>
                 <th>Status</th>
                 <th>Período</th>
+                <th>Impressões</th>
                 <th>Ações</th>
-                <th>Expandir</th>
               </tr>
             </thead>
             <tbody>
               {campaigns.map((campaign) => (
                 <React.Fragment key={campaign.id}>
                   <tr>
-                    <td>{campaign.id}</td>
                     <td onClick={() => handleCampaignClick(campaign.id)} className="campaign-name">
                       {campaign.name}
                     </td>
@@ -345,6 +361,7 @@ const Home: React.FC = () => {
                       <span className={`status ${campaign.status.toLowerCase()}`}>{campaign.status}</span>
                     </td>
                     <td>{campaign.startDate} - {campaign.endDate}</td>
+                    <td>{campaign.impressions}</td>
                     <td>
                       <button className="action-button edit" onClick={() => handleEdit(campaign.id)}>
                         <FaEdit /> Editar
@@ -352,58 +369,25 @@ const Home: React.FC = () => {
                       <button className="action-button report" onClick={() => handleViewReports(campaign.id)}>
                         <FaChartLine /> Relatórios
                       </button>
-                    </td>
-                    <td>
                       <button onClick={() => toggleCampaign(campaign.id)}>
                         {expandedCampaigns.includes(campaign.id) ? <FaChevronUp /> : <FaChevronDown />}
                       </button>
                     </td>
                   </tr>
-                  {expandedCampaigns.includes(campaign.id) && campaign.adsets && campaign.adsets.map((adset) => (
-                    <React.Fragment key={adset.id}>
-                      <tr className="adset-row">
-                        <td colSpan={9}>
-                          <div className="adset-details">
-                            <div className="adset-header" onClick={() => toggleAdset(adset.id, campaign.id)}>
-                              <span>{adset.name}</span>
-                              <span>{adset.status}</span>
-                              <span>{adset.dailyBudget}</span>
-                              <span>{adset.startDate} - {adset.endDate}</span>
-                              <button>
-                                {expandedAdsets.includes(adset.id) ? <FaChevronUp /> : <FaChevronDown />}
-                              </button>
-                            </div>
-                            {expandedAdsets.includes(adset.id) && adset.ads && (
-                              <div className="ads-details">
-                                <table>
-                                  <thead>
-                                    <tr>
-                                      <th>ID</th>
-                                      <th>Nome</th>
-                                      <th>Status</th>
-                                      <th>Criado em</th>
-                                      <th>Atualizado em</th>
-                                    </tr>
-                                  </thead>
-                                  <tbody>
-                                    {adset.ads.map((ad) => (
-                                      <tr key={ad.id}>
-                                        <td>{ad.id}</td>
-                                        <td>{ad.name}</td>
-                                        <td>{ad.status}</td>
-                                        <td>{ad.createdTime}</td>
-                                        <td>{ad.updatedTime}</td>
-                                      </tr>
-                                    ))}
-                                  </tbody>
-                                </table>
-                              </div>
-                            )}
-                          </div>
-                        </td>
-                      </tr>
-                    </React.Fragment>
-                  ))}
+                  {expandedCampaigns.includes(campaign.id) && (
+                    <tr>
+                      <td colSpan={8}>
+                        <div className="expanded-content">
+                          <p><strong>Gastos:</strong> {campaign.spend}</p>
+                          <p><strong>CTR:</strong> {campaign.ctr}</p>
+                          <p><strong>CPC:</strong> {campaign.cpc}</p>
+                          <p><strong>CPM:</strong> {campaign.cpm}</p>
+                          <p><strong>Alcance:</strong> {campaign.reach}</p>
+                          <p><strong>Frequência:</strong> {campaign.frequency}</p>
+                        </div>
+                      </td>
+                    </tr>
+                  )}
                 </React.Fragment>
               ))}
             </tbody>
