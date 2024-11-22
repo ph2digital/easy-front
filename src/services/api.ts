@@ -342,6 +342,20 @@ export const createMetaAdsCampaign = async (accessToken: string, campaignData: a
     }
 };
 
+export const createMetaAdsAd = async (accessToken: string, adData: any) => {
+    try {
+        const response = await axios.post(`${API_URL}/meta-ads/create-ad`, adData, {
+            headers: {
+                Authorization: `Bearer ${accessToken}`,
+            },
+        });
+        return response.data;
+    } catch (error) {
+        console.error('Erro ao criar anúncio no Meta Ads:', error);
+        throw new Error('Erro ao criar anúncio no Meta Ads');
+    }
+};
+
 export const createFacebookBusinessManager = async (accessToken: string, userId: string, businessData: any) => {
     try {
         const response = await axios.post(`https://graph.facebook.com/v14.0/${userId}/businesses`, businessData, {
@@ -370,9 +384,13 @@ export const createFacebookAdAccount = async (accessToken: string, businessId: s
     }
 };
 
-export const createCampaign = async (accessToken: string,campaignData: any) => {
+export const createCampaign = async (accessToken: string, campaignData: any) => {
     try {
-        const response = await api.post('/meta-ads/create-campaign', campaignData,{
+        const response = await api.post('/meta-ads/create-campaign', {
+            ...campaignData,
+            startDate: new Date(campaignData.startDate).toISOString(),
+            endDate: new Date(campaignData.endDate).toISOString()
+        }, {
             headers: {
                 Authorization: `Bearer ${accessToken}`,
             },
@@ -381,6 +399,121 @@ export const createCampaign = async (accessToken: string,campaignData: any) => {
     } catch (error) {
         console.error('Erro ao criar campanha:', error);
         throw new Error('Erro ao criar campanha');
+    }
+};
+
+export const updateMetaAdsCampaign = async (campaignId: string, campaignData: any) => {
+    try {
+        const response = await api.put(`/meta-ads/campaigns/${campaignId}`, campaignData, {
+            headers: {
+                Authorization: `Bearer ${localStorage.getItem('accessToken')}`,
+            },
+        });
+        return response.data;
+    } catch (error) {
+        console.error('Erro ao atualizar campanha:', error);
+        throw new Error('Erro ao atualizar campanha');
+    }
+};
+
+export const createGuidedCampaign = async (accessToken: string, campaignData: any) => {
+    try {
+        const response = await axios.post(`${API_URL}/meta-ads/campaigns/create-guided`, campaignData, {
+            headers: {
+                Authorization: `Bearer ${accessToken}`,
+            },
+        });
+        return response.data;
+    } catch (error) {
+        console.error('Erro ao criar campanha guiada:', error);
+        throw new Error('Erro ao criar campanha guiada');
+    }
+};
+
+export const createAutomaticCampaign = async (accessToken: string, campaignData: any) => {
+    try {
+        const response = await axios.post(`${API_URL}/meta-ads/campaigns/create-automatic`, campaignData, {
+            headers: {
+                Authorization: `Bearer ${accessToken}`,
+            },
+        });
+        return response.data;
+    } catch (error) {
+        console.error('Erro ao criar campanha automática:', error);
+        throw new Error('Erro ao criar campanha automática');
+    }
+};
+
+
+export const uploadCreativeFiles = async (accessToken: string, customerId: string, files: File[], pageId: string, link: string, message: string) => {
+    const formData = new FormData();
+    files.forEach(file => formData.append('files', file));
+    formData.append('page_id', pageId);
+    formData.append('link', link);
+    formData.append('message', message);
+
+    try {
+        console.info(`Enviando ${files.length} arquivos para ${API_URL}/meta-ads/creatives/upload...`);
+
+        const response = await axios.post(`${API_URL}/meta-ads/${customerId}/creatives/upload`, formData, {
+            headers: {
+                Authorization: `Bearer ${accessToken}`,
+                'Content-Type': 'multipart/form-data',
+            },
+        });
+
+        console.info('Resposta da API:', response.data);
+        return response.data; // Retorna a resposta da API
+    } catch (error) {
+        if (axios.isAxiosError(error)) {
+            console.error('Erro durante o upload para a API do Meta Ads:', error.response?.data || error.message);
+            throw new Error(error.response?.data?.error || 'Erro ao fazer upload dos arquivos.');
+        }
+        console.error('Erro inesperado durante o upload:', error);
+        throw new Error('Erro inesperado durante o upload dos arquivos.');
+    }
+};
+
+
+export const requestCreativeBasedOnCompetitor = async (accessToken: string, competitorAdId: string) => {
+    try {
+        const response = await axios.post(`${API_URL}/meta-ads/creatives/request`, { competitorAdId }, {
+            headers: {
+                Authorization: `Bearer ${accessToken}`,
+            },
+        });
+        return response.data;
+    } catch (error) {
+        console.error('Erro ao solicitar criativo baseado em concorrente:', error);
+        throw new Error('Erro ao solicitar criativo baseado em concorrente');
+    }
+};
+
+export const createAdSet = async (accessToken: string, adSetData: any) => {
+    try {
+        const response = await axios.post(`${API_URL}/meta-ads/create-adset`, adSetData, {
+            headers: {
+                Authorization: `Bearer ${accessToken}`,
+            },
+        });
+        return response.data;
+    } catch (error) {
+        console.error('Erro ao criar conjunto de anúncios no Meta Ads:', error);
+        throw new Error('Erro ao criar conjunto de anúncios no Meta Ads');
+    }
+};
+
+export const createAd = async (accessToken: string, adData: any) => {
+    try {
+        const response = await axios.post(`${API_URL}/meta-ads/create-ad`, adData, {
+            headers: {
+                Authorization: `Bearer ${accessToken}`,
+            },
+        });
+        return response.data;
+    } catch (error) {
+        console.error('Erro ao criar anúncio no Meta Ads:', error);
+        throw new Error('Erro ao criar anúncio no Meta Ads');
     }
 };
 

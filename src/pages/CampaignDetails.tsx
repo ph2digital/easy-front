@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
-import { fetchMetaAdsCampaignDetails, fetchMetaAdsAdsets, fetchMetaAdsAds, fetchMetaAdsAdDetails } from '../services/api';
+import { useParams, useNavigate } from 'react-router-dom';
+import { fetchMetaAdsCampaignDetails, fetchMetaAdsAdsets, fetchMetaAdsAds, fetchMetaAdsAdDetails, createMetaAdsAd } from '../services/api';
 import { useSelector } from 'react-redux';
 import { RootState } from '../store';
 import './styles/CampaignDetails.css';
+import CampaignEditPopup from '../components/CampaignEditPopup';
 
 interface Campaign {
   id: string;
@@ -20,7 +21,7 @@ interface Campaign {
   buying_type: string;
   special_ad_categories: string[];
   special_ad_category: string;
-  insights: {
+  insights?: {
     data: {
       impressions: string;
       clicks: string;
@@ -83,7 +84,7 @@ interface Adset {
     device_platforms: string[];
   };
   optimization_goal: string;
-  insights: {
+  insights?: {
     data: {
       impressions: string;
       clicks: string;
@@ -160,9 +161,11 @@ interface Ad {
 
 const CampaignDetails: React.FC = () => {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const [campaign, setCampaign] = useState<Campaign | null>(null);
   const [adsetDetails, setAdsetDetails] = useState<Adset[]>([]);
   const [adDetails, setAdDetails] = useState<Ad | null>(null);
+  const [isEditPopupOpen, setIsEditPopupOpen] = useState(false);
   const accessToken: string | null = useSelector((state: RootState) => state.auth.accessToken);
 
   useEffect(() => {
@@ -209,6 +212,42 @@ const CampaignDetails: React.FC = () => {
     }
   };
 
+  const handleEditCampaign = () => {
+    setIsEditPopupOpen(true);
+  };
+
+  const handleSaveCampaign = (updatedCampaign: any) => {
+    // Logic to save the updated campaign details
+    setCampaign(updatedCampaign);
+    setIsEditPopupOpen(false);
+  };
+
+  const handleCreateAd = async (adSetId: string) => {
+    if (accessToken) {
+      try {
+        const adName = prompt('Enter the name of the new ad:');
+        if (adName) {
+          const adContent = prompt('Enter the content of the new ad:');
+          if (adContent) {
+            const adData = {
+              customerId: campaign?.account_id,
+              adSetId,
+              name: adName,
+              creative_id: 'YOUR_CREATIVE_ID',
+              content: adContent,
+            };
+            const newAd = await createMetaAdsAd(accessToken, adData);
+            alert('Ad created successfully!');
+            handleAdsetClick(adSetId); // Refresh the ad set details
+          }
+        }
+      } catch (error) {
+        console.error('Error creating ad:', error);
+        alert('Error creating ad. Please try again.');
+      }
+    }
+  };
+
   if (!campaign) {
     return <div>Loading...</div>;
   }
@@ -231,17 +270,29 @@ const CampaignDetails: React.FC = () => {
         <p><strong>Tipo de Compra:</strong> {campaign.buying_type}</p>
         <p><strong>Categorias de Anúncio Especial:</strong> {campaign.special_ad_categories.join(', ')}</p>
         <p><strong>Categoria de Anúncio Especial:</strong> {campaign.special_ad_category}</p>
-        <p><strong>Impressões:</strong> {campaign.insights.data[0].impressions}</p>
-        <p><strong>Cliques:</strong> {campaign.insights.data[0].clicks}</p>
-        <p><strong>Gastos:</strong> {campaign.insights.data[0].spend}</p>
-        <p><strong>CTR:</strong> {campaign.insights.data[0].ctr}</p>
-        <p><strong>CPC:</strong> {campaign.insights.data[0].cpc}</p>
-        <p><strong>CPM:</strong> {campaign.insights.data[0].cpm}</p>
-        <p><strong>Alcance:</strong> {campaign.insights.data[0].reach}</p>
-        <p><strong>Frequência:</strong> {campaign.insights.data[0].frequency}</p>
-        <p><strong>Data de Início:</strong> {campaign.insights.data[0].date_start}</p>
-        <p><strong>Data de Término:</strong> {campaign.insights.data[0].date_stop}</p>
+        {campaign.insights?.data?.[0] && (
+          <>
+            <p><strong>Impressões:</strong> {campaign.insights.data[0].impressions}</p>
+            <p><strong>Cliques:</strong> {campaign.insights.data[0].clicks}</p>
+            <p><strong>Gastos:</strong> {campaign.insights.data[0].spend}</p>
+            <p><strong>CTR:</strong> {campaign.insights.data[0].ctr}</p>
+            <p><strong>CPC:</strong> {campaign.insights.data[0].cpc}</p>
+            <p><strong>CPM:</strong> {campaign.insights.data[0].cpm}</p>
+            <p><strong>Alcance:</strong> {campaign.insights.data[0].reach}</p>
+            <p><strong>Frequência:</strong> {campaign.insights.data[0].frequency}</p>
+            <p><strong>Data de Início:</strong> {campaign.insights.data[0].date_start}</p>
+            <p><strong>Data de Término:</strong> {campaign.insights.data[0].date_stop}</p>
+          </>
+        )}
       </div>
+      <button onClick={handleEditCampaign}>Editar Campanha</button>
+      {isEditPopupOpen && (
+        <CampaignEditPopup
+          campaign={campaign}
+          onClose={() => setIsEditPopupOpen(false)}
+          onSave={handleSaveCampaign}
+        />
+      )}
       <h3>Conjuntos de Anúncios</h3>
       {adsetDetails.map((adset) => (
         <div key={adset.id} className="adset-details" onClick={() => handleAdsetClick(adset.id)}>
@@ -253,14 +304,19 @@ const CampaignDetails: React.FC = () => {
           <p><strong>Atualizado em:</strong> {adset.updated_time}</p>
           <p><strong>Início:</strong> {adset.start_time}</p>
           <p><strong>Otimização:</strong> {adset.optimization_goal}</p>
-          <p><strong>Impressões:</strong> {adset.insights.data[0].impressions}</p>
-          <p><strong>Cliques:</strong> {adset.insights.data[0].clicks}</p>
-          <p><strong>Gastos:</strong> {adset.insights.data[0].spend}</p>
-          <p><strong>CTR:</strong> {adset.insights.data[0].ctr}</p>
-          <p><strong>CPC:</strong> {adset.insights.data[0].cpc}</p>
-          <p><strong>CPM:</strong> {adset.insights.data[0].cpm}</p>
-          <p><strong>Alcance:</strong> {adset.insights.data[0].reach}</p>
-          <p><strong>Frequência:</strong> {adset.insights.data[0].frequency}</p>
+          {adset.insights?.data?.[0] && (
+            <>
+              <p><strong>Impressões:</strong> {adset.insights.data[0].impressions}</p>
+              <p><strong>Cliques:</strong> {adset.insights.data[0].clicks}</p>
+              <p><strong>Gastos:</strong> {adset.insights.data[0].spend}</p>
+              <p><strong>CTR:</strong> {adset.insights.data[0].ctr}</p>
+              <p><strong>CPC:</strong> {adset.insights.data[0].cpc}</p>
+              <p><strong>CPM:</strong> {adset.insights.data[0].cpm}</p>
+              <p><strong>Alcance:</strong> {adset.insights.data[0].reach}</p>
+              <p><strong>Frequência:</strong> {adset.insights.data[0].frequency}</p>
+            </>
+          )}
+          <button onClick={() => handleCreateAd(adset.id)}>Criar Anúncio</button>
           <h5>Anúncios</h5>
           {adset.ads && adset.ads.map((ad) => (
             <div key={ad.id} className="ad-details" onClick={() => handleAdClick(ad.id)}>
@@ -269,14 +325,17 @@ const CampaignDetails: React.FC = () => {
               <p><strong>Status:</strong> {ad.status}</p>
               <p><strong>Criado em:</strong> {ad.created_time}</p>
               <p><strong>Atualizado em:</strong> {ad.updated_time}</p>
-              <p><strong>Gastos:</strong> {ad.insights?.data[0].spend}</p>
-              <p><strong>Impressões:</strong> {ad.insights?.data[0].impressions}</p>
-              <p><strong>Cliques:</strong> {ad.insights?.data[0].clicks}</p>
-              <p><strong>CTR:</strong> {ad.insights?.data[0].ctr}</p>
-              <p><strong>CPC:</strong> {ad.insights?.data[0].cpc}</p>
-              <p><strong>CPM:</strong> {ad.insights?.data[0].cpm}</p>
-              <p><strong>Ações:</strong> {ad.insights?.data[0].actions.map(action => `${action.action_type}: ${action.value}`).join(', ')}</p>
-              {/* <p><strong>Especificações de Rastreamento:</strong> {ad.tracking_specs.map(spec => `${Object.keys(spec)[0]}: ${Object.values(spec)[0].join(', ')}`).join('; ')}</p> */}
+              {ad.insights?.data?.[0] && (
+                <>
+                  <p><strong>Gastos:</strong> {ad.insights.data[0].spend}</p>
+                  <p><strong>Impressões:</strong> {ad.insights.data[0].impressions}</p>
+                  <p><strong>Cliques:</strong> {ad.insights.data[0].clicks}</p>
+                  <p><strong>CTR:</strong> {ad.insights.data[0].ctr}</p>
+                  <p><strong>CPC:</strong> {ad.insights.data[0].cpc}</p>
+                  <p><strong>CPM:</strong> {ad.insights.data[0].cpm}</p>
+                  <p><strong>Ações:</strong> {ad.insights.data[0].actions.map(action => `${action.action_type}: ${action.value}`).join(', ')}</p>
+                </>
+              )}
             </div>
           ))}
         </div>
@@ -289,15 +348,18 @@ const CampaignDetails: React.FC = () => {
           <p><strong>Status:</strong> {adDetails.status}</p>
           <p><strong>Criado em:</strong> {adDetails.created_time}</p>
           <p><strong>Atualizado em:</strong> {adDetails.updated_time}</p>
-          <p><strong>Gastos:</strong> {adDetails.insights?.data[0].spend}</p>
-          <p><strong>Impressões:</strong> {adDetails.insights?.data[0].impressions}</p>
-          <p><strong>Cliques:</strong> {adDetails.insights?.data[0].clicks}</p>
-          <p><strong>CTR:</strong> {adDetails.insights?.data[0].ctr}</p>
-          <p><strong>CPC:</strong> {adDetails.insights?.data[0].cpc}</p>
-          <p><strong>CPM:</strong> {adDetails.insights?.data[0].cpm}</p>
+          {adDetails.insights?.data?.[0] && (
+            <>
+              <p><strong>Gastos:</strong> {adDetails.insights.data[0].spend}</p>
+              <p><strong>Impressões:</strong> {adDetails.insights.data[0].impressions}</p>
+              <p><strong>Cliques:</strong> {adDetails.insights.data[0].clicks}</p>
+              <p><strong>CTR:</strong> {adDetails.insights.data[0].ctr}</p>
+              <p><strong>CPC:</strong> {adDetails.insights.data[0].cpc}</p>
+              <p><strong>CPM:</strong> {adDetails.insights.data[0].cpm}</p>
+              <p><strong>Ações:</strong> {adDetails.insights.data[0].actions.map(action => `${action.action_type}: ${action.value}`).join(', ')}</p>
+            </>
+          )}
           <p><strong>Creative:</strong> {JSON.stringify(adDetails.creative)}</p>
-          <p><strong>Ações:</strong> {adDetails.insights?.data[0].actions.map(action => `${action.action_type}: ${action.value}`).join(', ')}</p>
-          {/* <p><strong>Especificações de Rastreamento:</strong> {adDetails.tracking_specs.map(spec => `${Object.keys(spec)[0]}: ${Object.values(spec)[0].join(', ')}`).join('; ')}</p> */}
         </div>
       )}
     </div>
