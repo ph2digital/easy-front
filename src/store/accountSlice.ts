@@ -2,7 +2,13 @@ import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 
 // other imports and code
 
-const initialState = {
+interface AccountState {
+  accountName: string;
+  platform: string;
+  // ...other state properties...
+}
+
+const initialState: AccountState = {
   accountName: '',
   platform: '',
   // ...other initial state properties...

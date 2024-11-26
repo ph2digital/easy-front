@@ -12,6 +12,7 @@ const store = configureStore({
         auth: authReducer,
         campaigns: campaignReducer,
         selectedCustomers: selectedCustomersReducer,
+        // Add any other reducers here
     },
 });
 

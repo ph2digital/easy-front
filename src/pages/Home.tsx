@@ -5,7 +5,7 @@ import { FaEdit, FaChartLine, FaChevronDown, FaChevronUp } from 'react-icons/fa'
 import './styles/Home.css';
 import Sidebar from '../components/Sidebar';
 import { RootState } from '../store';
-import { checkAdsAccounts, fetchGoogleAdsAccounts, fetchFacebookAdAccounts, activateAccount, fetchMetaAdsCampaigns, fetchMetaAdsAdsets, fetchMetaAdsAds, signInWithGoogle, linkMetaAds } from '../services/api';
+import { checkAdsAccounts, fetchGoogleAdsAccounts, fetchFacebookAdAccounts, activateAccount, fetchMetaAdsCampaigns, fetchMetaAdsAdsets, fetchMetaAdsAds, signInWithGoogle, linkMetaAds, linkAccountFromHome, getSessionFromLocalStorage } from '../services/api';
 import { setIsCustomerLinked } from '../store/authSlice';
 import easyAdsImage from '../assets/easy.jpg'; // Correct image import
 
@@ -61,8 +61,8 @@ const Home: React.FC = () => {
   const [expandedAdsets, setExpandedAdsets] = useState<string[]>([]);
   const navigate = useNavigate();
   const dispatch = useDispatch();
-  const accessToken: string | null = useSelector((state: RootState) => state.auth.accessToken);
-  const userId: string | undefined = useSelector((state: RootState) => state.auth.user?.id);
+  const accessToken = useSelector((state: RootState) => state.auth.accessToken);
+  const userId = useSelector((state: RootState) => state.auth.user?.id);
   const isCustomerLinked = useSelector((state: RootState) => state.auth.isCustomerLinked);
   const [showPopup, setShowPopup] = useState(false);
   const [loadingGoogleAccounts, setLoadingGoogleAccounts] = useState(true);
@@ -70,7 +70,9 @@ const Home: React.FC = () => {
 
   useEffect(() => {
     const fetchCampaigns = async () => {
+      console.log('fetchCampaigns - Início');
       const storedActiveCustomers = JSON.parse(localStorage.getItem('activeCustomers') || '[]');
+      console.log('fetchCampaigns - storedActiveCustomers:', storedActiveCustomers);
       setActiveCustomers(storedActiveCustomers);
 
       if (storedActiveCustomers.length > 0) {
@@ -79,7 +81,9 @@ const Home: React.FC = () => {
           if (customer.type === 'meta_ads') {
             if (accessToken) {
               try {
+                console.log('fetchCampaigns - Fetching campaigns for customer:', customer);
                 const campaignsResponse = await fetchMetaAdsCampaigns(accessToken, customer.customer_id);
+                console.log('fetchCampaigns - campaignsResponse:', campaignsResponse);
 
                 const campaignsWithDetails = campaignsResponse.map((campaign: any) => {
                   const insights = campaign.insights?.data?.[0] || {};
@@ -105,7 +109,7 @@ const Home: React.FC = () => {
 
                 campaignsData.push(...campaignsWithDetails);
               } catch (error) {
-                console.error('Error fetching campaigns:', error);
+                console.error('fetchCampaigns - Error fetching campaigns:', error);
               }
             }
           }
@@ -117,21 +121,34 @@ const Home: React.FC = () => {
     fetchCampaigns();
   }, [accessToken, isCustomerLinked]);
 
-  const handleFacebookLogin = () => {
-    console.log('Iniciando login com Facebook...');
-    linkMetaAds(false);
+  const handleFacebookLogin = async () => {
+    console.log('handleFacebookLogin - Iniciando login com Facebook...');
+    const session = getSessionFromLocalStorage();
+    const userId = session?.user?.id;
+
+    const newWindow = linkMetaAds(userId);
+
+    const checkWindowClosed = setInterval(() => {
+      if (newWindow && newWindow.closed) {
+        clearInterval(checkWindowClosed);
+        console.log('handleFacebookLogin - Janela fechada, recarregando a página...');
+        window.location.reload();
+      }
+    }, 500);
   };
 
   const checkActiveCustomers = async () => {
+    const session = getSessionFromLocalStorage();
+    const userId = session?.user?.id;
     if (accessToken && userId) {
       try {
-        console.log('Checking active customers...');
+        console.log('checkActiveCustomers - Checking active customers...');
         const response = await checkAdsAccounts(accessToken, userId);
-        console.log('Active customers:', response);
+        console.log('checkActiveCustomers - Active customers:', response);
         localStorage.setItem('activeCustomers', JSON.stringify(response.linked_customers));
         return response.linked_customers.length > 0;
       } catch (error) {
-        console.error('Error checking active customers:', error);
+        console.error('checkActiveCustomers - Error checking active customers:', error);
         return false;
       }
     }
@@ -139,11 +156,13 @@ const Home: React.FC = () => {
   };
 
   const fetchLinkedAccountsGoogle = async () => {
+    const session = getSessionFromLocalStorage();
+    const userId = session?.user?.id;
     if (accessToken && userId) {
       try {
-        console.log('Fetching Google Ads accounts...');
+        console.log('fetchLinkedAccountsGoogle - Fetching Google Ads accounts...');
         const googleAdsAccounts = await fetchGoogleAdsAccounts(accessToken, userId);
-        console.log('Google Ads accounts fetched:', googleAdsAccounts);
+        console.log('fetchLinkedAccountsGoogle - Google Ads accounts fetched:', googleAdsAccounts);
         setGoogleAccounts(googleAdsAccounts.customerIds.map((customerId: string) => ({
           customer_id: customerId,
           type: 'Google Ads',
@@ -151,7 +170,7 @@ const Home: React.FC = () => {
         })));
         localStorage.setItem('googleAccounts', JSON.stringify(googleAdsAccounts.customerIds));
       } catch (error) {
-        console.error('Error fetching linked accounts:', error);
+        console.error('fetchLinkedAccountsGoogle - Error fetching linked accounts:', error);
       } finally {
         setLoadingGoogleAccounts(false);
       }
@@ -159,15 +178,19 @@ const Home: React.FC = () => {
   };
 
   const fetchLinkedAccountsMeta = async () => {
+    console.log('fetchLinkedAccountsMeta - Fetching Meta Ads accounts...');
+    const session = getSessionFromLocalStorage();
+    const userId = session?.user?.id;
+    console.log('fetchLinkedAccountsMeta - userId:', userId, 'accessToken:', accessToken, 'session:', session);
     if (accessToken && userId) {
       try {
-        console.log('Fetching Facebook Ad accounts...');
+        console.log('fetchLinkedAccountsMeta - Fetching Facebook Ad accounts...');
         const facebookAdAccounts = await fetchFacebookAdAccounts(accessToken, userId);
-        console.log('Facebook Ad accounts fetched:', facebookAdAccounts);
+        console.log('fetchLinkedAccountsMeta - Facebook Ad accounts fetched:', facebookAdAccounts);
         setFacebookAccounts(facebookAdAccounts.adAccounts);
         localStorage.setItem('facebookAccounts', JSON.stringify(facebookAdAccounts.adAccounts));
       } catch (error) {
-        console.error('Error fetching linked accounts:', error);
+        console.error('fetchLinkedAccountsMeta - Error fetching linked accounts:', error);
       } finally {
         setLoadingFacebookAccounts(false);
       }
@@ -176,7 +199,9 @@ const Home: React.FC = () => {
 
   useEffect(() => {
     const checkLinkedAccounts = async () => {
+      console.log('checkLinkedAccounts - Início');
       const hasActiveCustomers = await checkActiveCustomers();
+      console.log('checkLinkedAccounts - hasActiveCustomers:', hasActiveCustomers);
 
       if (!hasActiveCustomers) {
         setShowPopup(true);
@@ -192,45 +217,51 @@ const Home: React.FC = () => {
   }, [accessToken, userId, dispatch]);
 
   const handleEdit = (id: string) => {
-    console.log(`Editando campanha ${id}`);
+    console.log(`handleEdit - Editando campanha ${id}`);
   };
 
   const handleViewReports = (id: string) => {
-    console.log(`Visualizando relatórios da campanha ${id}`);
+    console.log(`handleViewReports - Visualizando relatórios da campanha ${id}`);
   };
 
   const handleCampaignClick = (id: string) => {
+    console.log(`handleCampaignClick - Navegando para detalhes da campanha ${id}`);
     navigate(`/campaign-details/${id}`);
   };
 
   const handleActivateAccount = async (accountId: string, platform: string) => {
-    console.log(`Ativando conta ${accountId} na plataforma ${platform}`);
+    console.log(`handleActivateAccount - Ativando conta ${accountId} na plataforma ${platform}`);
     try {
       const response = await activateAccount(accessToken!, accountId, platform);
-      console.log('Account activated:', response);
+      console.log('handleActivateAccount - Account activated:', response);
       
       // Check active customers after activating an account
       const hasActiveCustomers = await checkActiveCustomers();
+      console.log('handleActivateAccount - hasActiveCustomers:', hasActiveCustomers);
       if (hasActiveCustomers) {
         setShowPopup(false);
         dispatch(setIsCustomerLinked(true));
       }
     } catch (error) {
-      console.error('Error activating account:', error);
+      console.error('handleActivateAccount - Error activating account:', error);
     }
   };
 
   const toggleCampaign = (campaignId: string) => {
+    console.log(`toggleCampaign - Toggling campaign ${campaignId}`);
     setExpandedCampaigns((prev) =>
       prev.includes(campaignId) ? prev.filter((id) => id !== campaignId) : [...prev, campaignId]
     );
   };
 
   const toggleAdset = async (adsetId: string, campaignId: string) => {
+    console.log(`toggleAdset - Toggling adset ${adsetId} for campaign ${campaignId}`);
     if (!expandedAdsets.includes(adsetId)) {
       try {
         const adsetsResponse = await fetchMetaAdsAdsets(accessToken!, campaignId);
         const adsResponse = await fetchMetaAdsAds(accessToken!, campaignId);
+        console.log('toggleAdset - adsetsResponse:', adsetsResponse);
+        console.log('toggleAdset - adsResponse:', adsResponse);
 
         const adsetsWithDetails = adsetsResponse.filter((adset: any) => adset.campaign_id === campaignId).map((adset: any) => ({
           id: adset.id,
@@ -256,7 +287,7 @@ const Home: React.FC = () => {
           )
         );
       } catch (error) {
-        console.error('Error fetching adsets:', error);
+        console.error('toggleAdset - Error fetching adsets:', error);
       }
     }
 
@@ -266,6 +297,40 @@ const Home: React.FC = () => {
   };
 
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+
+  const handleLinkAccount = async (platform: string) => {
+    try {
+      console.log('handleLinkAccount - Início');
+      const session = getSessionFromLocalStorage();
+      console.log('handleLinkAccount - Session:', session);
+      const userId = session?.user?.id;
+      console.log('handleLinkAccount - userId:', userId);
+
+      if (!userId) {
+        throw new Error('User ID não encontrado na sessão');
+      }
+
+      const authUrl = await linkAccountFromHome(platform, userId);
+      console.log('handleLinkAccount - authUrl:', authUrl);
+
+
+      if (accessToken && userId) {
+        try {
+          console.log('handleFacebookLogin - Fetching Facebook Ad accounts...');
+          const facebookAdAccounts = await fetchFacebookAdAccounts(accessToken, userId);
+          console.log('handleFacebookLogin - Facebook Ad accounts fetched:', facebookAdAccounts);
+          setFacebookAccounts(facebookAdAccounts.adAccounts);
+          localStorage.setItem('facebookAccounts', JSON.stringify(facebookAdAccounts.adAccounts));
+        } catch (error) {
+          console.error('handleFacebookLogin - Error fetching Facebook Ad accounts:', error);
+        }
+      }
+      window.location.href = authUrl;
+
+    } catch (error) {
+      console.error('handleLinkAccount - Erro ao vincular conta:', error);
+    }
+  };
 
   return (
     <div className="home-content">
@@ -321,10 +386,10 @@ const Home: React.FC = () => {
             )}
             <div className="link-buttons">
               {!loadingGoogleAccounts && googleAccounts.length === 0 && (
-                <button onClick={signInWithGoogle}>Vincular Google Ads</button>
+                <button onClick={() => handleLinkAccount('google_ads')}>Vincular Google Ads</button>
               )}
               {!loadingFacebookAccounts && facebookAccounts.length === 0 && (
-                <button onClick={handleFacebookLogin}>Vincular Facebook Ads</button>
+                <button onClick={() => handleFacebookLogin()}>Vincular Facebook Ads</button>
               )}
             </div>
           </div>
@@ -399,3 +464,4 @@ const Home: React.FC = () => {
 };
 
 export default Home;
+

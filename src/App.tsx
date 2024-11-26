@@ -6,7 +6,6 @@ import { setUser, setTokens, selectIsAuthenticated, validateToken } from './stor
 import { getSessionFromLocalStorage } from './services/api';
 import Home from './pages/Home';
 import Login from './pages/Login';
-import Campaigns from './pages/Campaigns';
 import Gallery from './pages/Gallery';
 import Settings from './pages/Settings';
 import Profile from './pages/Profile';
@@ -26,12 +25,19 @@ const App = () => {
   useEffect(() => {
     const checkSession = async () => {
       const session = getSessionFromLocalStorage();
+      console.log('checkSession - Session from localStorage:', session);
       if (session) {
-        const { access_token, refresh_token } = session;
+        const { access_token, refresh_token, user, appState } = session;
         dispatch(setTokens({ accessToken: access_token, refreshToken: refresh_token }));
-        const user = localStorage.getItem('user');
+        console.log('checkSession - User from localStorage:', user);
         if (user && user !== 'undefined') {
-          dispatch(setUser({ user: JSON.parse(user), profileImage: JSON.parse(user).picture }));
+          const profileImage = user.picture?.data?.url || user.picture || '';
+          dispatch(setUser({ user, profileImage }));
+        }
+        if (appState) {
+          console.log('checkSession - AppState from localStorage:', appState);
+          // Restore other parts of the app state if needed
+          // Example: dispatch(setAppState(appState));
         }
       }
       setIsLoading(false);
@@ -43,6 +49,7 @@ const App = () => {
   useEffect(() => {
     const validateUserToken = async () => {
       const session = getSessionFromLocalStorage();
+      console.log('validateUserToken - Session from localStorage:', session);
       if (session) {
         const { access_token } = session;
         try {
@@ -57,6 +64,10 @@ const App = () => {
       validateUserToken();
     }
   }, [location, isLoading, isAuthenticated, dispatch]);
+
+  useEffect(() => {
+    console.log('App - Location changed:', location);
+  }, [location]);
 
   if (isLoading) {
     return <div>Carregando...</div>;
@@ -78,14 +89,6 @@ const App = () => {
         element={
           <PrivateRoute>
             <Home />
-          </PrivateRoute>
-        }
-      />
-      <Route
-        path="/campaigns"
-        element={
-          <PrivateRoute>
-            <Campaigns />
           </PrivateRoute>
         }
       />

@@ -2,14 +2,13 @@
 
 import React, { useEffect, useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
-import axios from 'axios';
 import { selectAccessToken, logout } from '../store/authSlice';
 import { createMetaAdsCampaign,createFacebookAdAccount,createFacebookBusinessManager } from '../services/api';
 import { updateAccount } from '../store/accountSlice'; // Ensure this path is correct
 import { RootState, AppDispatch } from '../store';
 import { addCustomer, removeCustomer, setCustomers } from '../store/selectedCustomersSlice';
 import { setUser, setTokens } from '../store/authSlice';
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8080';
+const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8080/api';
 
 interface Account {
   customerId: string;

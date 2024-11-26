@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { updateMetaAdsCampaign } from '../services/api';
-import './CampaignEditPopup.css';
+import './styles/CampaignEditPopup.css';
 
 interface CampaignEditPopupProps {
   campaign: any;

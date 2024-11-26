@@ -2,6 +2,7 @@
 import axios from 'axios';
 import { logout } from '../store/authSlice';
 import { AppDispatch } from '../store/index';
+import { json } from 'react-router-dom';
 
 const api = axios.create({
     baseURL: import.meta.env.VITE_API_URL || 'http://localhost:8080/api',
@@ -9,22 +10,45 @@ const api = axios.create({
 });
 const API_URL = import.meta.env.VITE_API_URL || '';
 const STORAGE_KEY = import.meta.env.VITE_STORAGE_KEY || 'default-auth-token';
+const USER_KEY = 'user';
+const APP_STATE_KEY = 'app-state';
+
+const isValidJSON = (str: string | null) => {
+    if (!str) return false;
+    try {
+        JSON.parse(str);
+        return true;
+    } catch (e) {
+        return false;
+    }
+};
 
 // Função para obter sessão do token local armazenado
 export const getSessionFromLocalStorage = () => {
     const storedToken = localStorage.getItem(STORAGE_KEY);
-    return storedToken ? JSON.parse(storedToken) : null;
+    const storedUser = localStorage.getItem(USER_KEY);
+
+    if (isValidJSON(storedToken) && isValidJSON(storedUser)) {
+        return {
+            ...JSON.parse(storedToken!),
+            user: JSON.parse(storedUser!),
+        };
+    }
+    return null;
 };
 
 // Função para configurar sessão no localStorage
-export const setSession = (accessToken: string, refreshToken: string) => {
+export const setSession = (accessToken: string, refreshToken: string, user: any, appState: any) => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify({ access_token: accessToken, refresh_token: refreshToken }));
+    localStorage.setItem(USER_KEY, JSON.stringify(user));
+    localStorage.setItem(APP_STATE_KEY, JSON.stringify(appState));
 };
 
 // Função para limpar sessão local
 export const clearSession = () => {
     localStorage.removeItem(STORAGE_KEY);
-    localStorage.removeItem('user');
+    localStorage.removeItem(USER_KEY);
+    localStorage.removeItem(APP_STATE_KEY);
 };
 
 // Função para obter o email do usuário da sessão
@@ -73,7 +97,14 @@ export const saveGoogleSessionToDatabase = async (accessToken: string, refreshTo
         console.log('Tentando salvar sessão no banco de dados com accessToken:', accessToken, 'e refreshToken:', refreshToken);
         const response = await axios.post(`${API_URL}/auth/save-session`, { accessToken, refreshToken });
 
-        setSession(accessToken, refreshToken);
+        console.log('Resposta da API ao salvar sessão:', response.data);
+
+        if (!response.data.user) {
+            throw new Error('User data is undefined in the response');
+        }
+
+        console.log('Chamando setSession com:', accessToken, refreshToken, response.data.user);
+        setSession(accessToken, refreshToken, response.data.user, response.data.appState);
         localStorage.setItem(STORAGE_KEY, JSON.stringify({ access_token: accessToken, refresh_token: refreshToken }));
         localStorage.setItem('user', JSON.stringify(response.data.user));
         return response.data;
@@ -96,7 +127,8 @@ export const saveMetaSessionToDatabase = async (accessToken: string) => {
         console.log('Tentando salvar sessão no banco de dados com accessToken:', accessToken);
         const response = await axios.post(`${API_URL}/auth/save-session`, { accessToken });
 
-        setSession(accessToken, '');
+        console.log('Chamando setSession com:', accessToken, '', response.data.user);
+        setSession(accessToken, '', response.data.user, response.data.appState);
         localStorage.setItem(STORAGE_KEY, JSON.stringify({ access_token: accessToken, refresh_token: '' }));
         localStorage.setItem('user', JSON.stringify(response.data.user));
         return response.data;
@@ -119,7 +151,8 @@ export const saveFacebookSessionToDatabase = async (accessToken: string) => {
         console.log('Tentando salvar sessão no banco de dados com accessToken:', accessToken);
         const response = await axios.post(`${API_URL}/auth/save-session`, { accessToken });
 
-        setSession(accessToken, '');
+        console.log('Chamando setSession com:', accessToken, '', response.data.user);
+        setSession(accessToken, '', response.data.user, response.data.appState);
         localStorage.setItem(STORAGE_KEY, JSON.stringify({ access_token: accessToken, refresh_token: '' }));
         localStorage.setItem('user', JSON.stringify(response.data.user));
         return response.data;
@@ -144,43 +177,38 @@ export const validateToken = async (token: string) => {
     return response.data;
 };
 
-export const linkMetaAds = (isLoggedIn: boolean) => {
-    const clientId = import.meta.env.VITE_FACEBOOK_CLIENT_ID;
-    const redirectUri = import.meta.env.VITE_FACEBOOK_REDIRECT_URI;
-    let metaOAuthURL = `https://www.facebook.com/v10.0/dialog/oauth?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=code&scope=ads_management`;
+export const linkMetaAds = (id?: string) => {
+  const clientId = import.meta.env.VITE_FACEBOOK_CLIENT_ID;
+  const redirectUri = import.meta.env.VITE_FACEBOOK_REDIRECT_URI;
+  let metaOAuthURL = `https://www.facebook.com/v10.0/dialog/oauth?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=code&scope=ads_management`;
 
-    if (isLoggedIn) {
-        const user = JSON.parse(localStorage.getItem('user') || '{}');
-        const id = user.id;
+  if (id) {
+    metaOAuthURL = `https://www.facebook.com/v10.0/dialog/oauth?client_id=${clientId}&redirect_uri=${redirectUri}?id=${id}&response_type=code&scope=ads_management`;
+  }
+  console.log('metaOAuthURL:', JSON.stringify(metaOAuthURL));
 
-        if (!clientId || !redirectUri || !id) {
-            console.error('Facebook OAuth environment variables are not set: ', clientId, redirectUri, id);
-            return;
+  const newWindow = window.open(metaOAuthURL, 'metaOAuth', 'width=600,height=800');
+
+  window.addEventListener('message', (event) => {
+    console.log('Mensagem recebida na janela:', event);
+    if (event.origin === window.location.origin) {
+      const { accessToken, user, type } = event.data;
+      if (type === 'facebook-login') {
+        if (accessToken && user) {
+          console.log('Facebook OAuth successful:', event.data);
+          setSession(accessToken, '', user, event.data.appState);
+          localStorage.setItem('user', JSON.stringify(user));
+          if (newWindow) {
+            newWindow.close();
+          }
+        } else {
+          console.error('Facebook OAuth failed:', event.data);
         }
-
-        metaOAuthURL = `https://www.facebook.com/v10.0/dialog/oauth?client_id=${clientId}&redirect_uri=${redirectUri}?id=${id}&response_type=code&scope=ads_management`;
+      }
     }
+  });
 
-    const newWindow = window.open(metaOAuthURL, 'metaOAuth', 'width=600,height=400');
-
-    window.addEventListener('message', (event) => {
-        console.log('Mensagem recebida na janela:', event);
-        if (event.origin !== window.location.origin) return;
-
-        const { accessToken, user, type } = event.data;
-        if (type === 'facebook-login') {
-            if (accessToken && user) {
-                console.log('Facebook OAuth successful:', event.data);
-                setSession(accessToken, '');
-                localStorage.setItem('user', JSON.stringify(user));
-                if (newWindow) {
-                    newWindow.close();
-                }
-            } else {
-                console.error('Facebook OAuth failed:', event.data);
-            }
-        }
-    });
+  return newWindow;
 };
 
 export const fetchGoogleAdsAccounts = async (accessToken: string, userId: string) => {
@@ -516,5 +544,29 @@ export const createAd = async (accessToken: string, adData: any) => {
         throw new Error('Erro ao criar anúncio no Meta Ads');
     }
 };
+
+export const linkAccountFromHome = async (platform: string, userId: string) => {
+  try {
+    const session = getSessionFromLocalStorage();
+    const accessToken = session?.access_token;
+
+    if (!accessToken) {
+      throw new Error('Token de acesso não encontrado');
+    }
+
+    const response = await api.post('/auth/link-account-from-home', { platform, userId }, {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+      withCredentials: true, // Certifique-se de que os cookies de sessão estão sendo enviados
+    });
+    return response.data.authUrl;
+  } catch (error) {
+    console.error('Erro ao vincular conta a partir da tela de home:', error);
+    throw error;
+  }
+};
+
+
 
 export default api;

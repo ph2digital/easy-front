@@ -52,7 +52,7 @@ const CampaignCreation: React.FC = () => {
     const [competitorAdId, setCompetitorAdId] = useState<string>('');
     const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
     const [uploadedCreativeIds, setUploadedCreativeIds] = useState<string[]>([]);
-    const accountId = useSelector((state: RootState) => state.auth.user.external_id);
+    const accountId = useSelector((state: RootState) => state.auth.user.meta_id || state.auth.user.google_id);
     const dispatch = useDispatch();
     const accessToken = useSelector((state: RootState) => state.auth.accessToken);
     const [pageId, setPageId] = useState<string>('113761611224912'); // Default page ID

@@ -1,16 +1,18 @@
 import './styles/Login.css';
 import { useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
 import { setUser, setTokens } from '../store/authSlice';
-import { signInWithGoogle, linkMetaAds } from '../services/api'; // Ensure this path is correct
+import { signInWithGoogle, linkMetaAds,setSession } from '../services/api'; // Ensure this path is correct
 import easyAdsImage from '../assets/easy.jpg'; // Correct image import
 
-const Login = () => {
-  const dispatch = useDispatch();
+  const Login = () => {
+    const navigate = useNavigate();
+    const dispatch = useDispatch();
 
   const handleFacebookLogin = () => {
     console.log('Iniciando login com Facebook...');
-    linkMetaAds(false);
+    linkMetaAds();
   };
 
   useEffect(() => {
@@ -22,21 +24,24 @@ const Login = () => {
           if (accessToken && user) {
             console.log('Login com Facebook bem-sucedido:', event.data);
             dispatch(setTokens({ accessToken, refreshToken: '' }));
-            dispatch(setUser({ user, profileImage: user.picture }));
-            window.location.href = '/';
+            dispatch(setUser({ user, profileImage: user.picture.data.url }));
+            console.log('Chamando setSession com:', accessToken, '', user);
+            setSession(accessToken, '', user, event.data.appState);
+            // Use navigate instead of window.location.href to avoid full page reload
+            navigate('/home');
           } else {
             console.error('Falha no login com Facebook:', event.data);
             alert('Falha no login com Facebook.');
           }
         }
       }
-    }
+    };
 
     window.addEventListener('message', handleMessage);
     return () => {
       window.removeEventListener('message', handleMessage);
     };
-  }, [dispatch]);
+  }, [dispatch, navigate]);
 
   return (
     <div className="login-container">
@@ -57,6 +62,6 @@ const Login = () => {
       </div>
     </div>
   );
-};
+  };
 
 export default Login;
