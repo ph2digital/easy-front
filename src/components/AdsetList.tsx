@@ -72,9 +72,9 @@ const AdsetList: React.FC<AdsetListProps> = ({ adsets, onAdsetClick, onAdClick, 
   };
 
   return (
-    <>
+    <div className="adset-list">
       {adsets.length > 0 ? adsets.map((adset) => (
-        <div key={adset.id} className="adset-details" onClick={() => onAdsetClick(adset.id)}>
+        <div key={adset.id} className="adset-item">
           {editableAdset && editableAdset.id === adset.id ? (
             <>
               <input type="text" name="name" value={editableAdset.name} onChange={handleAdsetChange} />
@@ -84,38 +84,41 @@ const AdsetList: React.FC<AdsetListProps> = ({ adsets, onAdsetClick, onAdClick, 
           ) : (
             <>
               <h4>{adset.name}</h4>
-              <p><strong>Status:</strong> {adset.status}</p>
-              <p><strong>Status Efetivo:</strong> {adset.effective_status}</p>
-              <p><strong>Orçamento Restante:</strong> {adset.budget_remaining}</p>
-              <p><strong>Criado em:</strong> {adset.created_time}</p>
-              <p><strong>Atualizado em:</strong> {adset.updated_time}</p>
-              <p><strong>Início:</strong> {adset.start_time}</p>
-              <p><strong>Fim:</strong> {adset.end_time}</p>
-              <p><strong>Otimização:</strong> {adset.optimization_goal}</p>
-              <p><strong>Idade:</strong> {adset.targeting?.age_min} - {adset.targeting?.age_max}</p>
-              <p><strong>Gênero:</strong> {adset.targeting?.genders?.join(', ')}</p>
-              <p><strong>Interesses:</strong> {adset.targeting?.flexible_spec?.[0]?.interests?.map((interest: any) => interest.name)?.join(', ') || 'N/A'}</p>
-              <p><strong>Localizações:</strong> {Array.isArray(adset.targeting?.geo_locations) ? adset.targeting.geo_locations.map((location: any) => 'cities' in location ? location.cities?.map((city: any) => city.name)?.join(', ') : location.name).join(', ') : 'N/A'}</p>
-              {adset.insights?.data?.[0] && (
+              <button onClick={() => onAdsetClick(adset.id)}>Ver Anúncios</button>
+              {!isEditing && (
                 <>
-                  <p><strong>Impressões:</strong> {adset.insights?.data?.[0]?.impressions}</p>
-                  <p><strong>Cliques:</strong> {adset.insights?.data?.[0]?.clicks}</p>
-                  <p><strong>Gastos:</strong> {adset.insights?.data?.[0]?.spend}</p>
-                  <p><strong>CTR:</strong> {adset.insights?.data?.[0]?.ctr}</p>
-                  <p><strong>CPC:</strong> {adset.insights?.data?.[0]?.cpc}</p>
-                  <p><strong>CPM:</strong> {adset.insights?.data?.[0]?.cpm}</p>
-                  <p><strong>Alcance:</strong> {adset.insights?.data?.[0]?.reach}</p>
-                  <p><strong>Frequência:</strong> {adset.insights?.data?.[0]?.frequency}</p>
-                  <p><strong>Data de Início:</strong> {adset.insights?.data?.[0]?.date_start}</p>
-                  <p><strong>Data de Término:</strong> {adset.insights?.data?.[0]?.date_stop}</p>
+                  <button onClick={() => onCreateAd(adset.id)}>Criar Anúncio</button>
                 </>
               )}
-              {isEditing && (
-                <>
-                  <button onClick={() => setEditableAdset(adset)}>Editar Conjunto de Anúncios</button>
-                  <button onClick={() => onCreateAd(adset.id)}>Criar Novo Anúncio</button>
-                </>
-              )}
+              <div className="adset-details">
+                <p><strong>Status:</strong> {adset.status}</p>
+                <p><strong>Status Efetivo:</strong> {adset.effective_status}</p>
+                <p><strong>Orçamento Restante:</strong> {adset.budget_remaining}</p>
+                <p><strong>Criado em:</strong> {adset.created_time}</p>
+                <p><strong>Atualizado em:</strong> {adset.updated_time}</p>
+                <p><strong>Início:</strong> {adset.start_time}</p>
+                <p><strong>Fim:</strong> {adset.end_time}</p>
+                <p><strong>Otimização:</strong> {adset.optimization_goal}</p>
+                <p><strong>Idade:</strong> {adset.targeting?.age_min} - {adset.targeting?.age_max}</p>
+                <p><strong>Gênero:</strong> {adset.targeting?.genders?.join(', ')}</p>
+                <p><strong>Interesses:</strong> {adset.targeting?.flexible_spec?.[0]?.interests?.map((interest: any) => interest.name)?.join(', ') || 'N/A'}</p>
+                <p><strong>Localizações:</strong> {Array.isArray(adset.targeting?.geo_locations) ? adset.targeting.geo_locations.map((location: any) => 'cities' in location ? location.cities?.map((city: any) => city.name)?.join(', ') : location.name).join(', ') : 'N/A'}</p>
+                {adset.insights?.data?.[0] && (
+                  <>
+                    <p><strong>Impressões:</strong> {adset.insights?.data?.[0]?.impressions}</p>
+                    <p><strong>Cliques:</strong> {adset.insights?.data?.[0]?.clicks}</p>
+                    <p><strong>Gastos:</strong> {adset.insights?.data?.[0]?.spend}</p>
+                    <p><strong>CTR:</strong> {adset.insights?.data?.[0]?.ctr}</p>
+                    <p><strong>CPC:</strong> {adset.insights?.data?.[0]?.cpc}</p>
+                    <p><strong>CPM:</strong> {adset.insights?.data?.[0]?.cpm}</p>
+                    <p><strong>Alcance:</strong> {adset.insights?.data?.[0]?.reach}</p>
+                    <p><strong>Frequência:</strong> {adset.insights?.data?.[0]?.frequency}</p>
+                    <p><strong>Data de Início:</strong> {adset.insights?.data?.[0]?.date_start}</p>
+                    <p><strong>Data de Término:</strong> {adset.insights?.data?.[0]?.date_stop}</p>
+                  </>
+                )}
+                {!isEditing && <button onClick={() => onEditAdset(adset)}>Editar Conjunto</button>}
+              </div>
             </>
           )}
           {adset.ads && adset.ads.length > 0 && (
@@ -152,7 +155,7 @@ const AdsetList: React.FC<AdsetListProps> = ({ adsets, onAdsetClick, onAdClick, 
       )) : (
         <p>Nenhum conjunto de anúncios encontrado.</p>
       )}
-    </>
+    </div>
   );
 };
 

@@ -33,13 +33,14 @@ interface Campaign {
 }
 
 interface CampaignInfoProps {
-  campaign: Campaign;
+  campaign: any;
   isEditing: boolean;
   onEdit: () => void;
-  onSave: (updatedCampaign: Campaign) => void;
+  onSave: (updatedCampaign: any, accessToken: string) => void;
+  onEditAdset: (adset: any) => void; // Adicione esta linha
 }
 
-const CampaignInfo: React.FC<CampaignInfoProps> = ({ campaign, isEditing, onEdit, onSave }) => {
+const CampaignInfo: React.FC<CampaignInfoProps> = ({ campaign, isEditing, onEdit, onSave, onEditAdset }) => {
   const [editableCampaign, setEditableCampaign] = useState(campaign);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -48,16 +49,9 @@ const CampaignInfo: React.FC<CampaignInfoProps> = ({ campaign, isEditing, onEdit
   };
 
   const handleSave = () => {
-    const updatedCampaign = {
-      ...editableCampaign,
-      // Ensure optional fields are handled properly
-      special_ad_categories: editableCampaign.special_ad_categories || [],
-      insights: {
-        ...editableCampaign.insights,
-        data: editableCampaign.insights?.data || [],
-      },
-    };
-    onSave(updatedCampaign);
+    const accessToken = ''; // Obtenha o token de acesso de onde for necessário
+    const updatedCampaign = {}; // Obtenha os dados atualizados da campanha
+    onSave(updatedCampaign, accessToken);
   };
 
   return (
@@ -65,8 +59,8 @@ const CampaignInfo: React.FC<CampaignInfoProps> = ({ campaign, isEditing, onEdit
       {isEditing ? (
         <>
           <input type="text" name="name" value={editableCampaign.name} onChange={handleChange} required />
-          <input type="text" name="objective" value={editableCampaign.objective} onChange={handleChange} required />
-          <input type="text" name="daily_budget" value={editableCampaign.daily_budget} onChange={handleChange} required />
+          <input type="text" name="objective" value={editableCampaign.objective} onChange={handleChange} />
+          <input type="text" name="daily_budget" value={editableCampaign.daily_budget} onChange={handleChange} />
           <button onClick={handleSave}>Salvar</button>
         </>
       ) : (
@@ -100,6 +94,8 @@ const CampaignInfo: React.FC<CampaignInfoProps> = ({ campaign, isEditing, onEdit
             </>
           )}
           <button onClick={onEdit}>Editar Campanha</button>
+          <button onClick={() => onEditAdset(campaign)}>Editar Conjunto</button> {/* Adicione esta linha */}
+          <button onClick={handleSave}>Salvar Campanha</button> {/* Adicione esta linha */}
         </>
       )}
     </div>

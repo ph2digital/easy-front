@@ -430,18 +430,18 @@ export const createCampaign = async (accessToken: string, campaignData: any) => 
     }
 };
 
-export const updateMetaAdsCampaign = async (campaignId: string, campaignData: any) => {
-    try {
-        const response = await api.put(`/meta-ads/campaigns/${campaignId}`, campaignData, {
-            headers: {
-                Authorization: `Bearer ${localStorage.getItem('accessToken')}`,
-            },
-        });
-        return response.data;
-    } catch (error) {
-        console.error('Erro ao atualizar campanha:', error);
-        throw new Error('Erro ao atualizar campanha');
-    }
+export const updateMetaAdsCampaign = async (campaignId: string, campaignData: any, accessToken: string) => {
+  try {
+    const response = await api.put(`/meta-ads/campaigns/${campaignId}`, campaignData, {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Erro ao atualizar campanha:', error);
+    throw new Error('Erro ao atualizar campanha');
+  }
 };
 
 export const createGuidedCampaign = async (accessToken: string, campaignData: any) => {
@@ -543,6 +543,20 @@ export const createAd = async (accessToken: string, adData: any) => {
         console.error('Erro ao criar anúncio no Meta Ads:', error);
         throw new Error('Erro ao criar anúncio no Meta Ads');
     }
+};
+
+export const updateMetaAdsAdset = async (adsetId: string, adsetData: any, accessToken: string) => {
+  try {
+    const response = await api.put(`/meta-ads/adsets/${adsetId}`, adsetData, {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Erro ao atualizar conjunto de anúncios:', error);
+    throw new Error('Erro ao atualizar conjunto de anúncios');
+  }
 };
 
 export const linkAccountFromHome = async (platform: string, userId: string) => {

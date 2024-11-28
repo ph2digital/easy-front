@@ -11,7 +11,7 @@ import {
   fetchMetaAdsCampaignInsights,
   fetchMetaAdsAdsetInsights,
   fetchMetaAdsAdInsights,
-  updateMetaAdsCampaign // Ensure this function is imported
+  updateMetaAdsCampaign
 } from '../services/api';
 import AdsetList from '../components/AdsetList';
 import CampaignInfo from '../components/CampaignInfo';
@@ -122,7 +122,7 @@ const CampaignDetails: React.FC = () => {
   const [isAdEditPopupOpen, setIsAdEditPopupOpen] = useState(false);
   const [selectedAdset, setSelectedAdset] = useState<Adset | null>(null);
   const [selectedAd, setSelectedAd] = useState<Ad | null>(null);
-  const isEditing = new URLSearchParams(location.search).get('edit') === 'true';
+  const editType = new URLSearchParams(location.search).get('edit');
   const accessToken: string | null = useSelector((state: RootState) => state.auth.accessToken);
   const [loading, setLoading] = useState(false);
 
@@ -197,12 +197,19 @@ const CampaignDetails: React.FC = () => {
     setIsAdEditPopupOpen(true);
   };
 
-  const handleSaveCampaign = async (updatedCampaign: Campaign) => {
+  const handleSaveCampaign = async (updatedCampaign: Partial<Campaign>, accessToken: string) => {
     if (!accessToken || !id) return;
 
     try {
-      await updateMetaAdsCampaign(id, updatedCampaign); // Ensure this function is called correctly
-      setCampaign(updatedCampaign);
+      const fieldsToUpdate = Object.keys(updatedCampaign).reduce((acc, key) => {
+        if (updatedCampaign[key as keyof Campaign] !== campaign?.[key as keyof Campaign]) {
+          (acc as any)[key] = updatedCampaign[key as keyof Campaign];
+        }
+        return acc;
+      }, {} as Partial<Campaign>);
+
+      await updateMetaAdsCampaign(id, fieldsToUpdate, accessToken);
+      setCampaign((prevCampaign) => (prevCampaign ? { ...prevCampaign, ...fieldsToUpdate } : null));
       setIsEditPopupOpen(false);
     } catch (error) {
       console.error('Error updating campaign:', error);
@@ -283,7 +290,13 @@ const CampaignDetails: React.FC = () => {
   return (
     <div className="campaign-details">
       <h2>Detalhes da Campanha</h2>
-      <CampaignInfo campaign={campaign} isEditing={isEditing} onEdit={handleEditCampaign} onSave={handleSaveCampaign} />
+      <CampaignInfo
+        campaign={campaign}
+        isEditing={editType === 'campaign'}
+        onEdit={handleEditCampaign}
+        onSave={handleSaveCampaign}
+        onEditAdset={handleEditAdset}
+      />
       {isEditPopupOpen && (
         <CampaignEditPopup
           campaign={campaign}
@@ -313,7 +326,7 @@ const CampaignDetails: React.FC = () => {
         onCreateAd={handleCreateAd}
         onEditAdset={handleEditAdset}
         onEditAd={handleEditAd}
-        isEditing={isEditing}
+        isEditing={editType === 'adset'}
       />
       {adDetails && renderAdDetails()}
     </div>
