@@ -2,7 +2,7 @@
 import axios from 'axios';
 import { logout } from '../store/authSlice';
 import { AppDispatch } from '../store/index';
-import { json } from 'react-router-dom';
+// import { json } from 'react-router-dom';
 
 const api = axios.create({
     baseURL: import.meta.env.VITE_API_URL || 'http://localhost:8080/api',
@@ -567,6 +567,59 @@ export const linkAccountFromHome = async (platform: string, userId: string) => {
   }
 };
 
+export const fetchMetaAdsCampaignInsights = async (accessToken: string, campaignId: string) => {
+  const response = await api.get(`/meta-ads/campaigns/${campaignId}/insights`, {
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+    },
+  });
+  return response.data;
+};
 
+export const fetchMetaAdsAdsetInsights = async (accessToken: string, adsetId: string) => {
+  const response = await api.get(`/meta-ads/adsets/${adsetId}/insights`, {
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+    },
+  });
+  return response.data;
+};
+
+export const fetchMetaAdsAdInsights = async (accessToken: string, adId: string) => {
+  const response = await api.get(`/meta-ads/ads/${adId}/insights`, {
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+    },
+  });
+  return response.data;
+};
+
+export const fetchCustomAudiences = async (accessToken: string, adAccountId: string) => {
+    try {
+        const response = await api.get(`/meta-ads/${adAccountId}/custom-audiences`, {
+            headers: {
+                Authorization: `Bearer ${accessToken}`,
+            },
+        });
+        return response.data;
+    } catch (error) {
+        console.error('Error fetching custom audiences:', error);
+        throw error;
+    }
+};
+
+export const createCustomAudience = async (accessToken: string, adAccountId: string, audienceData: any) => {
+    try {
+        const response = await api.post(`/meta-ads/${adAccountId}/create-custom-audience`, audienceData, {
+            headers: {
+                Authorization: `Bearer ${accessToken}`,
+            },
+        });
+        return response.data;
+    } catch (error) {
+        console.error('Error creating custom audience:', error);
+        throw error;
+    }
+};
 
 export default api;

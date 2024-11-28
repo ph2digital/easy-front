@@ -4,7 +4,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { RootState } from '../store/index';
 import './styles/Sidebar.css';
-import { FaBars, FaSignOutAlt, FaUserCircle, FaCogs, FaLayerGroup, FaWallet, FaPlus } from 'react-icons/fa';
+import { FaBars, FaSignOutAlt, FaUserCircle, FaCogs, FaLayerGroup, FaWallet, FaPlus, FaUsers } from 'react-icons/fa';
 import { logoutUser } from '../services/api';
 import { selectProfileImage } from '../store/authSlice';
 
@@ -99,6 +99,10 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, toggleSidebar }) => {
         <Link to="/create-campaign" className="menu-item">
           <FaPlus className="sidebar-icon" />
           {isOpen && <span>Criar Campanha</span>}
+        </Link>
+        <Link to="/create-custom-audience" className="menu-item">
+          <FaUsers className="sidebar-icon" />
+          {isOpen && <span>Criar Público</span>}
         </Link>
       </div>
     </div>

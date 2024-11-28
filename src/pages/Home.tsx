@@ -5,7 +5,7 @@ import { FaEdit, FaChartLine, FaChevronDown, FaChevronUp } from 'react-icons/fa'
 import './styles/Home.css';
 import Sidebar from '../components/Sidebar';
 import { RootState } from '../store';
-import { checkAdsAccounts, fetchGoogleAdsAccounts, fetchFacebookAdAccounts, activateAccount, fetchMetaAdsCampaigns, fetchMetaAdsAdsets, fetchMetaAdsAds, signInWithGoogle, linkMetaAds, linkAccountFromHome, getSessionFromLocalStorage } from '../services/api';
+import { checkAdsAccounts, fetchGoogleAdsAccounts, fetchFacebookAdAccounts, activateAccount, fetchMetaAdsCampaigns, fetchMetaAdsAdsets, fetchMetaAdsAds, linkMetaAds, linkAccountFromHome, getSessionFromLocalStorage } from '../services/api';
 import { setIsCustomerLinked } from '../store/authSlice';
 import easyAdsImage from '../assets/easy.jpg'; // Correct image import
 
@@ -218,6 +218,7 @@ const Home: React.FC = () => {
 
   const handleEdit = (id: string) => {
     console.log(`handleEdit - Editando campanha ${id}`);
+    navigate(`/campaign-details/${id}?edit=true`);
   };
 
   const handleViewReports = (id: string) => {

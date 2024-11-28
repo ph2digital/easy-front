@@ -1,0 +1,26 @@
+
+.adset-list {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+}
+
+.adset-item {
+  padding: 15px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  background-color: #fff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.adset-item h4 {
+  margin-top: 0;
+  font-size: 18px;
+  color: #007bff;
+}
+
+.adset-item p {
+  margin: 5px 0;
+  font-size: 14px;
+  color: #555;
+}

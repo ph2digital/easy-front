@@ -14,6 +14,7 @@ import Accounts from './pages/Accounts';
 import AuthCallback from './pages/AuthCallback';
 import CampaignDetails from './pages/CampaignDetails';
 import CampaignCreation from './pages/CampaignCreation';
+import CustomAudienceCreation from './pages/CustomAudienceCreation';
 
 const App = () => {
   const dispatch = useDispatch();
@@ -138,6 +139,14 @@ const App = () => {
         element={
           <PrivateRoute>
             <CampaignCreation />
+          </PrivateRoute>
+        }
+      />
+      <Route
+        path="/create-custom-audience"
+        element={
+          <PrivateRoute>
+            <CustomAudienceCreation />
           </PrivateRoute>
         }
       />
