@@ -1,13 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
-import { FaEdit, FaChartLine, FaChevronDown, FaChevronUp } from 'react-icons/fa';
 import './styles/Home.css';
 import Sidebar from '../components/Sidebar';
+import AccountSidebar from '../components/AccountSidebar';
+import CampaignTable from '../components/CampaignTable';
+import AccountDetails from '../components/AccountDetails';
 import { RootState } from '../store';
 import { checkAdsAccounts, fetchGoogleAdsAccounts, fetchFacebookAdAccounts, activateAccount, fetchMetaAdsCampaigns, fetchMetaAdsAdsets, fetchMetaAdsAds, linkMetaAds, linkAccountFromHome, getSessionFromLocalStorage } from '../services/api';
 import { setIsCustomerLinked } from '../store/authSlice';
-import easyAdsImage from '../assets/easy.jpg'; // Correct image import
 
 interface Campaign {
   id: string;
@@ -18,14 +19,14 @@ interface Campaign {
   status: string;
   startDate: string;
   endDate: string;
-  impressions: string;
-  clicks: string;
+  impressions: number;
+  clicks: number;
   spend: string;
   ctr: string;
-  cpc: string;
-  cpm: string;
-  reach: string;
-  frequency: string;
+  cpc: number;
+  cpm: number;
+  reach: number;
+  frequency: number;
   adsets?: Adset[];
 }
 
@@ -36,7 +37,7 @@ interface Adset {
   dailyBudget: string;
   startDate: string;
   endDate: string;
-  ads?: Ad[];
+  ads: Ad[];
 }
 
 interface Ad {
@@ -47,94 +48,83 @@ interface Ad {
   updatedTime: string;
 }
 
-const formatCurrency = (amount: string, currency: string) => {
-  const number = parseFloat(amount) / 100; // Assuming the amount is in cents
-  return new Intl.NumberFormat('pt-BR', { style: 'currency', currency }).format(number);
-};
-
 const Home: React.FC = () => {
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [googleAccounts, setGoogleAccounts] = useState<any[]>([]);
   const [facebookAccounts, setFacebookAccounts] = useState<any[]>([]);
   const [activeCustomers, setActiveCustomers] = useState<any[]>([]);
   const [expandedCampaigns, setExpandedCampaigns] = useState<string[]>([]);
   const [expandedAdsets, setExpandedAdsets] = useState<string[]>([]);
+  const [showPopup, setShowPopup] = useState(false);
+  const [loadingGoogleAccounts, setLoadingGoogleAccounts] = useState(true);
+  const [loadingFacebookAccounts, setLoadingFacebookAccounts] = useState(true);
+  const [selectedAccount, setSelectedAccount] = useState<string | null>(localStorage.getItem('selectedAccount'));
+  const [selectedAccountDetails, setSelectedAccountDetails] = useState<any | null>(null);
+  const [filteredCampaigns, setFilteredCampaigns] = useState<Campaign[]>([]);
+  
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const accessToken = useSelector((state: RootState) => state.auth.accessToken);
   const userId = useSelector((state: RootState) => state.auth.user?.id);
   const isCustomerLinked = useSelector((state: RootState) => state.auth.isCustomerLinked);
-  const [showPopup, setShowPopup] = useState(false);
-  const [loadingGoogleAccounts, setLoadingGoogleAccounts] = useState(true);
-  const [loadingFacebookAccounts, setLoadingFacebookAccounts] = useState(true);
 
-  useEffect(() => {
-    const fetchCampaigns = async () => {
-      console.log('fetchCampaigns - Início');
-      const storedActiveCustomers = JSON.parse(localStorage.getItem('activeCustomers') || '[]');
-      console.log('fetchCampaigns - storedActiveCustomers:', storedActiveCustomers);
-      setActiveCustomers(storedActiveCustomers);
+  const fetchCampaignsForAccount = async (account: any) => {
+    console.log('fetchCampaignsForAccount - Início', account);
+    if (account.type === 'Meta Ads' && accessToken) {
+      try {
+        console.log('fetchCampaignsForAccount - Fetching campaigns for account:', account);
+        const campaignsResponse = await fetchMetaAdsCampaigns(accessToken, account.customer_id || account.account_id);
+        console.log('fetchCampaignsForAccount - campaignsResponse:', campaignsResponse);
 
-      if (storedActiveCustomers.length > 0) {
-        const campaignsData: Campaign[] = [];
-        for (const customer of storedActiveCustomers) {
-          if (customer.type === 'meta_ads') {
-            if (accessToken) {
-              try {
-                console.log('fetchCampaigns - Fetching campaigns for customer:', customer);
-                const campaignsResponse = await fetchMetaAdsCampaigns(accessToken, customer.customer_id);
-                console.log('fetchCampaigns - campaignsResponse:', campaignsResponse);
+        const campaignsWithDetails = campaignsResponse.map((campaign: any) => {
+          const insights = campaign.insights?.data?.[0] || {};
+          return {
+            id: campaign.id,
+            name: campaign.name,
+            platform: 'Meta Ads',
+            objective: campaign.objective,
+            budget: campaign.daily_budget,
+            status: campaign.status,
+            startDate: campaign.start_time,
+            endDate: campaign.updated_time,
+            impressions: insights.impressions || 'N/A',
+            clicks: insights.clicks || 'N/A',
+            spend: insights.spend || 'N/A',
+            ctr: insights.ctr || 'N/A',
+            cpc: insights.cpc || 'N/A',
+            cpm: insights.cpm || 'N/A',
+            reach: insights.reach || 'N/A',
+            frequency: insights.frequency || 'N/A',
+          };
+        });
 
-                const campaignsWithDetails = campaignsResponse.map((campaign: any) => {
-                  const insights = campaign.insights?.data?.[0] || {};
-                  return {
-                    id: campaign.id,
-                    name: campaign.name,
-                    platform: 'Meta Ads',
-                    objective: campaign.objective,
-                    budget: campaign.daily_budget,
-                    status: campaign.status,
-                    startDate: campaign.start_time,
-                    endDate: campaign.updated_time,
-                    impressions: insights.impressions || 'N/A',
-                    clicks: insights.clicks || 'N/A',
-                    spend: insights.spend || 'N/A',
-                    ctr: insights.ctr || 'N/A',
-                    cpc: insights.cpc || 'N/A',
-                    cpm: insights.cpm || 'N/A',
-                    reach: insights.reach || 'N/A',
-                    frequency: insights.frequency || 'N/A',
-                  };
-                });
-
-                campaignsData.push(...campaignsWithDetails);
-              } catch (error) {
-                console.error('fetchCampaigns - Error fetching campaigns:', error);
-              }
-            }
-          }
-        }
-        setCampaigns(campaignsData);
+        setCampaigns(prevCampaigns => {
+          const updatedCampaigns = [...prevCampaigns, ...campaignsWithDetails];
+          const storedCampaigns = JSON.parse(localStorage.getItem('campaigns') || '{}');
+          storedCampaigns[account.customer_id || account.account_id] = campaignsWithDetails;
+          localStorage.setItem('campaigns', JSON.stringify(storedCampaigns));
+          return updatedCampaigns;
+        });
+      } catch (error) {
+        console.error('fetchCampaignsForAccount - Error fetching campaigns:', error);
       }
-    };
+    }
+  };
 
-    fetchCampaigns();
-  }, [accessToken, isCustomerLinked]);
+  const fetchCampaigns = async () => {
+    console.log('fetchCampaigns - Início');
+    const allAccounts = [
+      ...googleAccounts.map(account => ({ ...account, type: 'Google Ads' })),
+      ...facebookAccounts.map(account => ({ ...account, type: 'Meta Ads' }))
+    ];
+    console.log('fetchCampaigns - allAccounts:', allAccounts);
 
-  const handleFacebookLogin = async () => {
-    console.log('handleFacebookLogin - Iniciando login com Facebook...');
-    const session = getSessionFromLocalStorage();
-    const userId = session?.user?.id;
-
-    const newWindow = linkMetaAds(userId);
-
-    const checkWindowClosed = setInterval(() => {
-      if (newWindow && newWindow.closed) {
-        clearInterval(checkWindowClosed);
-        console.log('handleFacebookLogin - Janela fechada, recarregando a página...');
-        window.location.reload();
+    if (allAccounts.length > 0) {
+      for (const account of allAccounts) {
+        await fetchCampaignsForAccount(account);
       }
-    }, 500);
+    }
   };
 
   const checkActiveCustomers = async () => {
@@ -174,6 +164,8 @@ const Home: React.FC = () => {
       } finally {
         setLoadingGoogleAccounts(false);
       }
+    } else {
+      console.log('fetchLinkedAccountsGoogle - Missing accessToken or userId');
     }
   };
 
@@ -194,6 +186,8 @@ const Home: React.FC = () => {
       } finally {
         setLoadingFacebookAccounts(false);
       }
+    } else {
+      console.log('fetchLinkedAccountsMeta - Missing accessToken or userId');
     }
   };
 
@@ -213,8 +207,61 @@ const Home: React.FC = () => {
       }
     };
 
-    checkLinkedAccounts();
+    if (accessToken && userId) {
+      checkLinkedAccounts();
+    }
   }, [accessToken, userId, dispatch]);
+
+  useEffect(() => {
+    if (googleAccounts.length > 0 || facebookAccounts.length > 0) {
+      fetchCampaigns();
+    }
+  }, [googleAccounts, facebookAccounts]);
+
+  useEffect(() => {
+    if (selectedAccount) {
+      console.log(`Selected account changed: ${selectedAccount}`);
+      localStorage.setItem('selectedAccount', selectedAccount);
+      const account = googleAccounts.find(acc => acc.customer_id === selectedAccount) ||
+                      facebookAccounts.find(acc => acc.account_id === selectedAccount);
+      setSelectedAccountDetails(account);
+      const storedCampaigns = JSON.parse(localStorage.getItem('campaigns') || '{}');
+      const accountCampaigns = storedCampaigns[selectedAccount] || [];
+      setFilteredCampaigns(accountCampaigns);
+      console.log('Filtered campaigns for selected account:', accountCampaigns);
+    } else {
+      setSelectedAccountDetails(null);
+      setFilteredCampaigns(campaigns);
+    }
+  }, [selectedAccount, googleAccounts, facebookAccounts, campaigns]);
+
+  useEffect(() => {
+    const storedGoogleAccounts = JSON.parse(localStorage.getItem('googleAccounts') || '[]');
+    const storedFacebookAccounts = JSON.parse(localStorage.getItem('facebookAccounts') || '[]');
+    setGoogleAccounts(storedGoogleAccounts);
+    setFacebookAccounts(storedFacebookAccounts);
+  }, []);
+
+  useEffect(() => {
+    console.log('Google Accounts:', googleAccounts);
+    console.log('Facebook Accounts:', facebookAccounts);
+  }, [googleAccounts, facebookAccounts]);
+
+  const handleFacebookLogin = async () => {
+    console.log('handleFacebookLogin - Iniciando login com Facebook...');
+    const session = getSessionFromLocalStorage();
+    const userId = session?.user?.id;
+
+    const newWindow = linkMetaAds(userId);
+
+    const checkWindowClosed = setInterval(() => {
+      if (newWindow && newWindow.closed) {
+        clearInterval(checkWindowClosed);
+        console.log('handleFacebookLogin - Janela fechada, recarregando a página...');
+        window.location.reload();
+      }
+    }, 500);
+  };
 
   const handleEdit = (id: string) => {
     console.log(`handleEdit - Editando campanha ${id}`);
@@ -297,8 +344,6 @@ const Home: React.FC = () => {
     );
   };
 
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-
   const handleLinkAccount = async (platform: string) => {
     try {
       console.log('handleLinkAccount - Início');
@@ -313,7 +358,6 @@ const Home: React.FC = () => {
 
       const authUrl = await linkAccountFromHome(platform, userId);
       console.log('handleLinkAccount - authUrl:', authUrl);
-
 
       if (accessToken && userId) {
         try {
@@ -332,6 +376,13 @@ const Home: React.FC = () => {
       console.error('handleLinkAccount - Erro ao vincular conta:', error);
     }
   };
+
+  function formatCurrency(amount_spent: number, currency: string): React.ReactNode {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: currency,
+    }).format(amount_spent / 100); // Assuming amount_spent is in cents
+  }
 
   return (
     <div className="home-content">
@@ -398,66 +449,26 @@ const Home: React.FC = () => {
       )}
       <div className='side-and-content'>
         <Sidebar isOpen={isSidebarOpen} toggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)} />
-        <div>
+        <AccountSidebar
+          googleAccounts={googleAccounts}
+          facebookAccounts={facebookAccounts}
+          selectedAccount={selectedAccount}
+          setSelectedAccount={(accountId: string) => {
+            console.log(`Account selected: ${accountId}`);
+            setSelectedAccount(accountId);
+          }}
+        />
+        <div className="main-content">
+          {selectedAccountDetails && <AccountDetails account={selectedAccountDetails} />}
           <h2 className="page-title">Campanhas de Tráfego Pago</h2>
-          <table className="campaign-table">
-            <thead>
-              <tr>
-                <th>Campanha</th>
-                <th>Plataforma</th>
-                <th>Objetivo</th>
-                <th>Orçamento</th>
-                <th>Status</th>
-                <th>Período</th>
-                <th>Impressões</th>
-                <th>Ações</th>
-              </tr>
-            </thead>
-            <tbody>
-              {campaigns.map((campaign) => (
-                <React.Fragment key={campaign.id}>
-                  <tr>
-                    <td onClick={() => handleCampaignClick(campaign.id)} className="campaign-name">
-                      {campaign.name}
-                    </td>
-                    <td>{campaign.platform}</td>
-                    <td>{campaign.objective}</td>
-                    <td>{campaign.budget}</td>
-                    <td>
-                      <span className={`status ${campaign.status.toLowerCase()}`}>{campaign.status}</span>
-                    </td>
-                    <td>{campaign.startDate} - {campaign.endDate}</td>
-                    <td>{campaign.impressions}</td>
-                    <td>
-                      <button className="action-button edit" onClick={() => handleEdit(campaign.id)}>
-                        <FaEdit /> Editar
-                      </button>
-                      <button className="action-button report" onClick={() => handleViewReports(campaign.id)}>
-                        <FaChartLine /> Relatórios
-                      </button>
-                      <button onClick={() => toggleCampaign(campaign.id)}>
-                        {expandedCampaigns.includes(campaign.id) ? <FaChevronUp /> : <FaChevronDown />}
-                      </button>
-                    </td>
-                  </tr>
-                  {expandedCampaigns.includes(campaign.id) && (
-                    <tr>
-                      <td colSpan={8}>
-                        <div className="expanded-content">
-                          <p><strong>Gastos:</strong> {campaign.spend}</p>
-                          <p><strong>CTR:</strong> {campaign.ctr}</p>
-                          <p><strong>CPC:</strong> {campaign.cpc}</p>
-                          <p><strong>CPM:</strong> {campaign.cpm}</p>
-                          <p><strong>Alcance:</strong> {campaign.reach}</p>
-                          <p><strong>Frequência:</strong> {campaign.frequency}</p>
-                        </div>
-                      </td>
-                    </tr>
-                  )}
-                </React.Fragment>
-              ))}
-            </tbody>
-          </table>
+          <CampaignTable
+            campaigns={filteredCampaigns}
+            expandedCampaigns={expandedCampaigns}
+            toggleCampaign={toggleCampaign}
+            handleCampaignClick={handleCampaignClick}
+            handleEdit={handleEdit}
+            handleViewReports={handleViewReports}
+          />
         </div>
       </div>
     </div>
@@ -465,4 +476,3 @@ const Home: React.FC = () => {
 };
 
 export default Home;
-

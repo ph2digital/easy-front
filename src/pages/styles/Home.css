@@ -306,3 +306,27 @@
   margin-top: 10px;
   background-color: #fff;
 }
+
+.main-content {
+  flex-grow: 1;
+  padding: 20px;
+}
+
+.account-details {
+  background-color: #fff;
+  padding: 20px;
+  border-radius: 10px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  margin-bottom: 20px;
+}
+
+.account-details h2 {
+  margin-bottom: 10px;
+  font-size: 1.5rem;
+  color: #333;
+}
+
+.account-details p {
+  margin: 5px 0;
+  color: #555;
+}
