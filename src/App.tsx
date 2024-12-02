@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
-import { useNavigate } from 'react-router-dom';
+import { Routes, Route, useLocation } from 'react-router-dom';
 import { setUser, setTokens, selectIsAuthenticated, validateToken } from './store/authSlice';
 import { getSessionFromLocalStorage } from './services/api';
 import Home from './pages/Home';
@@ -19,7 +18,6 @@ import PrivacyPolicy from './pages/PrivacyPolicy';
 
 const App = () => {
   const dispatch = useDispatch();
-  const navigate = useNavigate();
   const location = useLocation();
   const isAuthenticated = useSelector(selectIsAuthenticated);
   const [isLoading, setIsLoading] = useState(true);

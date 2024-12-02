@@ -7,7 +7,7 @@ import AccountSidebar from '../components/AccountSidebar';
 import CampaignTable from '../components/CampaignTable';
 import AccountDetails from '../components/AccountDetails';
 import { RootState } from '../store';
-import { checkAdsAccounts, fetchGoogleAdsAccounts, fetchFacebookAdAccounts, activateAccount, fetchMetaAdsCampaigns, fetchMetaAdsAdsets, fetchMetaAdsAds, linkMetaAds, linkAccountFromHome, getSessionFromLocalStorage } from '../services/api';
+import { checkAdsAccounts, fetchGoogleAdsAccounts, fetchFacebookAdAccounts, activateAccount, fetchMetaAdsCampaigns, linkMetaAds, linkAccountFromHome, getSessionFromLocalStorage } from '../services/api';
 import { setIsCustomerLinked } from '../store/authSlice';
 
 interface Campaign {
@@ -53,9 +53,8 @@ const Home: React.FC = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [googleAccounts, setGoogleAccounts] = useState<any[]>([]);
   const [facebookAccounts, setFacebookAccounts] = useState<any[]>([]);
-  const [activeCustomers, setActiveCustomers] = useState<any[]>([]);
+  const [] = useState<any[]>([]);
   const [expandedCampaigns, setExpandedCampaigns] = useState<string[]>([]);
-  const [expandedAdsets, setExpandedAdsets] = useState<string[]>([]);
   const [showPopup, setShowPopup] = useState(false);
   const [loadingGoogleAccounts, setLoadingGoogleAccounts] = useState(true);
   const [loadingFacebookAccounts, setLoadingFacebookAccounts] = useState(true);
@@ -67,7 +66,6 @@ const Home: React.FC = () => {
   const dispatch = useDispatch();
   const accessToken = useSelector((state: RootState) => state.auth.accessToken);
   const userId = useSelector((state: RootState) => state.auth.user?.id);
-  const isCustomerLinked = useSelector((state: RootState) => state.auth.isCustomerLinked);
 
   const fetchCampaignsForAccount = async (account: any) => {
     console.log('fetchCampaignsForAccount - Início', account);
@@ -302,47 +300,6 @@ const Home: React.FC = () => {
     );
   };
 
-  const toggleAdset = async (adsetId: string, campaignId: string) => {
-    console.log(`toggleAdset - Toggling adset ${adsetId} for campaign ${campaignId}`);
-    if (!expandedAdsets.includes(adsetId)) {
-      try {
-        const adsetsResponse = await fetchMetaAdsAdsets(accessToken!, campaignId);
-        const adsResponse = await fetchMetaAdsAds(accessToken!, campaignId);
-        console.log('toggleAdset - adsetsResponse:', adsetsResponse);
-        console.log('toggleAdset - adsResponse:', adsResponse);
-
-        const adsetsWithDetails = adsetsResponse.filter((adset: any) => adset.campaign_id === campaignId).map((adset: any) => ({
-          id: adset.id,
-          name: adset.name,
-          status: adset.status,
-          dailyBudget: adset.daily_budget,
-          startDate: adset.created_time,
-          endDate: adset.updated_time,
-          ads: adsResponse.filter((ad: any) => ad.adset_id === adset.id).map((ad: any) => ({
-            id: ad.id,
-            name: ad.name,
-            status: ad.status,
-            createdTime: ad.created_time,
-            updatedTime: ad.updated_time,
-          })),
-        }));
-
-        setCampaigns((prevCampaigns) =>
-          prevCampaigns.map((campaign) =>
-            campaign.id === campaignId
-              ? { ...campaign, adsets: adsetsWithDetails }
-              : campaign
-          )
-        );
-      } catch (error) {
-        console.error('toggleAdset - Error fetching adsets:', error);
-      }
-    }
-
-    setExpandedAdsets((prev) =>
-      prev.includes(adsetId) ? prev.filter((id) => id !== adsetId) : [...prev, adsetId]
-    );
-  };
 
   const handleLinkAccount = async (platform: string) => {
     try {

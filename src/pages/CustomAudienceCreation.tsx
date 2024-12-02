@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { useDispatch } from 'react-redux';
 import { addCustomer } from '../store/selectedCustomersSlice';
 import { fetchCustomAudiences, createCustomAudience, getSessionFromLocalStorage } from '../services/api';
-import { useNavigate } from 'react-router-dom';
 import './styles/CustomAudienceCreation.css';
 
 const CustomAudienceCreation: React.FC = () => {
@@ -12,11 +11,9 @@ const CustomAudienceCreation: React.FC = () => {
   const [rule, setRule] = useState('');
   const [lookalikeSpec, setLookalikeSpec] = useState('');
   const [customerFileSource, setCustomerFileSource] = useState('');
-  const [igBusinessSpec, setIgBusinessSpec] = useState('');
   const [customAudiences, setCustomAudiences] = useState<any[]>([]);
   const dispatch = useDispatch();
-  const { user, access_token } = getSessionFromLocalStorage();
-  const navigate = useNavigate();
+  const { access_token } = getSessionFromLocalStorage();
   const storedActiveCustomers = JSON.parse(localStorage.getItem('activeCustomers') || '[]');
   const customerId = storedActiveCustomers?.[0]?.customer_id;
   console.log(`customer_id: ${customerId}`);
@@ -75,7 +72,6 @@ const CustomAudienceCreation: React.FC = () => {
         setRule('');
         setLookalikeSpec('');
         setCustomerFileSource('');
-        setIgBusinessSpec('');
         setCustomAudiences([...customAudiences, newAudience[0]]);
       } catch (error) {
         console.error('Error creating custom audience:', error);

@@ -93,36 +93,6 @@ const Accounts: React.FC = () => {
     }
   };
 
-  const fetchGoogleAdsData = async (endpoint: string, setData: React.Dispatch<React.SetStateAction<any[]>>) => {
-    if (!accessToken) {
-      console.error('AccessToken não encontrado');
-      return;
-    }
-
-    setLoading(true);
-    try {
-      const response = await fetch(`http://localhost:8080/api/google-ads/${endpoint}`, {
-        method: 'GET',
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (!response.ok) {
-        console.error(`Erro ao buscar ${endpoint}: ${response.status} - ${response.statusText}`);
-        throw new Error(`Erro ao buscar ${endpoint}: ${response.statusText}`);
-      }
-
-      const data = await response.json();
-      setData(data);
-    } catch (error) {
-      console.error(`Erro ao buscar ${endpoint}:`, error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const fetchMetaAdsData = async (endpoint: string, setData: React.Dispatch<React.SetStateAction<any[]>>) => {
     if (!accessToken) {
       console.error('AccessToken não encontrado');

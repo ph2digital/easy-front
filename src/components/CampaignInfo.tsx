@@ -1,37 +1,6 @@
 import React, { useState } from 'react';
 import './styles/CampaignInfo.css';
 
-interface Campaign {
-  id: string;
-  name: string;
-  account_id: string;
-  status: string;
-  effective_status: string;
-  objective: string;
-  created_time: string;
-  updated_time: string;
-  start_time: string;
-  daily_budget: string;
-  budget_remaining: string;
-  buying_type: string;
-  special_ad_categories?: string[];
-  special_ad_category: string;
-  insights?: {
-    data?: {
-      impressions?: string;
-      clicks?: string;
-      spend?: string;
-      ctr?: string;
-      cpc?: string;
-      cpm?: string;
-      reach?: string;
-      frequency?: string;
-      date_start?: string;
-      date_stop?: string;
-    }[];
-  };
-}
-
 interface CampaignInfoProps {
   campaign: any;
   isEditing: boolean;
