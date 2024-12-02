@@ -15,6 +15,7 @@ import AuthCallback from './pages/AuthCallback';
 import CampaignDetails from './pages/CampaignDetails';
 import CampaignCreation from './pages/CampaignCreation';
 import CustomAudienceCreation from './pages/CustomAudienceCreation';
+import PrivacyPolicy from './pages/PrivacyPolicy';
 
 const App = () => {
   const dispatch = useDispatch();
@@ -150,6 +151,7 @@ const App = () => {
           </PrivateRoute>
         }
       />
+      <Route path="/privacy-policy" element={<PrivacyPolicy />} />
     </Routes>
   );
 };
