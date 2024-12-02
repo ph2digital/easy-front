@@ -27,6 +27,7 @@ const RightSidebar: React.FC<RightSidebarProps> = ({ isOpen, onClose }) => {
     }
   };
 
+  
   return (
     <div className={`right-sidebar ${isOpen ? 'open' : ''}`}>
       <button className="close-button" onClick={onClose}>X</button>
