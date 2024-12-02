@@ -6,6 +6,7 @@ import Sidebar from '../components/Sidebar';
 import AccountSidebar from '../components/AccountSidebar';
 import CampaignTable from '../components/CampaignTable';
 import AccountDetails from '../components/AccountDetails';
+import RightSidebar from '../components/RightSidebar';
 import { RootState } from '../store';
 import { checkAdsAccounts, fetchGoogleAdsAccounts, fetchFacebookAdAccounts, activateAccount, fetchMetaAdsCampaigns, linkMetaAds, linkAccountFromHome, getSessionFromLocalStorage } from '../services/api';
 import { setIsCustomerLinked } from '../store/authSlice';
@@ -61,6 +62,7 @@ const Home: React.FC = () => {
   const [selectedAccount, setSelectedAccount] = useState<string | null>(localStorage.getItem('selectedAccount'));
   const [selectedAccountDetails, setSelectedAccountDetails] = useState<any | null>(null);
   const [filteredCampaigns, setFilteredCampaigns] = useState<Campaign[]>([]);
+  const [isRightSidebarOpen, setIsRightSidebarOpen] = useState(false);
   
   const navigate = useNavigate();
   const dispatch = useDispatch();
@@ -343,6 +345,10 @@ const Home: React.FC = () => {
 
   return (
     <div className="home-content">
+      <div className="header">
+        <div className="title">Campanhas de Tráfego Pago</div>
+        <button className="copilot-button" onClick={() => setIsRightSidebarOpen(true)}>Open Copilot</button>
+      </div>
       {showPopup && (
         <div className="popup-overlay">
           <div className="popup-content">
@@ -417,7 +423,6 @@ const Home: React.FC = () => {
         />
         <div className="main-content">
           {selectedAccountDetails && <AccountDetails account={selectedAccountDetails} />}
-          <h2 className="page-title">Campanhas de Tráfego Pago</h2>
           <CampaignTable
             campaigns={filteredCampaigns}
             expandedCampaigns={expandedCampaigns}
@@ -428,6 +433,8 @@ const Home: React.FC = () => {
           />
         </div>
       </div>
+
+      <RightSidebar isOpen={isRightSidebarOpen} onClose={() => setIsRightSidebarOpen(false)} />
     </div>
   );
 };

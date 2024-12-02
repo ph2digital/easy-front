@@ -330,3 +330,30 @@
   margin: 5px 0;
   color: #555;
 }
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 20px;
+  background-color: #0073e6;
+  color: white;
+}
+
+.header .title {
+  font-size: 1.8rem;
+}
+
+.header .copilot-button {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 5px;
+  background-color: #005bb5;
+  color: white;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.header .copilot-button:hover {
+  background-color: #003f7f;
+}

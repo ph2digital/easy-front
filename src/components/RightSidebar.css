@@ -1,0 +1,88 @@
+.right-sidebar {
+  position: fixed;
+  right: 0;
+  top: 0;
+  width: 300px;
+  height: 100%;
+  background-color: #f4f6f8;
+  box-shadow: -2px 0 5px rgba(0, 0, 0, 0.1);
+  padding: 20px;
+  overflow-y: auto;
+  transition: transform 0.3s ease;
+  transform: translateX(100%);
+}
+
+.right-sidebar.open {
+  transform: translateX(0);
+}
+
+.right-sidebar .close-button {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  color: #333;
+}
+
+.right-sidebar .close-button:hover {
+  color: #e74c3c;
+}
+
+.right-sidebar h2 {
+  font-size: 1.5rem;
+  margin-bottom: 20px;
+  color: #333;
+}
+
+.right-sidebar p {
+  color: #666;
+  margin-bottom: 20px;
+}
+
+.right-sidebar .content {
+  flex-grow: 1;
+  margin-bottom: 20px;
+  overflow-y: auto;
+}
+
+.right-sidebar .input-container {
+  position: absolute;
+  bottom: 20px;
+  left: 20px;
+  right: 20px;
+  display: flex;
+  gap: 10px;
+}
+
+.right-sidebar input {
+  flex-grow: 1;
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 5px;
+}
+
+.right-sidebar button {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 5px;
+  background-color: #0073e6;
+  color: white;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.right-sidebar button:hover {
+  background-color: #005bb5;
+}
+
+.message-box {
+  background-color: #fff;
+  border: 1px solid #ddd;
+  border-radius: 5px;
+  padding: 10px;
+  margin-bottom: 10px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
