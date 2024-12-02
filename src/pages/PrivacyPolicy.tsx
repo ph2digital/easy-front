@@ -69,7 +69,7 @@ const PrivacyPolicy: React.FC = () => {
         <li><strong>Revogação de Consentimento</strong>: Retirar seu consentimento para usos específicos de seus dados.</li>
         <li><strong>Portabilidade de Dados</strong>: Solicitar a transferência de seus dados para outra plataforma.</li>
       </ul>
-      <p>Para exercer seus direitos, entre em contato conosco pelo e-mail [seu_email_de_contato].</p>
+      <p>Para exercer seus direitos, entre em contato conosco pelo e-mail assessoriaph2@gmail.com.</p>
       
       <h2>7. Cookies</h2>
       <p>Utilizamos cookies para melhorar sua experiência em nossa plataforma. Eles ajudam a:</p>
@@ -84,7 +84,7 @@ const PrivacyPolicy: React.FC = () => {
       <p>Esta Política de Privacidade pode ser atualizada periodicamente. Recomendamos que você revise este documento regularmente para estar informado sobre nossas práticas de privacidade.</p>
       
       <h2>9. Contato</h2>
-      <p>Se tiver dúvidas ou preocupações sobre esta Política de Privacidade ou nossas práticas de proteção de dados, entre em contato através do e-mail [seu_email_de_contato] ou pelo telefone [seu_telefone_de_contato].</p>
+      <p>Se tiver dúvidas ou preocupações sobre esta Política de Privacidade ou nossas práticas de proteção de dados, entre em contato através do e-mail assessoriaph2@gmail.com.</p>
       
       <p><strong>Confiamos que esta Política de Privacidade oferece a transparência necessária para que você utilize nossa plataforma com segurança.</strong></p>
     </div>
