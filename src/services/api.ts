@@ -5,10 +5,10 @@ import { AppDispatch } from '../store/index';
 // import { json } from 'react-router-dom';
 
 const api = axios.create({
-    baseURL: import.meta.env.VITE_API_URL || 'http://localhost:8080/api',
+    baseURL: import.meta.env.VITE_API_URL,
     withCredentials: true,
 });
-const API_URL = import.meta.env.VITE_API_URL || '';
+const API_URL = import.meta.env.VITE_API_URL;
 const STORAGE_KEY = import.meta.env.VITE_STORAGE_KEY || 'default-auth-token';
 const USER_KEY = 'user';
 const APP_STATE_KEY = 'app-state';

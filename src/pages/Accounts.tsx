@@ -8,7 +8,7 @@ import { updateAccount } from '../store/accountSlice'; // Ensure this path is co
 import { RootState, AppDispatch } from '../store';
 import { addCustomer, removeCustomer, setCustomers } from '../store/selectedCustomersSlice';
 import { setUser, setTokens } from '../store/authSlice';
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8080/api';
+const API_URL = import.meta.env.VITE_API_URL;
 
 interface Account {
   customerId: string;
@@ -101,7 +101,7 @@ const Accounts: React.FC = () => {
 
     setLoading(true);
     try {
-      const response = await fetch(`http://localhost:8080/api/meta-ads/${endpoint}`, {
+      const response = await fetch(`${API_URL}/meta-ads/${endpoint}`, {
         method: 'GET',
         headers: {
           Authorization: `Bearer ${accessToken}`,
@@ -244,7 +244,7 @@ const Accounts: React.FC = () => {
     setLoading(true);
     try {
         const data: any[] = await Promise.all(selectedCustomers.map(async (customerId: string): Promise<any[]> => {
-            const response: Response = await fetch(`http://localhost:8080/api/google-ads/accounts/${customerId}/${endpoint}`, {
+            const response: Response = await fetch(`${API_URL}/google-ads/accounts/${customerId}/${endpoint}`, {
           method: 'GET',
           headers: {
               Authorization: `Bearer ${accessToken}`,
