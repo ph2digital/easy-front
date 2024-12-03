@@ -23,17 +23,6 @@ const Settings: React.FC = () => {
     }
   };
 
-  const handleEditSetting = (id: string) => {
-    const newDescription = prompt('Enter new description:');
-    if (newDescription) {
-      setSettings(settings.map(setting => 
-        setting.id === id ? { ...setting, description: newDescription } : setting
-      ));
-      setSuccessMessage('Setting has been successfully edited.');
-      setTimeout(() => setSuccessMessage(''), 3000); // Hide message after 3 seconds
-    }
-  };
-
   const toggleSetting = (id: string) => {
     setSettings(settings.map(setting => 
       setting.id === id ? { ...setting, enabled: !setting.enabled } : setting

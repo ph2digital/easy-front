@@ -265,7 +265,7 @@ export const createAd = async (_accessToken: string, adData: any) => {
     return { ...adData, id: 'mockAdId' };
 };
 
-export const updateMetaAdsAdset = async (adsetId: string, adsetData: any, accessToken?: string) => {
+export const updateMetaAdsAdset = async (adsetId: string, adsetData: any) => {
     console.log('updateMetaAdsAdset - Updating Meta Ads adset with id:', adsetId);
     return { ...adsetData, id: adsetId };
 };
