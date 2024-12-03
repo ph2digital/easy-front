@@ -15,6 +15,9 @@ import CampaignDetails from './pages/CampaignDetails';
 import CampaignCreation from './pages/CampaignCreation';
 import CustomAudienceCreation from './pages/CustomAudienceCreation';
 import PrivacyPolicy from './pages/PrivacyPolicy';
+import Dashboard from './pages/Dashboard';
+import Finance from './pages/Finance';
+import Tracking from './pages/Tracking';
 
 const App = () => {
   const dispatch = useDispatch();
@@ -93,6 +96,22 @@ const App = () => {
         }
       />
       <Route
+        path="/dashboard"
+        element={
+          <PrivateRoute>
+            <Dashboard />
+          </PrivateRoute>
+        }
+      />
+      <Route
+        path="/finance"
+        element={
+          <PrivateRoute>
+        <Finance />
+          </PrivateRoute>
+        }
+      />
+      <Route
         path="/gallery"
         element={
           <PrivateRoute>
@@ -126,7 +145,7 @@ const App = () => {
       />
       <Route path="/auth-callback" element={<AuthCallback />} />
       <Route
-        path="/campaign-details/:id"
+        path="/campaign-details"
         element={
           <PrivateRoute>
             <CampaignDetails />
@@ -149,11 +168,18 @@ const App = () => {
           </PrivateRoute>
         }
       />
+      <Route
+        path="/tracking"
+        element={
+          <PrivateRoute>
+            <Tracking />
+          </PrivateRoute>
+        }
+      />
       <Route path="/privacy-policy" element={<PrivacyPolicy />} />
     </Routes>
   );
 };
-
 
 export default App;
 

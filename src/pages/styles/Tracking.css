@@ -1,0 +1,49 @@
+.tracking {
+  padding: 20px;
+  background-color: #f9f9f9;
+  border-radius: 10px;
+}
+
+.tracking h1 {
+  font-size: 28px;
+  margin-bottom: 20px;
+  color: #333;
+}
+
+.tracking ul {
+  list-style-type: none;
+  padding: 0;
+}
+
+.tracking-item {
+  padding: 15px;
+  margin-bottom: 10px;
+  border-radius: 5px;
+  color: #fff;
+  background-color: #fff;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.tracking-item.active {
+  background-color: #4caf50;
+}
+
+.tracking-item.inactive {
+  background-color: #f44336;
+}
+
+.tracking-item.pending {
+  background-color: #ff9800;
+}
+
+.tracking-item.completed {
+  background-color: #2196f3;
+}
+
+.tracking-item.delayed {
+  background-color: #9c27b0;
+}
+
+.tracking-item.cancelled {
+  background-color: #607d8b;
+}

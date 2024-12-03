@@ -1,0 +1,19 @@
+.new-project {
+  padding: 20px;
+}
+
+.new-project h1 {
+  font-size: 24px;
+  margin-bottom: 20px;
+}
+
+.new-project ul {
+  list-style-type: none;
+  padding: 0;
+}
+
+.new-project li {
+  padding: 10px;
+  border: 1px solid #ccc;
+  margin-bottom: 10px;
+}

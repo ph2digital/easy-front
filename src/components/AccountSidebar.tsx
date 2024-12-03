@@ -18,18 +18,6 @@ const AccountSidebar: React.FC<AccountSidebarProps> = ({ googleAccounts, faceboo
     <div className="account-sidebar">
       <h3>Contas Vinculadas</h3>
       <div className="account-list">
-        <h4>Google Ads</h4>
-        <ul>
-          {googleAccounts.map((account) => (
-            <li
-              key={`google-${account.customer_id}`}
-              className={selectedAccount === account.customer_id ? 'selected' : ''}
-              onClick={() => setSelectedAccount(account.customer_id)}
-            >
-              {account.customer_id}
-            </li>
-          ))}
-        </ul>
         <h4>Facebook Ads</h4>
         <ul>
           {facebookAccounts.map((account) => (

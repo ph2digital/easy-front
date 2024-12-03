@@ -24,7 +24,7 @@ const AuthCallback = () => {
           const response = await saveGoogleSessionToDatabase(accessToken, refreshToken);
           console.log('AuthCallback: User data from saveGoogleSessionToDatabase:', response);
           if (response.user) {
-            const profileImage = response.user.picture?.data?.url || response.user.picture || '';
+            const profileImage = typeof response.user.picture === 'object' ? (response.user.picture as { data?: { url: string } }).data?.url || null : response.user.picture || null;
             dispatch(setTokens({ accessToken, refreshToken }));
             dispatch(setUser({ user: response.user, profileImage }));
             localStorage.setItem('user', JSON.stringify(response.user));
@@ -46,7 +46,7 @@ const AuthCallback = () => {
             window.opener.location.href = '/login';
             window.close();
           } else {
-            navigate('/login');
+            // navigate('/login');
           }
         }
       } else if (metaAccessToken) {
@@ -54,7 +54,7 @@ const AuthCallback = () => {
           const response = await saveMetaSessionToDatabase(metaAccessToken);
           console.log('AuthCallback: User data from saveMetaSessionToDatabase:', response);
           if (response.user) {
-            const profileImage = response.user.picture?.data?.url || response.user.picture || '';
+            const profileImage = typeof response.user.picture === 'object' ? (response.user.picture as { data?: { url: string } }).data?.url || null : response.user.picture || null;
             dispatch(setTokens({ accessToken: metaAccessToken, refreshToken: '' }));
             dispatch(setUser({ user: response.user, profileImage }));
             localStorage.setItem('user', JSON.stringify(response.user));
@@ -76,7 +76,7 @@ const AuthCallback = () => {
             window.opener.location.href = '/login';
             window.close();
           } else {
-            navigate('/login');
+            // navigate('/login');
           }
         }
       } else if (facebookAccessToken) {
@@ -84,7 +84,7 @@ const AuthCallback = () => {
           const response = await saveFacebookSessionToDatabase(facebookAccessToken);
           console.log('AuthCallback: User data from saveFacebookSessionToDatabase:', response);
           if (response.user) {
-            const profileImage = response.user.picture?.data?.url || response.user.picture || '';
+            const profileImage = typeof response.user.picture === 'object' ? (response.user.picture as { data?: { url: string } }).data?.url || null : response.user.picture || null;
             dispatch(setTokens({ accessToken: facebookAccessToken, refreshToken: '' }));
             dispatch(setUser({ user: response.user, profileImage }));
             localStorage.setItem('user', JSON.stringify(response.user));
@@ -106,7 +106,7 @@ const AuthCallback = () => {
             window.opener.location.href = '/login';
             window.close();
           } else {
-            navigate('/login');
+            // navigate('/login');
           }
         }
       } else {
@@ -115,7 +115,7 @@ const AuthCallback = () => {
           window.opener.location.href = '/login';
           window.close();
         } else {
-          navigate('/login');
+          // navigate('/login');
         }
       }
     };

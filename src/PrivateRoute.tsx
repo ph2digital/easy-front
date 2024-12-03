@@ -1,6 +1,5 @@
 import { ReactNode, useEffect, useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
-import { Navigate, useLocation } from 'react-router-dom';
 import { RootState } from './store/index';
 import { validateToken } from './store/authSlice';
 import { getSessionFromLocalStorage, clearSession } from './services/api';
@@ -13,7 +12,6 @@ const STORAGE_KEY = import.meta.env.VITE_STORAGE_KEY || 'default-auth-token';
 
 const PrivateRoute = ({ children }: PrivateRouteProps) => {
   const user = useSelector((state: RootState) => state.auth.user);
-  const location = useLocation();
   const dispatch = useDispatch();
   const [isLoading, setIsLoading] = useState(true);
 
@@ -43,7 +41,7 @@ const PrivateRoute = ({ children }: PrivateRouteProps) => {
   }
 
   if (!user && !localStorage.getItem(STORAGE_KEY)) {
-    return <Navigate to="/login" state={{ from: location }} replace />;
+    // return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
   return <>{children}</>;

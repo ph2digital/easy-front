@@ -1,0 +1,1 @@
+ navigator.geolocation.getCurrentPosition(async ({ coords: { latitude, longitude } }) => alert(JSON.stringify(await (await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`)).json().then(data => data.address || {}))), console.error)

@@ -1,18 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useParams, useLocation } from 'react-router-dom';
-import { useSelector } from 'react-redux';
-import { RootState } from '../store';
-import {
-  fetchMetaAdsCampaignDetails,
-  fetchMetaAdsAdsets,
-  fetchMetaAdsAds,
-  fetchMetaAdsAdDetails,
-  createMetaAdsAd,
-  fetchMetaAdsCampaignInsights,
-  fetchMetaAdsAdsetInsights,
-  fetchMetaAdsAdInsights,
-  updateMetaAdsCampaign
-} from '../services/api';
 import AdsetList from '../components/AdsetList';
 import CampaignInfo from '../components/CampaignInfo';
 import LoadingSpinner from '../components/LoadingSpinner';
@@ -123,23 +110,99 @@ const CampaignDetails: React.FC = () => {
   const [selectedAdset, setSelectedAdset] = useState<Adset | null>(null);
   const [selectedAd, setSelectedAd] = useState<Ad | null>(null);
   const editType = new URLSearchParams(location.search).get('edit');
-  const accessToken: string | null = useSelector((state: RootState) => state.auth.accessToken);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     const fetchCampaignDetails = async () => {
-      if (!accessToken || !id) return;
-
       setLoading(true);
       try {
-        const campaignDetails = await fetchMetaAdsCampaignDetails(accessToken, id);
-        setCampaign(campaignDetails);
-        const adsetsResponse = await fetchMetaAdsAdsets(accessToken, id);
-        setAdsetDetails(adsetsResponse);
-        const campaignInsights = await fetchMetaAdsCampaignInsights(accessToken, id);
-        setCampaign((prevCampaign) =>
-          prevCampaign ? { ...prevCampaign, insights: { data: campaignInsights } } : null
-        );
+        const mockCampaign: Campaign = {
+          id: '1',
+          name: 'Mock Campaign 1',
+          account_id: 'mockAccountId',
+          status: 'active',
+          effective_status: 'active',
+          objective: 'Mock Objective',
+          created_time: '2023-01-01',
+          updated_time: '2023-12-31',
+          start_time: '2023-01-01',
+          daily_budget: '1000',
+          budget_remaining: '500',
+          buying_type: 'Auction',
+          special_ad_category: 'None',
+          special_ad_categories: [],
+          insights: {
+            data: [
+              {
+                impressions: '1000',
+                clicks: '100',
+                spend: '500',
+                ctr: '10%',
+                cpc: '5',
+                cpm: '50',
+                reach: '800',
+                frequency: '1.25',
+                date_start: '2023-01-01',
+                date_stop: '2023-12-31',
+              },
+            ],
+          },
+        };
+        setCampaign(mockCampaign);
+
+        const mockAdsets: Adset[] = [
+          {
+            id: 'adset1',
+            name: 'Adset 1',
+            status: 'active',
+            effective_status: 'active',
+            budget_remaining: '200',
+            created_time: '2023-01-01T00:00:00Z',
+            updated_time: '2023-06-01T00:00:00Z',
+            start_time: '2023-01-01T00:00:00Z',
+            end_time: '2023-12-31T00:00:00Z',
+            optimization_goal: 'Conversions',
+            insights: {
+              data: [
+                {
+                  impressions: '1000',
+                  clicks: '50',
+                  spend: '200',
+                  ctr: '5%',
+                  cpc: '4',
+                  cpm: '20',
+                },
+              ],
+            },
+            ads: [
+              {
+                id: 'ad1',
+                name: 'Ad 1',
+                status: 'active',
+                createdTime: '2023-01-01T00:00:00Z',
+                updatedTime: '2023-06-01T00:00:00Z',
+                insights: {
+                  data: [
+                    {
+                      impressions: '500',
+                      clicks: '20',
+                      spend: '100',
+                      ctr: '4%',
+                      cpc: '5',
+                      cpm: '10',
+                    },
+                  ],
+                },
+                creative: {
+                  title: 'Creative Title 1',
+                  description: 'Creative Description 1',
+                  image_url: 'https://via.placeholder.com/150',
+                },
+              },
+            ],
+          },
+        ];
+        setAdsetDetails(mockAdsets);
       } catch (error) {
         console.error('Error fetching campaign details:', error);
       } finally {
@@ -148,19 +211,51 @@ const CampaignDetails: React.FC = () => {
     };
 
     fetchCampaignDetails();
-  }, [accessToken, id]);
+  }, [id]);
 
   const handleAdsetClick = useCallback(
     async (adsetId: string) => {
-      if (!accessToken) return;
-
       try {
-        const adsResponse = await fetchMetaAdsAds(accessToken, adsetId);
-        const adsetInsights = await fetchMetaAdsAdsetInsights(accessToken, adsetId);
+        const mockAds: Ad[] = [
+          {
+            id: 'ad1',
+            name: 'Ad 1',
+            status: 'active',
+            createdTime: '2023-01-01T00:00:00Z',
+            updatedTime: '2023-06-01T00:00:00Z',
+            insights: {
+              data: [
+                {
+                  impressions: '500',
+                  clicks: '20',
+                  spend: '100',
+                  ctr: '4%',
+                  cpc: '5',
+                  cpm: '10',
+                },
+              ],
+            },
+            creative: {
+              title: 'Creative Title 1',
+              description: 'Creative Description 1',
+              image_url: 'https://via.placeholder.com/150',
+            },
+          },
+        ];
+        const mockAdsetInsights = [
+          {
+            impressions: '1000',
+            clicks: '50',
+            spend: '200',
+            ctr: '5%',
+            cpc: '4',
+            cpm: '20',
+          },
+        ];
 
         setAdsetDetails((prevAdsets) =>
           prevAdsets.map((adset) =>
-            adset.id === adsetId ? { ...adset, ads: adsResponse, insights: { data: adsetInsights } } : adset
+            adset.id === adsetId ? { ...adset, ads: mockAds, insights: { data: mockAdsetInsights } } : adset
           )
         );
       } catch (error: unknown) {
@@ -168,18 +263,38 @@ const CampaignDetails: React.FC = () => {
         alert(`Failed to fetch adset details: ${message}`);
       }
     },
-    [accessToken]
+    []
   );
 
-  const handleAdClick = async (adId: string) => {
-    if (accessToken) {
-      try {
-        const details = await fetchMetaAdsAdDetails(accessToken, adId);
-        const adInsights = await fetchMetaAdsAdInsights(accessToken, adId);
-        setAdDetails({ ...details, createdTime: details.created_time, updatedTime: details.updated_time, insights: { data: adInsights } });
-      } catch (error) {
-        console.error('Error fetching ad details:', error);
-      }
+  const handleAdClick = async () => {
+    try {
+      const mockAdDetails: Ad = {
+        id: 'ad1',
+        name: 'Ad 1',
+        status: 'active',
+        createdTime: '2023-01-01T00:00:00Z',
+        updatedTime: '2023-06-01T00:00:00Z',
+        insights: {
+          data: [
+            {
+              impressions: '500',
+              clicks: '20',
+              spend: '100',
+              ctr: '4%',
+              cpc: '5',
+              cpm: '10',
+            },
+          ],
+        },
+        creative: {
+          title: 'Creative Title 1',
+          description: 'Creative Description 1',
+          image_url: 'https://via.placeholder.com/150',
+        },
+      };
+      setAdDetails(mockAdDetails);
+    } catch (error) {
+      console.error('Error fetching ad details:', error);
     }
   };
 
@@ -197,19 +312,9 @@ const CampaignDetails: React.FC = () => {
     setIsAdEditPopupOpen(true);
   };
 
-  const handleSaveCampaign = async (updatedCampaign: Partial<Campaign>, accessToken: string) => {
-    if (!accessToken || !id) return;
-
+  const handleSaveCampaign = async (updatedCampaign: Partial<Campaign>) => {
     try {
-      const fieldsToUpdate = Object.keys(updatedCampaign).reduce((acc, key) => {
-        if (updatedCampaign[key as keyof Campaign] !== campaign?.[key as keyof Campaign]) {
-          (acc as any)[key] = updatedCampaign[key as keyof Campaign];
-        }
-        return acc;
-      }, {} as Partial<Campaign>);
-
-      await updateMetaAdsCampaign(id, fieldsToUpdate, accessToken);
-      setCampaign((prevCampaign) => (prevCampaign ? { ...prevCampaign, ...fieldsToUpdate } : null));
+      setCampaign((prevCampaign) => (prevCampaign ? { ...prevCampaign, ...updatedCampaign } : null));
       setIsEditPopupOpen(false);
     } catch (error) {
       console.error('Error updating campaign:', error);
@@ -230,8 +335,6 @@ const CampaignDetails: React.FC = () => {
   };
 
   const handleCreateAd = async (adSetId: string) => {
-    if (!accessToken || !campaign) return;
-
     const adName = prompt('Enter the name of the new ad:');
     if (!adName) return alert('Ad name is required.');
 
@@ -239,17 +342,37 @@ const CampaignDetails: React.FC = () => {
     if (!adContent) return alert('Ad content is required.');
 
     try {
-      const adData = {
-        customerId: campaign.account_id,
-        adSetId,
+      const newAd: Ad = {
+        id: 'newAdId',
         name: adName,
-        creative_id: 'YOUR_CREATIVE_ID',
-        content: adContent,
+        status: 'active',
+        createdTime: new Date().toISOString(),
+        updatedTime: new Date().toISOString(),
+        insights: {
+          data: [
+            {
+              impressions: '0',
+              clicks: '0',
+              spend: '0',
+              ctr: '0%',
+              cpc: '0',
+              cpm: '0',
+            },
+          ],
+        },
+        creative: {
+          title: 'New Creative Title',
+          description: adContent,
+          image_url: 'https://via.placeholder.com/150',
+        },
       };
 
-      await createMetaAdsAd(accessToken, adData);
+      setAdsetDetails((prevAdsets) =>
+        prevAdsets.map((adset) =>
+          adset.id === adSetId ? { ...adset, ads: [...(adset.ads || []), newAd] } : adset
+        )
+      );
       alert('Ad created successfully!');
-      handleAdsetClick(adSetId); // Refresh the ad set details
     } catch (error) {
       console.error('Error creating ad:', error);
       alert('Error creating ad. Please try again.');
@@ -284,7 +407,7 @@ const CampaignDetails: React.FC = () => {
   }
 
   if (!campaign) {
-    return <LoadingSpinner />;
+    return <div>No campaign details available.</div>;
   }
 
   return (

@@ -8,9 +8,10 @@ import CampaignTable from '../components/CampaignTable';
 import AccountDetails from '../components/AccountDetails';
 import RightSidebar from '../components/RightSidebar';
 import { RootState } from '../store';
-import { checkAdsAccounts, fetchGoogleAdsAccounts, fetchFacebookAdAccounts, activateAccount, fetchMetaAdsCampaigns, linkMetaAds, linkAccountFromHome, getSessionFromLocalStorage } from '../services/api';
+import checkAdsAccounts, { fetchGoogleAdsAccounts, fetchFacebookAdAccounts, fetchMetaAdsCampaigns, linkMetaAds, linkAccountFromHome, getSessionFromLocalStorage } from '../services/api';
 import { setIsCustomerLinked } from '../store/authSlice';
-
+import { driver } from 'driver.js';
+import 'driver.js/dist/driver.css';
 interface Campaign {
   id: string;
   name: string;
@@ -84,10 +85,10 @@ const Home: React.FC = () => {
             name: campaign.name,
             platform: 'Meta Ads',
             objective: campaign.objective,
-            budget: campaign.daily_budget,
+            budget: campaign.budget ? `$${campaign.budget}` : 'N/A',
             status: campaign.status,
-            startDate: campaign.start_time,
-            endDate: campaign.updated_time,
+            startDate: campaign.start_time ? new Date(campaign.start_time).toLocaleDateString() : 'N/A',
+            endDate: campaign.updated_time ? new Date(campaign.updated_time).toLocaleDateString() : 'N/A',
             impressions: insights.impressions || 'N/A',
             clicks: insights.clicks || 'N/A',
             spend: insights.spend || 'N/A',
@@ -96,13 +97,18 @@ const Home: React.FC = () => {
             cpm: insights.cpm || 'N/A',
             reach: insights.reach || 'N/A',
             frequency: insights.frequency || 'N/A',
+            accountId: account.customer_id || account.account_id,
           };
         });
 
         setCampaigns(prevCampaigns => {
           const updatedCampaigns = [...prevCampaigns, ...campaignsWithDetails];
           const storedCampaigns = JSON.parse(localStorage.getItem('campaigns') || '{}');
-          storedCampaigns[account.customer_id || account.account_id] = campaignsWithDetails;
+          storedCampaigns[account.customer_id || account.account_id] = campaignsWithDetails.map((campaign: any) => ({
+            ...campaign,
+            startDate: campaign.startDate !== 'N/A' ? new Date(campaign.startDate).toLocaleDateString() : 'N/A',
+            endDate: campaign.endDate !== 'N/A' ? new Date(campaign.endDate).toLocaleDateString() : 'N/A',
+          }));
           localStorage.setItem('campaigns', JSON.stringify(storedCampaigns));
           return updatedCampaigns;
         });
@@ -135,8 +141,8 @@ const Home: React.FC = () => {
         console.log('checkActiveCustomers - Checking active customers...');
         const response = await checkAdsAccounts(accessToken, userId);
         console.log('checkActiveCustomers - Active customers:', response);
-        localStorage.setItem('activeCustomers', JSON.stringify(response.linked_customers));
-        return response.linked_customers.length > 0;
+        localStorage.setItem('activeCustomers', JSON.stringify(response.data.linked_customers));
+        return response.data.linked_customers.length > 0;
       } catch (error) {
         console.error('checkActiveCustomers - Error checking active customers:', error);
         return false;
@@ -240,6 +246,9 @@ const Home: React.FC = () => {
     const storedFacebookAccounts = JSON.parse(localStorage.getItem('facebookAccounts') || '[]');
     setGoogleAccounts(storedGoogleAccounts);
     setFacebookAccounts(storedFacebookAccounts);
+
+    // Mocking active customers check to always return true
+    dispatch(setIsCustomerLinked(true));
   }, []);
 
   useEffect(() => {
@@ -249,13 +258,11 @@ const Home: React.FC = () => {
 
   const handleFacebookLogin = async () => {
     console.log('handleFacebookLogin - Iniciando login com Facebook...');
-    const session = getSessionFromLocalStorage();
-    const userId = session?.user?.id;
 
-    const newWindow = linkMetaAds(userId);
+    linkMetaAds();
 
     const checkWindowClosed = setInterval(() => {
-      if (newWindow && newWindow.closed) {
+      if (window && window.closed) {
         clearInterval(checkWindowClosed);
         console.log('handleFacebookLogin - Janela fechada, recarregando a página...');
         window.location.reload();
@@ -265,26 +272,39 @@ const Home: React.FC = () => {
 
   const handleEdit = (id: string) => {
     console.log(`handleEdit - Editando campanha ${id}`);
-    navigate(`/campaign-details/${id}?edit=true`);
+    navigate(`/campaign-details`);
   };
 
   const handleViewReports = (id: string) => {
     console.log(`handleViewReports - Visualizando relatórios da campanha ${id}`);
+    navigate(`/dashboard`);
   };
 
   const handleCampaignClick = (id: string) => {
     console.log(`handleCampaignClick - Navegando para detalhes da campanha ${id}`);
-    navigate(`/campaign-details/${id}`);
+    navigate(`/campaign-details`);
   };
 
   const handleActivateAccount = async (accountId: string, platform: string) => {
     console.log(`handleActivateAccount - Ativando conta ${accountId} na plataforma ${platform}`);
     try {
-      const response = await activateAccount(accessToken!, accountId, platform);
-      console.log('handleActivateAccount - Account activated:', response);
-      
+      // Simulate account activation
+      if (platform === 'google_ads') {
+        setGoogleAccounts((prevAccounts) =>
+          prevAccounts.map((account) =>
+            account.customer_id === accountId ? { ...account, is_active: true } : account
+          )
+        );
+      } else if (platform === 'meta_ads') {
+        setFacebookAccounts((prevAccounts) =>
+          prevAccounts.map((account) =>
+            account.account_id === accountId ? { ...account, is_active: true } : account
+          )
+        );
+      }
+
       // Check active customers after activating an account
-      const hasActiveCustomers = await checkActiveCustomers();
+      const hasActiveCustomers = true; // Mocked to always have active customers
       console.log('handleActivateAccount - hasActiveCustomers:', hasActiveCustomers);
       if (hasActiveCustomers) {
         setShowPopup(false);
@@ -343,33 +363,78 @@ const Home: React.FC = () => {
     }).format(amount_spent / 100); // Assuming amount_spent is in cents
   }
 
+  const startTutorial = () => {
+    const driverObj = driver({
+      showProgress: true,
+      steps: [
+        {
+          element: '#tutorial-copilot-button',
+          popover: {
+            title: 'Botão Copilot',
+            description: 'Clique aqui para abrir o Copilot, que oferece assistência e sugestões para otimizar suas campanhas.',
+            side: 'bottom'
+          }
+        },
+        {
+          element: '#tutorial-sidebar',
+          popover: {
+            title: 'Barra Lateral',
+            description: 'Esta é a barra lateral onde você pode navegar entre diferentes paginas do Easy Ads. Aqui você terá acesso a Dashboard, financeiro, configurações, criar publico e criar campanha.',
+            side: 'right'
+          }
+        },
+        {
+          element: '#tutorial-account-sidebar',
+          popover: {
+            title: 'Barra Lateral de Contas',
+            description: 'Aqui você pode gerenciar suas contas de anúncios vinculadas.',
+            side: 'right'
+          }
+        },
+        {
+          element: '#tutorial-main-content',
+          popover: {
+            title: 'Conteúdo Principal',
+            description: 'Esta área exibe o conteúdo principal da página, incluindo detalhes das campanhas e inshits.',
+            side: 'top'
+          }
+        },
+        {
+          element: '#tutorial-campaign-table',
+          popover: {
+            title: 'Tabela de Campanhas',
+            description: 'Aqui você pode ver todas as suas campanhas de anúncios, incluindo métricas e status.',
+            side: 'top'
+          }
+        },
+        {
+          element: '#tutorial-account-details',
+          popover: {
+            title: 'Detalhes da Conta',
+            description: 'Esta seção mostra os detalhes da conta de anúncios selecionada. Exemplo: "Nome da Conta", "Valor Gasto".',
+            side: 'top'
+          }
+        }
+      ]
+    });
+
+    driverObj.drive();
+  };
+
   return (
     <div className="home-content">
       <div className="header">
-        <div className="title">Campanhas de Tráfego Pago</div>
-        <button className="copilot-button" onClick={() => setIsRightSidebarOpen(true)}>Open Copilot</button>
+        <div id="tutorial-title" className="title">Campanhas de Tráfego Pago</div>
+        <button id="tutorial-start-tutorial-button" className="tutorial-button" onClick={startTutorial}>Start Tutorial</button>
+
+        <button id="tutorial-copilot-button" className="copilot-button" onClick={() => setIsRightSidebarOpen(true)}>Open Copilot</button>
       </div>
       {showPopup && (
-        <div className="popup-overlay">
+        <div id="tutorial-popup" className="popup-overlay">
           <div className="popup-content">
             <button className="close-button" onClick={() => setShowPopup(false)}>X</button>
             <h2>Vincule Suas Contas de Anúncios</h2>
-            <p>Por favor, vincule suas contas do Google Ads ou Facebook Ads para continuar.</p>
-            {googleAccounts.length > 0 && (
-              <div>
-                <h3>Contas do Google Ads</h3>
-                <ul>
-                  {googleAccounts.map((account) => (
-                    <li key={account.customer_id}>
-                      <div>ID do Cliente: {account.customer_id}</div>
-                      <div>Tipo: {account.type}</div>
-                      <div>Está Ativo: {account.is_active ? 'Sim' : 'Não'}</div>
-                      <button onClick={() => handleActivateAccount(account.customer_id, 'google_ads')}>Ativar</button>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
+            <p>Por favor, vincule suas contas do Facebook Ads para continuar.</p>
             {facebookAccounts.length > 0 && (
               <div>
                 <h3>Contas do Facebook Ads</h3>
@@ -401,27 +466,31 @@ const Home: React.FC = () => {
             )}
             <div className="link-buttons">
               {!loadingGoogleAccounts && googleAccounts.length === 0 && (
-                <button onClick={() => handleLinkAccount('google_ads')}>Vincular Google Ads</button>
+                <button id="tutorial-link-account-button-google" onClick={() => handleLinkAccount('google_ads')}>Vincular Google Ads</button>
               )}
               {!loadingFacebookAccounts && facebookAccounts.length === 0 && (
-                <button onClick={() => handleFacebookLogin()}>Vincular Facebook Ads</button>
+                <button id="tutorial-link-account-button-facebook" onClick={() => handleFacebookLogin()}>Vincular Facebook Ads</button>
               )}
             </div>
           </div>
         </div>
       )}
       <div className='side-and-content'>
-        <Sidebar isOpen={isSidebarOpen} toggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)} />
-        <AccountSidebar
-          googleAccounts={googleAccounts}
-          facebookAccounts={facebookAccounts}
-          selectedAccount={selectedAccount}
-          setSelectedAccount={(accountId: string) => {
-            console.log(`Account selected: ${accountId}`);
-            setSelectedAccount(accountId);
-          }}
-        />
-        <div className="main-content">
+        <div id="tutorial-sidebar">
+          <Sidebar isOpen={isSidebarOpen} toggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)} />
+        </div>
+        <div id="tutorial-account-sidebar">
+          <AccountSidebar
+            googleAccounts={googleAccounts}
+            facebookAccounts={facebookAccounts}
+            selectedAccount={selectedAccount}
+            setSelectedAccount={(accountId: string) => {
+              console.log(`Account selected: ${accountId}`);
+              setSelectedAccount(accountId);
+            }}
+          />
+        </div>
+        <div id="tutorial-main-content" className="main-content">
           {selectedAccountDetails && <AccountDetails account={selectedAccountDetails} />}
           <CampaignTable
             campaigns={filteredCampaigns}
@@ -440,3 +509,4 @@ const Home: React.FC = () => {
 };
 
 export default Home;
+

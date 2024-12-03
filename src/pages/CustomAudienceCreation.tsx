@@ -13,7 +13,8 @@ const CustomAudienceCreation: React.FC = () => {
   const [customerFileSource, setCustomerFileSource] = useState('');
   const [customAudiences, setCustomAudiences] = useState<any[]>([]);
   const dispatch = useDispatch();
-  const { access_token } = getSessionFromLocalStorage();
+  const session = getSessionFromLocalStorage();
+  const access_token = session?.access_token || '';
   const storedActiveCustomers = JSON.parse(localStorage.getItem('activeCustomers') || '[]');
   const customerId = storedActiveCustomers?.[0]?.customer_id;
   console.log(`customer_id: ${customerId}`);
@@ -64,7 +65,7 @@ const CustomAudienceCreation: React.FC = () => {
         }
 
         console.log('Creating custom audience with data:', audienceData);
-        const newAudience = await createCustomAudience(access_token, customerId, audienceData);
+        const newAudience = await createCustomAudience(customerId, audienceData, access_token);
         console.log('Created custom audience:', newAudience);
         dispatch(addCustomer(newAudience[0].name));
         setCustomerName('');

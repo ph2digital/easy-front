@@ -7,6 +7,20 @@
     box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
 }
 
+.campaign-creation h2 {
+    text-align: center;
+    color: #333;
+    font-size: 24px;
+    margin-bottom: 20px;
+    font-weight: bold;
+}
+
+.mode-buttons {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 20px;
+}
+
 .mode-buttons button {
     margin-right: 10px;
     padding: 10px 20px;
@@ -15,10 +29,16 @@
     cursor: pointer;
     background-color: #007bff;
     color: white;
+    transition: background-color 0.3s ease, transform 0.3s ease;
+}
+
+.mode-buttons button:last-child {
+    margin-right: 0;
 }
 
 .mode-buttons button:hover {
     background-color: #0056b3;
+    transform: scale(1.05);
 }
 
 .campaign-form {
@@ -29,6 +49,7 @@
     display: block;
     margin-top: 10px;
     font-weight: bold;
+    color: #555;
 }
 
 .campaign-form input,
@@ -38,14 +59,22 @@
     margin-top: 5px;
     border: 1px solid #ccc;
     border-radius: 5px;
+    margin-bottom: 10px;
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.campaign-form input:focus,
+.campaign-form select:focus {
+    border-color: #007bff;
+    box-shadow: 0 0 5px rgba(0, 123, 255, 0.5);
 }
 
 .ad-form {
-    margin-top: 20px;
+    margin-top: 10px;
     padding: 10px;
-    border: 1px solid #ccc;
+    border: 1px dashed #ccc;
     border-radius: 5px;
-    background-color: #fff;
+    background-color: #f1f1f1;
 }
 
 .upload-section,
@@ -55,6 +84,13 @@
     border: 1px solid #ccc;
     border-radius: 5px;
     background-color: #fff;
+}
+
+.upload-section h3,
+.request-section h3 {
+    margin-bottom: 10px;
+    color: #333;
+    font-weight: bold;
 }
 
 .upload-section input[type="file"] {
@@ -68,6 +104,7 @@
     margin-top: 5px;
     border: 1px solid #ccc;
     border-radius: 5px;
+    margin-bottom: 10px;
 }
 
 .upload-button,
@@ -79,11 +116,21 @@
     border: none;
     border-radius: 5px;
     cursor: pointer;
+    transition: background-color 0.3s ease, transform 0.3s ease;
 }
 
-.upload-button:hover,
-.request-button:hover {
+.upload-button:hover {
     background-color: #0056b3;
+    transform: scale(1.05);
+}
+
+.request-button {
+    background-color: #ffc107;
+}
+
+.request-button:hover {
+    background-color: #e0a800;
+    transform: scale(1.05);
 }
 
 .create-campaign-button {
@@ -94,13 +141,17 @@
     border: none;
     border-radius: 5px;
     cursor: pointer;
+    transition: background-color 0.3s ease, transform 0.3s ease;
 }
 
 .create-campaign-button:hover {
     background-color: #218838;
+    transform: scale(1.05);
 }
 
 .error-message {
     color: red;
     margin-top: 10px;
+    text-align: center;
+    font-weight: bold;
 }

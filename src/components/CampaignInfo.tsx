@@ -63,8 +63,8 @@ const CampaignInfo: React.FC<CampaignInfoProps> = ({ campaign, isEditing, onEdit
             </>
           )}
           <button onClick={onEdit}>Editar Campanha</button>
-          <button onClick={() => onEditAdset(campaign)}>Editar Conjunto</button> {/* Adicione esta linha */}
-          <button onClick={handleSave}>Salvar Campanha</button> {/* Adicione esta linha */}
+          <button onClick={() => onEditAdset(campaign)}>Editar Conjunto</button>
+          <button onClick={handleSave}>Salvar Campanha</button>
         </>
       )}
     </div>

@@ -11,7 +11,8 @@
     align-items: flex-start;
     position: relative;
     border-radius: 10px;
-    margin-right: 4rem;
+    margin-right: 2rem;
+    box-sizing: border-box; /* Add this line */
 }
 
 .sidebar.expanded {
@@ -19,7 +20,7 @@
 }
 
 .sidebar.collapsed {
-    width: 60px;
+    width: 100px;
     align-items: center;
     padding: 10px 0;
 }
@@ -34,6 +35,15 @@
     top: 20px;
     left: 15px;
     color: #333;
+}
+
+/* Sidebar Header */
+.sidebar-header {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    justify-content: flex-start;
+    padding-bottom: 1rem; /* Add this line for spacing */
 }
 
 /* Profile Section */
@@ -75,11 +85,8 @@
     animation: fade-in 0.3s ease;
 }
 
-
-
 .dropdown-divider {
     margin: 0;
-    border-top: 1px solid #e0e0e0;
 }
 
 /* Animação de Fade-in */
@@ -113,6 +120,7 @@
     padding: 10px;
     border-radius: 8px;
     width: 100%;
+    box-sizing: border-box; /* Add this line */
 }
 
 .menu-item:hover {
@@ -150,7 +158,6 @@
     align-items: center;
     color: #333;
     text-decoration: none;
-    padding: 8px 10px;
     transition: background-color 0.3s ease;
 }
 

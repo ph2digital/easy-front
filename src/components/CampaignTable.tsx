@@ -1,5 +1,5 @@
 import React from 'react';
-import { FaEdit, FaChartLine, FaChevronDown, FaChevronUp } from 'react-icons/fa';
+import { FaEdit, FaChartLine } from 'react-icons/fa';
 interface Campaign {
     id: string;
     name: string;
@@ -56,6 +56,29 @@ const CampaignTable: React.FC<CampaignTableProps> = ({
   handleEdit,
   handleViewReports,
 }) => {
+  function handleTurboBoost(id: string): void {
+    console.log(`Turbo boost activated for campaign with id: ${id}`);
+    // Implement the logic to turbo boost the campaign
+    // This could involve making an API call to update the campaign's status or budget
+    // For example:
+    // api.updateCampaign(id, { turboBoost: true })
+    //   .then(response => {
+    //     console.log('Campaign turbo boosted successfully', response);
+    //   })
+    //   .catch(error => {
+    //     console.error('Error turbo boosting campaign', error);
+    //   });
+
+    // Add sparkle effect
+    const button = document.getElementById(`turbo-button-${id}`);
+    if (button) {
+      button.classList.add('sparkle');
+      setTimeout(() => {
+        button.classList.remove('sparkle');
+      }, 1000);
+    }
+  }
+
   return (
     <table className="campaign-table">
       <thead>
@@ -65,7 +88,6 @@ const CampaignTable: React.FC<CampaignTableProps> = ({
           <th>Objetivo</th>
           <th>Orçamento</th>
           <th>Status</th>
-          <th>Período</th>
           <th>Impressões</th>
           <th>Ações</th>
         </tr>
@@ -79,11 +101,10 @@ const CampaignTable: React.FC<CampaignTableProps> = ({
               </td>
               <td>{campaign.platform}</td>
               <td>{campaign.objective}</td>
-              <td>{campaign.budget}</td>
+              <td>{campaign.budget || 'N/A'}</td>
               <td>
                 <span className={`status ${campaign.status.toLowerCase()}`}>{campaign.status}</span>
               </td>
-              <td>{campaign.startDate} - {campaign.endDate}</td>
               <td>{campaign.impressions}</td>
               <td>
                 <button className="action-button edit" onClick={() => handleEdit(campaign.id)}>
@@ -92,29 +113,36 @@ const CampaignTable: React.FC<CampaignTableProps> = ({
                 <button className="action-button report" onClick={() => handleViewReports(campaign.id)}>
                   <FaChartLine /> Relatórios
                 </button>
-                <button onClick={() => toggleCampaign(campaign.id)}>
-                  {expandedCampaigns.includes(campaign.id) ? <FaChevronUp /> : <FaChevronDown />}
-                </button>
+              <button onClick={() => toggleCampaign(campaign.id)}>
+{expandedCampaigns.includes(campaign.id) ? (
+  <>
+    <i className="ai-icon" /> IA Insights
+  </>
+) : (
+<>
+<i className="ai-icon" /> IA Insights
+</>)}
+              </button>
               </td>
             </tr>
             {expandedCampaigns.includes(campaign.id) && (
               <tr key={`expanded-${campaign.id}`}>
                 <td colSpan={8}>
                   <div className="expanded-content">
-                    <p><strong>Gastos:</strong> {campaign.spend}</p>
-                    <p><strong>CTR:</strong> {campaign.ctr}</p>
-                    <p><strong>CPC:</strong> {campaign.cpc}</p>
-                    <p><strong>CPM:</strong> {campaign.cpm}</p>
-                    <p><strong>Alcance:</strong> {campaign.reach}</p>
-                    <p><strong>Frequência:</strong> {campaign.frequency}</p>
-                    {campaign.adsets && campaign.adsets.map((adset) => (
-                      <div key={`adset-${adset.id}`}>
-                        <p><strong>Adset:</strong> {adset.name}</p>
-                        {adset.ads && adset.ads.map((ad) => (
-                          <p key={`ad-${ad.id}`}><strong>Ad:</strong> {ad.name}</p>
-                        ))}
-                      </div>
-                    ))}
+                  <div className="ai-insights">
+                  <p><strong>Insights da IA:</strong></p>
+                  <p>{`A campanha "${campaign.name}" teve um CTR de ${campaign.ctr}, o que é ${campaign.ctr > '2%' ? 'excelente' : 'abaixo da média'}. Considere ajustar o público-alvo para melhorar o desempenho.`}</p>
+                  <p>{`O CPC está em ${campaign.cpc}, ${campaign.cpc < 1 ? 'o que é ótimo' : 'o que pode ser otimizado'}. Tente ajustar os lances para reduzir o custo.`}</p>
+                  <p>{`O CPM de ${campaign.cpm} indica que ${campaign.cpm < 10 ? 'você está alcançando muitas pessoas a um custo baixo' : 'o custo por mil impressões está alto'}. Considere revisar a segmentação.`}</p>
+                    <button
+                      id={`turbo-button-${campaign.id}`}
+                      className="action-button turbo large-gold"
+                      onClick={() => handleTurboBoost(campaign.id)}
+                    >
+                      <i className="turbo-icon" /> Turbinar
+                    </button>
+                  </div>
+
                   </div>
                 </td>
               </tr>

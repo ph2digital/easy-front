@@ -3,7 +3,7 @@ import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
 import { setUser, setTokens } from '../store/authSlice';
-import { signInWithGoogle, linkMetaAds,setSession } from '../services/api'; // Ensure this path is correct
+import { linkMetaAds,setSession } from '../services/api'; // Ensure this path is correct
 import easyAdsImage from '../assets/easy.jpg'; // Correct image import
 
   const Login = () => {
@@ -53,9 +53,6 @@ import easyAdsImage from '../assets/easy.jpg'; // Correct image import
         <p className="app-description">
           Sua plataforma para campanhas de marketing eficazes e resultados incríveis.
         </p>
-        <button className="google-login-btn" onClick={signInWithGoogle}>
-          <i className="fab fa-google"></i> Login com Google
-        </button>
         <button className="facebook-login-btn" onClick={handleFacebookLogin}>
           <i className="fab fa-facebook"></i> Login com Facebook
         </button>

@@ -1,11 +1,10 @@
 import React, { useState } from 'react';
 import { RiDashboardLine, RiMoneyDollarCircleLine, RiFocusLine, RiLineChartFill } from 'react-icons/ri';
 import { Link, useNavigate } from 'react-router-dom';
-import { useDispatch, useSelector } from 'react-redux';
+import { useDispatch } from 'react-redux';
 import './styles/Sidebar.css';
-import { FaBars, FaSignOutAlt, FaUserCircle, FaCogs, FaLayerGroup, FaWallet, FaPlus, FaUsers } from 'react-icons/fa';
+import { FaBars, FaSignOutAlt, FaUserCircle, FaCogs, FaWallet, FaPlus, FaUsers } from 'react-icons/fa';
 import { logoutUser } from '../services/api';
-import { selectProfileImage } from '../store/authSlice';
 
 interface SidebarProps {
   isOpen: boolean;
@@ -13,7 +12,6 @@ interface SidebarProps {
 }
 
 const Sidebar: React.FC<SidebarProps> = ({ isOpen, toggleSidebar }) => {
-  const profileImage = useSelector(selectProfileImage);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const dispatch = useDispatch();
   const navigate = useNavigate();
@@ -39,19 +37,10 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, toggleSidebar }) => {
       {/* Imagem de Perfil e Menu Interativo */}
       <div className="profile-container">
         <div className="profile-image-wrapper" onClick={toggleMenu}>
-          {profileImage ? (
-            <img src={profileImage} alt="Profile" className="profile-image" />
-          ) : (
-            <span className="placeholder-icon">👤</span>
-          )}
+          <FaUserCircle className="profile-image" />
         </div>
         {isMenuOpen && (
           <ul className="profile-menu">
-            <li>
-              <Link to="/new-project">
-                <FaLayerGroup className="dropdown-icon" /> Trocar workspace
-              </Link>
-            </li>
             <li>
               <Link to="/accounts">
                 <FaWallet className="dropdown-icon" /> Cadastrar contas
@@ -67,7 +56,6 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, toggleSidebar }) => {
                 <FaUserCircle className="dropdown-icon" /> Profile
               </Link>
             </li>
-            <li><hr className="dropdown-divider" /></li>
             <li>
               <button onClick={handleLogout} className="logout-button">
                 <FaSignOutAlt className="dropdown-icon" /> Sign out
@@ -79,7 +67,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, toggleSidebar }) => {
 
       {/* Seção do Menu */}
       <div className="menu-section">
-        <Link to="/dashboard" className="menu-item">
+        <Link to="/home" className="menu-item">
           <RiDashboardLine className="sidebar-icon" />
           {isOpen && <span>Painel</span>}
         </Link>

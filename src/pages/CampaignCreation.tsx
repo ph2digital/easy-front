@@ -1,27 +1,28 @@
-// src/pages/CampaignCreation.tsx
 import React, { useState, useEffect } from 'react';
 import CampaignCreationForm from '../components/CampaignCreationForm';
-import { createCampaign, createGuidedCampaign, createAutomaticCampaign, uploadCreativeFiles, requestCreativeBasedOnCompetitor, createAdSet, createAd } from '../services/api';
+import { uploadCreativeFiles, requestCreativeBasedOnCompetitor } from '../services/api';
 import './styles/CampaignCreation.css';
 import { useDispatch, useSelector } from 'react-redux';
 import { createCampaign as createCampaignAction } from '../store/campaignSlice';
 import { RootState } from '../store';
 
+interface Campaign {
+    id: string;
+    userId: string;
+    mode: 'manual' | 'guided' | 'automatic';
+    name: string;
+    status: 'active' | 'paused' | 'completed';
+    startDate: string;
+    endDate: string;
+    budget: number;
+    objective: string;
+    specialAdCategories: string[];
+    ads: { name: string; content: string; targeting?: { geo_locations: { countries: string[] } }; ads: { name: string; creative_id: string; status: string; bid_amount: number; }[] }[];
+}
+
 const CampaignCreation: React.FC = () => {
     const [mode, setMode] = useState<string>('manual');
-    const [campaignData, setCampaignData] = useState<{
-        id: string;
-        userId: string;
-        mode: string;
-        name: string;
-        status: 'active' | 'paused' | 'completed';
-        startDate: string;
-        endDate: string;
-        budget: number;
-        objective: string;
-        specialAdCategories: string[];
-        ads: { name: string; content: string; targeting?: { geo_locations: { countries: string[] } }; ads: { name: string; creative_id: string; status: string; bid_amount: number; }[] }[];
-    }>({
+    const [campaignData, setCampaignData] = useState<Campaign>({
         id: '',
         userId: '',
         mode: 'manual',
@@ -80,6 +81,30 @@ const CampaignCreation: React.FC = () => {
     const customerId = storedActiveCustomers?.[0]?.customer_id
     console.log(`customer_id: ${customerId}`);
 
+    const mockCreateCampaign = async (data: any): Promise<Campaign> => {
+        return new Promise((resolve) => {
+            setTimeout(() => {
+                resolve({ id: 'mockCampaignId', ...data });
+            }, 1000);
+        });
+    };
+
+    const mockCreateAdSet = async (data: any): Promise<{ id: string }> => {
+        return new Promise((resolve) => {
+            setTimeout(() => {
+                resolve({ id: 'mockAdSetId', ...data });
+            }, 1000);
+        });
+    };
+
+    const mockCreateAd = async (data: any): Promise<{ id: string }> => {
+        return new Promise((resolve) => {
+            setTimeout(() => {
+                resolve({ id: 'mockAdId', ...data });
+            }, 1000);
+        });
+    };
+
     const handleCreateCampaign = async () => {
         setLoading(true);
         setError(null);
@@ -89,26 +114,26 @@ const CampaignCreation: React.FC = () => {
                 setLoading(false);
                 return;
             }
-            let response;
+            let response: Campaign;
             const formattedCampaignData = {
                 ...campaignData,
                 startDate: new Date(campaignData.startDate).toISOString(),
                 endDate: new Date(campaignData.endDate).toISOString()
             };
             if (mode === 'guided') {
-                response = await createGuidedCampaign(accessToken, {
+                response = await mockCreateCampaign({
                     customerId,
                     ...formattedCampaignData,
                     mode: 'guided',
                 });
             } else if (mode === 'automatic') {
-                response = await createAutomaticCampaign(accessToken, {
+                response = await mockCreateCampaign({
                     customerId,
                     ...formattedCampaignData,
                     mode: 'automatic',
                 });
             } else {
-                response = await createCampaign(accessToken, {
+                response = await mockCreateCampaign({
                     customerId,
                     ...formattedCampaignData,
                     mode: 'manual',
@@ -119,26 +144,25 @@ const CampaignCreation: React.FC = () => {
 
             // Create ad sets and ads
             for (const adSet of campaignData.ads) {
-                const adSetResponse = await createAdSet(accessToken, {
+                const adSetResponse = await mockCreateAdSet({
                     customerId,
                     campaignId: response.id,
                     name: adSet.name,
                     budget: campaignData.budget,
-                    startDate: campaignData.startDate, // Pass startDate
-                    endDate: campaignData.endDate, // Pass endDate
+                    startDate: campaignData.startDate,
+                    endDate: campaignData.endDate,
                     targeting: adSet.targeting || { geo_locations: { countries: ['US'] } },
                     ads: [],
                 });
                 console.log('Ad set created successfully:', adSetResponse);
 
                 for (const ad of adSet.ads) {
-                    // Use uploaded creative IDs if available
                     let creativeId = ad.creative_id;
                     if (uploadedCreativeIds.length > 0) {
                         creativeId = uploadedCreativeIds.shift() || creativeId;
                     }
 
-                    const adResponse = await createAd(accessToken, {
+                    const adResponse = await mockCreateAd({
                         customerId,
                         adSetId: adSetResponse.id,
                         name: ad.name,
@@ -156,7 +180,6 @@ const CampaignCreation: React.FC = () => {
             setLoading(false);
         }
     };
-
 
     const handleUploadFiles = async (e: React.ChangeEvent<HTMLInputElement>) => {
         if (!e.target.files || e.target.files.length === 0) {
@@ -189,17 +212,20 @@ const CampaignCreation: React.FC = () => {
 
         try {
             console.info(`Iniciando upload de ${files.length} arquivos para o cliente ${customerId}...`);
-            const uploadResponse = await uploadCreativeFiles(accessToken, customerId, files, pageId, link, message);
+            const uploadResponse: { success: boolean; image_hash?: string } = await uploadCreativeFiles(accessToken, customerId, files, pageId, link, message);
             console.log('Upload realizado com sucesso:', uploadResponse);
 
             // Armazene o image_hash retornado
-            setUploadedCreativeIds([uploadResponse.image_hash]);
+            if (uploadResponse.success && uploadResponse.image_hash) {
+                setUploadedCreativeIds([uploadResponse.image_hash]);
+            } else {
+                setError('Upload response does not contain image_hash.');
+            }
         } catch (error) {
             console.error('Erro ao fazer upload dos arquivos:', error);
             setError('Erro ao fazer upload dos arquivos. Por favor, tente novamente.');
         }
     };
-
 
     const handleRequestCreative = async (competitorAdId: string) => {
         try {
