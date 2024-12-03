@@ -426,8 +426,8 @@ const Home: React.FC = () => {
       <div className="header">
         <div id="tutorial-title" className="title">Campanhas de Tráfego Pago</div>
         <button id="tutorial-start-tutorial-button" className="tutorial-button" onClick={startTutorial}>Start Tutorial</button>
-
         <button id="tutorial-copilot-button" className="copilot-button" onClick={() => setIsRightSidebarOpen(true)}>Open Copilot</button>
+        <button className="privacy-policy-button" onClick={() => navigate('/privacy-policy')}>Política de Privacidade</button>
       </div>
       {showPopup && (
         <div id="tutorial-popup" className="popup-overlay">
