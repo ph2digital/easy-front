@@ -44,7 +44,7 @@ const AdsetEditPopup: React.FC<AdsetEditPopupProps> = ({ adset, onClose, onSave 
       }, {} as Partial<typeof formData>);
 
       if (accessToken) {
-        await updateMetaAdsAdset(adset.id, fieldsToUpdate, accessToken); // Certifique-se de que a função correta está sendo chamada
+        await updateMetaAdsAdset(adset.id, fieldsToUpdate); // Certifique-se de que a função correta está sendo chamada
         onSave(fieldsToUpdate); // Chame onSave sem o accessToken
       } else {
         setError('Access token is missing.');
