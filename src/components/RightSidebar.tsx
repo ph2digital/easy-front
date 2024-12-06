@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import './RightSidebar.css';
+import './styles/RightSidebar.css';
 import { getGPTResponse, getSessionFromLocalStorage } from '../services/api'; // Import the new function
 
 interface RightSidebarProps {
@@ -20,7 +20,7 @@ const RightSidebar: React.FC<RightSidebarProps> = ({ isOpen, onClose }) => {
         const session = getSessionFromLocalStorage();
         const userId = session?.user?.id;
         const response = await getGPTResponse(userMessage, userId);
-        const formattedResponse = response.message.replace(/\n/g, '<br/>');
+        const formattedResponse = response.replace(/\n/g, '<br/>');
         setMessages((prevMessages) => [...prevMessages, { role: 'copilot', content: formattedResponse }]);
       } catch (error) {
         setMessages((prevMessages) => [...prevMessages, { role: 'copilot', content: 'Erro ao obter resposta do GPT' }]);
