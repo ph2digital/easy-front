@@ -4,6 +4,20 @@ import { addCustomer } from '../store/selectedCustomersSlice';
 import { fetchCustomAudiences, createCustomAudience, getSessionFromLocalStorage } from '../services/api';
 import './styles/CustomAudienceCreation.css';
 
+const renderCustomAudiences = (data) => {
+  return data.map((audience: any) => (
+    <li key={audience.id} className="custom-audience-item" id={`custom-audience-item-${audience.id}`}>
+      <p><strong>ID:</strong> {audience.id}</p>
+      <p><strong>Nome:</strong> {audience.name}</p>
+      <p><strong>Tipo:</strong> {audience.subtype}</p>
+      <p><strong>Descrição:</strong> {audience.description}</p>
+      <p><strong>Status da Operação:</strong> {audience.operation_status.description}</p>
+      <p><strong>Criado em:</strong> {new Date(audience.time_created * 1000).toLocaleString()}</p>
+      <p><strong>Atualizado em:</strong> {new Date(audience.time_updated * 1000).toLocaleString()}</p>
+    </li>
+  ));
+};
+
 const CustomAudienceCreation: React.FC = () => {
   const [customerName, setCustomerName] = useState('');
   const [description, setDescription] = useState('');
@@ -89,67 +103,82 @@ const CustomAudienceCreation: React.FC = () => {
   };
 
   return (
-    <div className="custom-audience-creation">
-      <h1>Criar Público Personalizado</h1>
+    <div className="custom-audience-creation" id="custom-audience-creation-page">
+      <h1 className="custom-audience-creation-title">Criar Público Personalizado</h1>
       <form onSubmit={handleSubmit} className="custom-audience-form">
+        <label htmlFor="customerName">Nome do Cliente:</label>
         <input
           type="text"
+          id="customerName"
           value={customerName}
           onChange={(e) => setCustomerName(e.target.value)}
           placeholder="Nome do Cliente"
           required
         />
+        <label htmlFor="description">Descrição:</label>
         <textarea
+          id="description"
           value={description}
           onChange={(e) => setDescription(e.target.value)}
           placeholder="Descrição"
           required
         />
-        <select value={subtype} onChange={(e) => setSubtype(e.target.value)} required>
+        <label htmlFor="subtype">Tipo:</label>
+        <select id="subtype" value={subtype} onChange={(e) => setSubtype(e.target.value)} required>
           <option value="CUSTOM">Custom</option>
           <option value="LOOKALIKE">Lookalike</option>
           <option value="ENGAGEMENT">Engagement</option>
         </select>
         {subtype === 'ENGAGEMENT' && (
-          <textarea
-            value={rule}
-            onChange={(e) => setRule(e.target.value)}
-            placeholder="Regra"
-            required
-          />
+          <>
+            <label htmlFor="rule">Regra:</label>
+            <textarea
+              id="rule"
+              value={rule}
+              onChange={(e) => setRule(e.target.value)}
+              placeholder="Regra"
+              required
+            />
+          </>
         )}
         {subtype === 'LOOKALIKE' && (
-          <textarea
-            value={lookalikeSpec}
-            onChange={(e) => setLookalikeSpec(e.target.value)}
-            placeholder="Especificação de Lookalike"
-            required
-          />
+          <>
+            <label htmlFor="lookalikeSpec">Especificação de Lookalike:</label>
+            <textarea
+              id="lookalikeSpec"
+              value={lookalikeSpec}
+              onChange={(e) => setLookalikeSpec(e.target.value)}
+              placeholder="Especificação de Lookalike"
+              required
+            />
+          </>
         )}
         {subtype === 'CUSTOM' && (
-          <input
-            type="text"
-            value={customerFileSource}
-            onChange={(e) => setCustomerFileSource(e.target.value)}
-            placeholder="Fonte do Arquivo do Cliente"
-            required
-          />
+          <>
+            <label htmlFor="customerFileSource">Fonte do Arquivo do Cliente:</label>
+            <input
+              type="text"
+              id="customerFileSource"
+              value={customerFileSource}
+              onChange={(e) => setCustomerFileSource(e.target.value)}
+              placeholder="Fonte do Arquivo do Cliente"
+              required
+            />
+          </>
         )}
         <button type="submit">Adicionar Cliente</button>
       </form>
-      <h2>Publicos Existentes</h2>
+      <h2 className="existing-audiences-title">Publicos Existentes</h2>
+      <div className="custom-audience-filters">
+        <select className="custom-audience-filter">
+          <option value="all">All</option>
+          <option value="custom">Custom</option>
+          <option value="lookalike">Lookalike</option>
+          <option value="engagement">Engagement</option>
+        </select>
+      </div>
       <ul className="custom-audience-list">
-        {customAudiences.map((audience: any) => (
-          <li key={audience.id}>
-            <p><strong>ID:</strong> {audience.id}</p>
-            <p><strong>Nome:</strong> {audience.name}</p>
-            <p><strong>Tipo:</strong> {audience.subtype}</p>
-            <p><strong>Descrição:</strong> {audience.description}</p>
-            <p><strong>Status da Operação:</strong> {audience.operation_status.description}</p>
-            <p><strong>Criado em:</strong> {new Date(audience.time_created * 1000).toLocaleString()}</p>
-            <p><strong>Atualizado em:</strong> {new Date(audience.time_updated * 1000).toLocaleString()}</p>
-          </li>
-        ))}
+        {renderCustomAudiences(customAudiences)}
       </ul>
     </div>
   );

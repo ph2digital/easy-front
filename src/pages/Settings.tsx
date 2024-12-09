@@ -1,6 +1,8 @@
 // src/pages/Settings.tsx
 import React, { useState } from 'react';
 import './styles/Settings.css';
+import { fetchUserPages } from '../services/api'; // Import fetchUserPages
+import { useNavigate } from 'react-router-dom'; // Import useNavigate
 
 const mockSettings = [
   { id: '1', name: 'Account Information', description: 'Manage your account details', enabled: true },
@@ -11,9 +13,15 @@ const mockSettings = [
   { id: '6', name: 'Privacy', description: 'Adjust your privacy settings', enabled: true },
 ];
 
+const mockPostCreation = () => {
+  console.log('Mock post created');
+  alert('Post created successfully!');
+};
+
 const Settings: React.FC = () => {
   const [successMessage, setSuccessMessage] = useState('');
   const [settings, setSettings] = useState(mockSettings);
+  const navigate = useNavigate(); // Initialize useNavigate
 
   const handleReset = () => {
     if (window.confirm('Are you sure you want to reset settings?')) {
@@ -31,6 +39,13 @@ const Settings: React.FC = () => {
     setTimeout(() => setSuccessMessage(''), 3000); // Hide message after 3 seconds
   };
 
+  const handleFetchUserPages = async () => {
+    const accessToken = 'mockAccessToken'; // Replace with actual access token
+    const pages = await fetchUserPages(accessToken);
+    console.log('Fetched user pages:', pages);
+    alert(`Fetched user pages: ${pages.map((page: any) => page.name).join(', ')}`);
+  };
+
   return (
     <div className="settings">
       <h1>Settings</h1>
@@ -45,6 +60,9 @@ const Settings: React.FC = () => {
         ))}
       </ul>
       <button className="reset-button" onClick={handleReset}>Reset Settings</button>
+      <button onClick={handleFetchUserPages}>Fetch User Pages</button>
+      <button onClick={() => navigate('/create-post')}>Create New Post</button> {/* Add button to navigate */}
+      <button className="create-post-button" onClick={mockPostCreation}>Create New Post</button> {/* Mock post creation */}
       {successMessage && <div className="success-message">{successMessage}</div>}
     </div>
   );

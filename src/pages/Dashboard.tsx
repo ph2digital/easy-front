@@ -3,10 +3,20 @@ import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import CampaignCard from '../components/CampaignCard';
 import InsightsPanel from '../components/InsightsPanel';
-import StatisticsChart from '../components/StatisticsChart';
 import { Campaign } from '../types';
-import { fetchMetaAdsCampaignDetails } from '../services/api';
+import { fetchMetaAdsCampaignDetails, fetchPageComments } from '../services/api';
 import './styles/Dashboard.css';
+import PerformanceChart from '../components/PerformanceChart';
+import EngagementGraph from '../components/EngagementGraph';
+import { mockChartData, mockCampaignPerformance } from '../mockData';
+
+const renderCampaignPerformance = (data: any) => {
+  return data.map((campaign: any, index: any) => (
+    <li key={index} className="campaign-performance-item" id={`campaign-performance-item-${index}`}>
+      {campaign.name}: {campaign.clicks} clicks, {campaign.impressions} impressions, {campaign.ctr}% CTR
+    </li>
+  ));
+};
 
 const Dashboard: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -16,14 +26,26 @@ const Dashboard: React.FC = () => {
     const fetchCampaign = async () => {
       if (!id) return;
       try {
-        const campaignDetails = await fetchMetaAdsCampaignDetails('', id); // Replace '' with actual accessToken if needed
+        const campaignDetails = await fetchMetaAdsCampaignDetails('', id);
         if (campaignDetails) {
           const completeCampaignDetails: Campaign = {
             ...campaignDetails,
-            userId: '', // Add appropriate userId
-            mode: 'automatic', // Replace 'automatic' with 'guided' or 'manual' if needed
-            status: campaignDetails.status as 'active' | 'paused' | 'completed', // Ensure status is one of the allowed values
-            budget: Number(campaignDetails.budget) // Convert budget to number
+            userId: '',
+            mode: 'automatic',
+            status: campaignDetails.status as 'active' | 'paused' | 'completed',
+            budget: campaignDetails.budget,
+            clicks: Number(campaignDetails.insights?.data[0]?.clicks) || 0,
+            impressions: Number(campaignDetails.insights?.data[0]?.impressions) || 0,
+            platform: campaignDetails.platform || '',
+            ctr: Number(campaignDetails.insights?.data[0]?.ctr).toString() || '0',
+            cpc: Number(campaignDetails.insights?.data[0]?.cpc) || 0,
+            cpm: Number(campaignDetails.insights?.data[0]?.cpm) || 0,
+            reach: Number(campaignDetails.insights?.data[0]?.reach) || 0,
+            frequency: Number(campaignDetails.insights?.data[0]?.frequency) || 0,
+            specialAdCategories: campaignDetails.specialAdCategories || [],
+            ads: campaignDetails.ads || [],
+            spend: campaignDetails.spend ? campaignDetails.spend.toString() : '0',
+            adsets: campaignDetails.adsets || []
           };
           setSelectedCampaign(completeCampaignDetails);
         }
@@ -35,40 +57,40 @@ const Dashboard: React.FC = () => {
     fetchCampaign();
   }, [id]);
 
-  const mockChartData = [
-    { name: 'Jan', value: 400 },
-    { name: 'Feb', value: 300 },
-    { name: 'Mar', value: 500 },
-    { name: 'Apr', value: 700 },
-    { name: 'May', value: 600 },
-  ];
-
-  const mockCampaignPerformance = [
-    { name: 'Campaign 1', clicks: 100, impressions: 1000, ctr: 10 },
-    { name: 'Campaign 2', clicks: 150, impressions: 1200, ctr: 12.5 },
-    { name: 'Campaign 3', clicks: 200, impressions: 1500, ctr: 13.3 },
-  ];
+  const handleFetchPageComments = async () => {
+    const pageId = 'mockPageId';
+    const accessToken = 'mockAccessToken';
+    const comments = await fetchPageComments(pageId, accessToken);
+    console.log('Fetched page comments:', comments);
+    alert(`Fetched comments: ${comments.map((comment: any) => comment.message).join(', ')}`);
+  };
 
   return (
-    <div className="dashboard">
-      <h1>Dashboard</h1>
+    <div className="dashboard" id="dashboard-page">
+      <h1 className="dashboard-title">Dashboard</h1>
       <div className="campaigns">
         {selectedCampaign && <CampaignCard campaign={selectedCampaign} />}
       </div>
       <div className="dashboard-charts">
         <InsightsPanel />
-        <StatisticsChart data={mockChartData} />
+        <PerformanceChart data={mockChartData} />
+        <EngagementGraph data={mockCampaignPerformance} />
         <div className="campaign-performance">
-          <h2>Campaign Performance</h2>
-          <ul>
-            {mockCampaignPerformance.map((campaign, index) => (
-              <li key={index}>
-                {campaign.name}: {campaign.clicks} clicks, {campaign.impressions} impressions, {campaign.ctr}% CTR
-              </li>
-            ))}
+          <h2 className="campaign-performance-title">Campaign Performance</h2>
+          <ul className="campaign-performance-list">
+            {renderCampaignPerformance(mockCampaignPerformance)}
           </ul>
         </div>
       </div>
+      <div className="dashboard-filters">
+        <select className="dashboard-filter">
+          <option value="all">All</option>
+          <option value="active">Active</option>
+          <option value="paused">Paused</option>
+          <option value="completed">Completed</option>
+        </select>
+      </div>
+      <button onClick={handleFetchPageComments}>Fetch Page Comments</button>
     </div>
   );
 };

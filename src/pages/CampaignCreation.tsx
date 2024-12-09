@@ -5,6 +5,10 @@ import './styles/CampaignCreation.css';
 import { useDispatch, useSelector } from 'react-redux';
 import { createCampaign as createCampaignAction } from '../store/campaignSlice';
 import { RootState } from '../store';
+import CampaignForm from '../components/CampaignForm'; // Import new component
+import TargetAudienceSelector from '../components/TargetAudienceSelector'; // Import new component
+import BudgetCalculator from '../components/BudgetCalculator'; // Ensure this path is correct or update it to the correct path
+import { mockCreateCampaign, mockCreateAdSet, mockCreateAd } from '../mockData'; // Import mock functions
 
 interface Campaign {
     id: string;
@@ -14,10 +18,20 @@ interface Campaign {
     status: 'active' | 'paused' | 'completed';
     startDate: string;
     endDate: string;
-    budget: number;
+    budget: any; // Define budget as any
     objective: string;
-    specialAdCategories: string[];
+    specialAdCategories: any[];
+    clicks: number;
+    impressions: number;
     ads: { name: string; content: string; targeting?: { geo_locations: { countries: string[] } }; ads: { name: string; creative_id: string; status: string; bid_amount: number; }[] }[];
+    spend: any; // Define spend as any
+    platform: any; // Define platform as any
+    ctr: any; // Define ctr as any
+    cpc: any; // Define cpc as any
+    cpm: any; // Define cpm as any
+    reach: any; // Define reach as any
+    frequency: any; // Define frequency as any
+    adsets: any[];
 }
 
 const CampaignCreation: React.FC = () => {
@@ -30,9 +44,11 @@ const CampaignCreation: React.FC = () => {
         status: 'paused',
         startDate: new Date().toISOString().split('T')[0], // Default to today
         endDate: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // Default to 3 days from now
-        budget: 4999, // Default budget
+        budget: '4999', // Define budget as any
         objective: 'OUTCOME_TRAFFIC', // Default objective
         specialAdCategories: [],
+        clicks: 0, // Initialize clicks
+        impressions: 0, // Initialize impressions
         ads: [
             {
                 name: 'Ad Set ' + Math.floor(Math.random() * 1000), // Random name
@@ -46,7 +62,15 @@ const CampaignCreation: React.FC = () => {
                     }
                 ]
             }
-        ]
+        ],
+        spend: '0', // Define spend as any
+        platform: 'Facebook', // Define platform as any
+        ctr: '0', // Define ctr as any
+        cpc: 0, // Define cpc as any
+        cpm: 0, // Define cpm as any
+        reach: 0,
+        frequency: 0,
+        adsets: []
     });
     const [loading, setLoading] = useState<boolean>(false);
     const [error, setError] = useState<string | null>(null);
@@ -80,30 +104,6 @@ const CampaignCreation: React.FC = () => {
 
     const customerId = storedActiveCustomers?.[0]?.customer_id
     console.log(`customer_id: ${customerId}`);
-
-    const mockCreateCampaign = async (data: any): Promise<Campaign> => {
-        return new Promise((resolve) => {
-            setTimeout(() => {
-                resolve({ id: 'mockCampaignId', ...data });
-            }, 1000);
-        });
-    };
-
-    const mockCreateAdSet = async (data: any): Promise<{ id: string }> => {
-        return new Promise((resolve) => {
-            setTimeout(() => {
-                resolve({ id: 'mockAdSetId', ...data });
-            }, 1000);
-        });
-    };
-
-    const mockCreateAd = async (data: any): Promise<{ id: string }> => {
-        return new Promise((resolve) => {
-            setTimeout(() => {
-                resolve({ id: 'mockAdId', ...data });
-            }, 1000);
-        });
-    };
 
     const handleCreateCampaign = async () => {
         setLoading(true);
@@ -283,55 +283,15 @@ const CampaignCreation: React.FC = () => {
                 <button onClick={() => setMode('manual')}>Manual</button>
                 <button onClick={() => setMode('automatic')}>Automático</button>
             </div>
-            <div className="campaign-form">
-                <label>Nome da Campanha:</label>
-                <input type="text" name="name" value={campaignData.name} onChange={handleChange} required />
-                <label>Status:</label>
-                <select name="status" value={campaignData.status} onChange={handleSelectChange} required>
-                    <option value="active">Ativo</option>
-                    <option value="paused">Pausado</option>
-                    <option value="completed">Concluído</option>
-                </select>
-                <label>Data de Início:</label>
-                <input type="date" name="startDate" value={campaignData.startDate} onChange={handleChange} required />
-                <label>Data de Término:</label>
-                <input type="date" name="endDate" value={campaignData.endDate} onChange={handleChange} required />
-                <label>Orçamento:</label>
-                <input type="number" name="budget" value={campaignData.budget} onChange={handleChange} required />
-                <label>Objetivo:</label>
-                <select name="objective" value={campaignData.objective} onChange={handleSelectChange} required>
-                    <option value="OUTCOME_TRAFFIC">Tráfego</option>
-                    <option value="OUTCOME_ENGAGEMENT">Engajamento</option>
-                    <option value="OUTCOME_CONVERSIONS">Conversões</option>
-                </select>
-                <label>Categorias Especiais de Anúncios:</label>
-                <input type="text" name="specialAdCategories" value={campaignData.specialAdCategories.join(', ')} onChange={handleChange} placeholder="Separar por vírgulas" />
-                <button onClick={handleAddAd}>Adicionar Conjunto de Anúncios</button>
-                {campaignData.ads.map((adSet, index) => (
-                    <div key={index} className="ad-form">
-                        <label>Nome do Conjunto de Anúncios:</label>
-                        <input type="text" name="name" value={adSet.name} onChange={(e) => handleAdChange(index, e)} required />
-                        <label>Conteúdo do Conjunto de Anúncios:</label>
-                        <input type="text" name="content" value={adSet.content} onChange={(e) => handleAdChange(index, e)} required />
-                        <button onClick={() => handleAddAd()}>Adicionar Anúncio</button>
-                        {adSet.ads.map((ad, adIndex) => (
-                            <div key={adIndex} className="ad-form">
-                                <label>Nome do Anúncio:</label>
-                                <input type="text" name="name" value={ad.name} onChange={(e) => handleAdChange(adIndex, e)} required />
-                                <label>ID do Criativo:</label>
-                                <input type="text" name="creative_id" value={ad.creative_id} onChange={(e) => handleAdChange(adIndex, e)} required />
-                                <label>Status:</label>
-                                <select name="status" value={ad.status} onChange={(e) => handleAdChange(adIndex, e)} required>
-                                    <option value="PAUSED">Pausado</option>
-                                    <option value="ACTIVE">Ativo</option>
-                                </select>
-                                <label>Valor do Lance:</label>
-                                <input type="number" name="bid_amount" value={ad.bid_amount} onChange={(e) => handleAdChange(adIndex, e)} required />
-                            </div>
-                        ))}
-                    </div>
-                ))}
-            </div>
+            <CampaignForm
+                campaignData={campaignData}
+                handleChange={handleChange}
+                handleSelectChange={handleSelectChange}
+                handleAddAd={handleAddAd}
+                handleAdChange={handleAdChange}
+            />
+            <TargetAudienceSelector />
+            <BudgetCalculator />
             <div className="upload-section">
                 <h3>Upload de Arquivos</h3>
                 <label>ID da Página do Facebook:</label>

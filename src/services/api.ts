@@ -275,4 +275,25 @@ export const linkAccountFromHome = async (_platform: string, _userId: any) => {
     return 'mockAuthUrl';
 };
 
+export const fetchPageComments = async (pageId: string, _accessToken: string) => {
+    console.log('Mock fetching comments for page:', pageId);
+    return [
+        { id: '1', message: 'Great post!' },
+        { id: '2', message: 'Very informative.' }
+    ];
+};
+
+export const createPagePost = async (pageId: string, postData: any, _accessToken: string) => {
+    console.log('Mock creating post for page:', pageId);
+    return { id: 'mockPostId', ...postData };
+};
+
+export const fetchUserPages = async (_accessToken: string) => {
+    console.log('Mock fetching user pages');
+    return [
+        { id: '1', name: 'Page 1' },
+        { id: '2', name: 'Page 2' }
+    ];
+};
+
 export default api;

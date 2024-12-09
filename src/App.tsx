@@ -18,6 +18,8 @@ import PrivacyPolicy from './pages/PrivacyPolicy';
 import Dashboard from './pages/Dashboard';
 import Finance from './pages/Finance';
 import Tracking from './pages/Tracking';
+import CommentsManagement from './pages/CommentsManagement';
+import IntegrationsOverview from './pages/IntegrationsOverview';
 
 const App = () => {
   const dispatch = useDispatch();
@@ -28,19 +30,15 @@ const App = () => {
   useEffect(() => {
     const checkSession = async () => {
       const session = getSessionFromLocalStorage();
-      console.log('checkSession - Session from localStorage:', session);
       if (session) {
         const { access_token, refresh_token, user, appState } = session;
         dispatch(setTokens({ accessToken: access_token, refreshToken: refresh_token }));
-        console.log('checkSession - User from localStorage:', user);
         if (user && user !== 'undefined') {
           const profileImage = user.picture?.data?.url || user.picture || '';
           dispatch(setUser({ user, profileImage }));
         }
         if (appState) {
           console.log('checkSession - AppState from localStorage:', appState);
-          // Restore other parts of the app state if needed
-          // Example: dispatch(setAppState(appState));
         }
       }
       setIsLoading(false);
@@ -52,7 +50,6 @@ const App = () => {
   useEffect(() => {
     const validateUserToken = async () => {
       const session = getSessionFromLocalStorage();
-      console.log('validateUserToken - Session from localStorage:', session);
       if (session) {
         const { access_token } = session;
         try {
@@ -67,10 +64,6 @@ const App = () => {
       validateUserToken();
     }
   }, [location, isLoading, isAuthenticated, dispatch]);
-
-  useEffect(() => {
-    console.log('App - Location changed:', location);
-  }, [location]);
 
   if (isLoading) {
     return <div>Carregando...</div>;
@@ -107,7 +100,7 @@ const App = () => {
         path="/finance"
         element={
           <PrivateRoute>
-        <Finance />
+            <Finance />
           </PrivateRoute>
         }
       />
@@ -176,16 +169,25 @@ const App = () => {
           </PrivateRoute>
         }
       />
+      <Route
+        path="/comments"
+        element={
+          <PrivateRoute>
+            <CommentsManagement />
+          </PrivateRoute>
+        }
+      />
+      <Route
+        path="/integrations"
+        element={
+          <PrivateRoute>
+            <IntegrationsOverview />
+          </PrivateRoute>
+        }
+      />
       <Route path="/privacy-policy" element={<PrivacyPolicy />} />
     </Routes>
   );
 };
 
 export default App;
-
-
-
-
-
-
-

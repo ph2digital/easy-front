@@ -8,85 +8,11 @@ import AccountDetails from '../components/AccountDetails';
 import RightSidebar from '../components/RightSidebar';
 import { driver } from 'driver.js';
 import 'driver.js/dist/driver.css';
-
-interface Campaign {
-  id: string;
-  name: string;
-  platform: string;
-  objective: string;
-  budget: string;
-  status: string;
-  startDate: string;
-  endDate: string;
-  impressions: number;
-  clicks: number;
-  spend: string;
-  ctr: string;
-  cpc: number;
-  cpm: number;
-  reach: number;
-  frequency: number;
-  adsets?: Adset[];
-}
-
-interface Adset {
-  id: string;
-  name: string;
-  status: string;
-  dailyBudget: string;
-  startDate: string;
-  endDate: string;
-  ads: Ad[];
-}
-
-interface Ad {
-  id: string;
-  name: string;
-  status: string;
-  createdTime: string;
-  updatedTime: string;
-}
-
-const predefinedCampaigns: Campaign[] = [
-  {
-    id: '1',
-    name: 'Campanha 1',
-    platform: 'Meta Ads',
-    objective: 'Conversões',
-    budget: '$1000',
-    status: 'Ativa',
-    startDate: '01/01/2023',
-    endDate: '31/12/2023',
-    impressions: 10000,
-    clicks: 500,
-    spend: '$800',
-    ctr: '5%',
-    cpc: 1.6,
-    cpm: 80,
-    reach: 8000,
-    frequency: 1.25,
-    adsets: [],
-  },
-  {
-    id: '2',
-    name: 'Campanha 2',
-    platform: 'Google Ads',
-    objective: 'Tráfego',
-    budget: '$500',
-    status: 'Pausada',
-    startDate: '01/02/2023',
-    endDate: '30/11/2023',
-    impressions: 5000,
-    clicks: 200,
-    spend: '$300',
-    ctr: '4%',
-    cpc: 1.5,
-    cpm: 60,
-    reach: 4000,
-    frequency: 1.25,
-    adsets: [],
-  },
-];
+import { createPagePost } from '../services/api'; // Import createPagePost
+import CampaignSummaryCard from '../components/CampaignSummaryCard'; // Import new component
+import QuickAccessPanel from '../components/QuickAccessPanel'; // Import new component
+import { Campaign } from '../types'; // Import Campaign type
+import { predefinedCampaigns } from '../mockData'; // Import mock data
 
 const Home: React.FC = () => {
   const [campaigns] = useState<Campaign[]>(predefinedCampaigns);
@@ -152,6 +78,14 @@ const Home: React.FC = () => {
     );
   };
 
+  const handleCreatePagePost = async () => {
+    const pageId = 'mockPageId'; // Replace with actual page ID
+    const postData = { message: 'Hello, world!' }; // Replace with actual post data
+    const accessToken = 'mockAccessToken'; // Replace with actual access token
+    const response = await createPagePost(pageId, postData, accessToken);
+    console.log('Created page post:', response);
+    alert('Mock post created successfully!');
+  };
 
   const startTutorial = () => {
     const driverObj = driver({
@@ -218,6 +152,7 @@ const Home: React.FC = () => {
         <button id="tutorial-start-tutorial-button" className="tutorial-button" onClick={startTutorial}>Start Tutorial</button>
         <button id="tutorial-copilot-button" className="copilot-button" onClick={() => setIsRightSidebarOpen(true)}>Open Copilot</button>
         <button className="privacy-policy-button" onClick={() => navigate('/privacy-policy')}>Política de Privacidade</button>
+        <button onClick={handleCreatePagePost}>Create Page Post</button>
       </div>
 
       <div className='side-and-content'>
@@ -237,6 +172,8 @@ const Home: React.FC = () => {
         </div>
         <div id="tutorial-main-content" className="main-content">
           {selectedAccountDetails && <AccountDetails account={selectedAccountDetails} />}
+          <CampaignSummaryCard campaigns={filteredCampaigns} />
+          <QuickAccessPanel />
           <CampaignTable
             campaigns={filteredCampaigns}
             expandedCampaigns={expandedCampaigns}

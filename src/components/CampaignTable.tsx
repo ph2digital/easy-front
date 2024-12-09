@@ -1,43 +1,6 @@
 import React from 'react';
 import { FaEdit, FaChartLine } from 'react-icons/fa';
-interface Campaign {
-    id: string;
-    name: string;
-    platform: string;
-    objective: string;
-    budget: string;
-    status: string;
-    startDate: string;
-    endDate: string;
-    impressions: number;
-    clicks: number;
-    spend: string;
-    ctr: string;
-    cpc: number;
-    cpm: number;
-    reach: number;
-    frequency: number;
-    adsets?: Adset[];
-  }
-  
-  interface Adset {
-    id: string;
-    name: string;
-    status: string;
-    dailyBudget: string;
-    startDate: string;
-    endDate: string;
-    ads: Ad[];
-  }
-  
-  interface Ad {
-    id: string;
-    name: string;
-    status: string;
-    createdTime: string;
-    updatedTime: string;
-  }
-  
+import { Campaign } from '../types'; // Import types from index.ts
 
 interface CampaignTableProps {
   campaigns: Campaign[];

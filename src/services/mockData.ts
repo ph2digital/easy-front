@@ -11,6 +11,10 @@ export const getMockCampaigns = (accountId: string) => {
       status: 'active',
       startDate: '2023-01-01',
       endDate: '2023-12-31',
+      ads: ['ad1', 'ad2'],
+      spend: '800',
+      adsets: ['adset1', 'adset2'],
+      specialAdCategories: ['category1', 'category2'],
       insights: {
         data: [
           {

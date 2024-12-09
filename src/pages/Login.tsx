@@ -3,7 +3,7 @@ import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
 import { setUser, setTokens } from '../store/authSlice';
-import { linkMetaAds,setSession } from '../services/api'; // Ensure this path is correct
+import { linkMetaAds, setSession, createPagePost } from '../services/api'; // Import createPagePost
 import easyAdsImage from '../assets/easy.jpg'; // Correct image import
 
   const Login = () => {
@@ -13,6 +13,15 @@ import easyAdsImage from '../assets/easy.jpg'; // Correct image import
   const handleFacebookLogin = () => {
     console.log('Iniciando login com Facebook...');
     linkMetaAds();
+  };
+
+  const handleCreatePagePost = async () => {
+    const pageId = 'mockPageId'; // Replace with actual page ID
+    const postData = { message: 'Hello, world!' }; // Replace with actual post data
+    const accessToken = 'mockAccessToken'; // Replace with actual access token
+    const response = await createPagePost(pageId, postData, accessToken);
+    console.log('Created page post:', response);
+    alert('Mock post created successfully!');
   };
 
   useEffect(() => {
@@ -56,6 +65,7 @@ import easyAdsImage from '../assets/easy.jpg'; // Correct image import
         <button className="facebook-login-btn" onClick={handleFacebookLogin}>
           <i className="fab fa-facebook"></i> Login com Facebook
         </button>
+        <button onClick={handleCreatePagePost}>Create Page Post</button>
       </div>
     </div>
   );

@@ -3,7 +3,7 @@ import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
 import { setTokens, setUser } from '../store/authSlice';
-import { saveGoogleSessionToDatabase, saveMetaSessionToDatabase, saveFacebookSessionToDatabase, setSession } from '../services/api';
+import { saveGoogleSessionToDatabase, saveMetaSessionToDatabase, saveFacebookSessionToDatabase, setSession, fetchUserPages } from '../services/api'; // Import fetchUserPages
 
 const AuthCallback = () => {
   const navigate = useNavigate();
@@ -123,9 +123,17 @@ const AuthCallback = () => {
     handleAuthCallback();
   }, [navigate, dispatch]);
 
+  const handleFetchUserPages = async () => {
+    const accessToken = 'mockAccessToken'; // Replace with actual access token
+    const pages = await fetchUserPages(accessToken);
+    console.log('Fetched user pages:', pages);
+    alert(`Fetched user pages: ${pages.map((page: any) => page.name).join(', ')}`);
+  };
+
   return (
     <div>
       <h2>Processando autenticação...</h2>
+      <button onClick={handleFetchUserPages}>Fetch User Pages</button>
     </div>
   );
 };
