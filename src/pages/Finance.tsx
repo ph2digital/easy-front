@@ -30,8 +30,19 @@ const mockChartData = [
   { name: 'Dec', value: 9500 },
 ];
 
-const renderFinanceItems = (data) => {
-  return data.map((item) => (
+interface FinanceItem {
+  id: string;
+  name: string;
+  amount: number;
+}
+
+interface ChartData {
+  name: string;
+  value: number;
+}
+
+const renderFinanceItems = (data: FinanceItem[]): JSX.Element[] => {
+  return data.map((item: FinanceItem) => (
     <div key={item.id} className="finance-item" id={`finance-item-${item.id}`}>
       <span className="finance-item-name">{item.name}</span>
       <span className="finance-item-amount">${item.amount}</span>

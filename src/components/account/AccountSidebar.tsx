@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import './styles/AccountSidebar.css';
+import '../styles/AccountSidebar.css';
 
 interface AccountSidebarProps {
   googleAccounts: any[];

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import CommentList from '../components/comments/CommentList';
+import CommentActions from '../components/comments/CommentActions';
 import { MessageSquare } from 'lucide-react';
 
 const mockComments = [
@@ -78,7 +79,11 @@ const CommentsManagement: React.FC = () => {
           </select>
         </div>
       </div>
-      <button className="create-post-button" onClick={mockPostCreation}>Create New Post</button> {/* Mock post creation */}
+      <CommentActions 
+        onCreatePost={mockPostCreation} 
+        onEdit={() => console.log('Edit action')} 
+        onDelete={() => console.log('Delete action')} 
+      />
       <CommentList
         comments={comments}
         onReply={handleReply}

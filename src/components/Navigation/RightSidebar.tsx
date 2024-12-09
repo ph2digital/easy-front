@@ -1,5 +1,6 @@
+
 import React, { useState } from 'react';
-import './styles/RightSidebar.css';
+import '../styles/RightSidebar.css';
 
 interface RightSidebarProps {
   isOpen: boolean;

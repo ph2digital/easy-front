@@ -16,8 +16,14 @@ const mockAudienceData = [
   { id: '12', name: 'Audience 12', size: '12000' },
 ];
 
-const renderAudienceData = (data) => {
-  return data.map((audience) => (
+interface Audience {
+  id: string;
+  name: string;
+  size: string;
+}
+
+const renderAudienceData = (data: Audience[]): JSX.Element[] => {
+  return data.map((audience: Audience) => (
     <li key={audience.id} className="audience-item" id={`audience-item-${audience.id}`}>
       {audience.name} - {audience.size}
     </li>

@@ -10,6 +10,7 @@ const PostCreator: React.FC<PostCreatorProps> = ({ pageId }) => {
   const [selectedMedia, setSelectedMedia] = useState<File[]>([]);
   const [isScheduled, setIsScheduled] = useState(false);
   const [scheduleDate, setScheduleDate] = useState('');
+  const [showPreview, setShowPreview] = useState(false);
 
   const handleMediaSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     if (event.target.files) {
@@ -27,6 +28,10 @@ const PostCreator: React.FC<PostCreatorProps> = ({ pageId }) => {
       isScheduled,
       scheduleDate
     });
+  };
+
+  const handlePreview = () => {
+    setShowPreview(!showPreview);
   };
 
   return (
@@ -110,7 +115,14 @@ const PostCreator: React.FC<PostCreatorProps> = ({ pageId }) => {
           )}
         </div>
 
-        <div className="flex justify-end">
+        <div className="flex justify-end gap-4">
+          <button
+            type="button"
+            onClick={handlePreview}
+            className="px-6 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700"
+          >
+            {showPreview ? 'Editar' : 'Pré-visualizar'}
+          </button>
           <button
             type="submit"
             className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 flex items-center gap-2"
@@ -120,6 +132,24 @@ const PostCreator: React.FC<PostCreatorProps> = ({ pageId }) => {
           </button>
         </div>
       </form>
+      {showPreview && (
+        <div className="mt-6 p-4 bg-gray-100 rounded-lg">
+          <h3 className="text-xl font-bold mb-4">Pré-visualização</h3>
+          <p>{content}</p>
+          {selectedMedia.length > 0 && (
+            <div className="flex gap-2 flex-wrap">
+              {selectedMedia.map((file, index) => (
+                <img
+                  key={index}
+                  src={URL.createObjectURL(file)}
+                  alt={`Preview ${index + 1}`}
+                  className="w-20 h-20 object-cover rounded"
+                />
+              ))}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 };

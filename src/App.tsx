@@ -20,6 +20,7 @@ import Finance from './pages/Finance';
 import Tracking from './pages/Tracking';
 import CommentsManagement from './pages/CommentsManagement';
 import IntegrationsOverview from './pages/IntegrationsOverview';
+import CompleteRegistration from './pages/CompleteRegistration';
 
 const App = () => {
   const dispatch = useDispatch();
@@ -182,6 +183,14 @@ const App = () => {
         element={
           <PrivateRoute>
             <IntegrationsOverview />
+          </PrivateRoute>
+        }
+      />
+      <Route
+        path="/complete-registration"
+        element={
+          <PrivateRoute>
+            <CompleteRegistration />
           </PrivateRoute>
         }
       />

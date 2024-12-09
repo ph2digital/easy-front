@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import './styles/CampaignInfo.css';
+import '../styles/CampaignInfo.css';
 
 interface CampaignInfoProps {
   campaign: any;

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import './styles/AdEditPopup.css';
+import '../styles/AdEditPopup.css';
 
 interface Ad {
   id: string;

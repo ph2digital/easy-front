@@ -5,6 +5,27 @@ interface CampaignCreationFormProps {
     mode: 'automatic' | 'guided' | 'manual';
 }
 
+const BasicInfoForm: React.FC = () => (
+  <div>
+    <label>Nome da Campanha:</label>
+    <input type="text" placeholder="Digite o nome da campanha" />
+  </div>
+);
+
+const BudgetForm: React.FC = () => (
+  <div>
+    <label>Orçamento:</label>
+    <input type="number" placeholder="Defina o orçamento" />
+  </div>
+);
+
+const AudienceForm: React.FC = () => (
+  <div>
+    <label>Público-Alvo:</label>
+    <input type="text" placeholder="Defina o público-alvo" />
+  </div>
+);
+
 const CampaignCreationForm: React.FC<CampaignCreationFormProps> = ({ mode }) => {
     return (
         <div className="campaign-creation-form">
@@ -13,15 +34,9 @@ const CampaignCreationForm: React.FC<CampaignCreationFormProps> = ({ mode }) => 
             {mode === 'guided' && <p>A IA irá guiar você através de perguntas para configurar a campanha.</p>}
             {mode === 'manual' && (
                 <form>
-                    <label>Nome da Campanha:</label>
-                    <input type="text" placeholder="Digite o nome da campanha" />
-
-                    <label>Orçamento:</label>
-                    <input type="number" placeholder="Defina o orçamento" />
-
-                    <label>Público-Alvo:</label>
-                    <input type="text" placeholder="Defina o público-alvo" />
-
+                    <BasicInfoForm />
+                    <BudgetForm />
+                    <AudienceForm />
                     <button type="submit">Criar Campanha</button>
                 </form>
             )}

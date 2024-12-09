@@ -4,8 +4,20 @@ import { addCustomer } from '../store/selectedCustomersSlice';
 import { fetchCustomAudiences, createCustomAudience, getSessionFromLocalStorage } from '../services/api';
 import './styles/CustomAudienceCreation.css';
 
-const renderCustomAudiences = (data) => {
-  return data.map((audience: any) => (
+interface Audience {
+  id: string;
+  name: string;
+  subtype: string;
+  description: string;
+  operation_status: {
+    description: string;
+  };
+  time_created: number;
+  time_updated: number;
+}
+
+const renderCustomAudiences = (data: Audience[]) => {
+  return data.map((audience: Audience) => (
     <li key={audience.id} className="custom-audience-item" id={`custom-audience-item-${audience.id}`}>
       <p><strong>ID:</strong> {audience.id}</p>
       <p><strong>Nome:</strong> {audience.name}</p>

@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import CampaignCreationForm from '../components/CampaignCreationForm';
+import CampaignCreationForm from '../components/Campaign/CampaignCreationForm';
 import { uploadCreativeFiles, requestCreativeBasedOnCompetitor } from '../services/api';
 import './styles/CampaignCreation.css';
 import { useDispatch, useSelector } from 'react-redux';
 import { createCampaign as createCampaignAction } from '../store/campaignSlice';
 import { RootState } from '../store';
-import CampaignForm from '../components/CampaignForm'; // Import new component
+import CampaignForm from '../components/Campaign/CampaignForm'; // Import new component
 import TargetAudienceSelector from '../components/TargetAudienceSelector'; // Import new component
-import BudgetCalculator from '../components/BudgetCalculator'; // Ensure this path is correct or update it to the correct path
+import BudgetCalculator from '../components/metrics/BudgetCalculator'; // Ensure this path is correct or update it to the correct path
 import { mockCreateCampaign, mockCreateAdSet, mockCreateAd } from '../mockData'; // Import mock functions
 
 interface Campaign {

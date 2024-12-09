@@ -1,6 +1,6 @@
 // src/components/CampaignCard.tsx
 import React from 'react';
-import { Campaign } from '../types';
+import { Campaign } from '../../types';
 
 interface CampaignCardProps {
     campaign: Campaign;

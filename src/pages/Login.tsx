@@ -36,8 +36,12 @@ import easyAdsImage from '../assets/easy.jpg'; // Correct image import
             dispatch(setUser({ user, profileImage: user.picture.data.url }));
             console.log('Chamando setSession com:', accessToken, '', user);
             setSession(accessToken, '', user, event.data.appState);
-            // Use navigate instead of window.location.href to avoid full page reload
-            navigate('/home');
+            const hasCompletedRegistration = localStorage.getItem('hasCompletedRegistration');
+            if (hasCompletedRegistration) {
+              navigate('/home');
+            } else {
+              navigate('/complete-registration');
+            }
           } else {
             console.error('Falha no login com Facebook:', event.data);
             alert('Falha no login com Facebook.');
@@ -65,7 +69,6 @@ import easyAdsImage from '../assets/easy.jpg'; // Correct image import
         <button className="facebook-login-btn" onClick={handleFacebookLogin}>
           <i className="fab fa-facebook"></i> Login com Facebook
         </button>
-        <button onClick={handleCreatePagePost}>Create Page Post</button>
       </div>
     </div>
   );

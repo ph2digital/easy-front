@@ -9,6 +9,22 @@ const mockData = [
   { date: '2024-04', reach: 1800, likes: 720, comments: 134, shares: 45 },
 ];
 
+const EngagementChart: React.FC<{ data: any[] }> = ({ data }) => (
+  <ResponsiveContainer width="100%" height="100%">
+    <BarChart data={data}>
+      <CartesianGrid strokeDasharray="3 3" />
+      <XAxis dataKey="date" />
+      <YAxis />
+      <Tooltip />
+      <Legend />
+      <Bar dataKey="reach" fill="#3B82F6" name="Alcance" />
+      <Bar dataKey="likes" fill="#10B981" name="Curtidas" />
+      <Bar dataKey="comments" fill="#8B5CF6" name="Comentários" />
+      <Bar dataKey="shares" fill="#F97316" name="Compartilhamentos" />
+    </BarChart>
+  </ResponsiveContainer>
+);
+
 const EngagementReport: React.FC = () => {
   return (
     <div className="p-6 bg-white rounded-lg shadow-sm">
@@ -53,19 +69,7 @@ const EngagementReport: React.FC = () => {
       </div>
 
       <div className="h-[400px]">
-        <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={mockData}>
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="date" />
-            <YAxis />
-            <Tooltip />
-            <Legend />
-            <Bar dataKey="reach" fill="#3B82F6" name="Alcance" />
-            <Bar dataKey="likes" fill="#10B981" name="Curtidas" />
-            <Bar dataKey="comments" fill="#8B5CF6" name="Comentários" />
-            <Bar dataKey="shares" fill="#F97316" name="Compartilhamentos" />
-          </BarChart>
-        </ResponsiveContainer>
+        <EngagementChart data={mockData} />
       </div>
     </div>
   );

@@ -1,23 +1,25 @@
 import React, { useState } from 'react';
 import { useSelector } from 'react-redux';
-import { RootState } from '../store';
-import { updateMetaAdsAdset } from '../services/api'; // Certifique-se de importar a função correta
-import './styles/AdsetEditPopup.css';
+import { RootState } from '../../store';
+import '../styles/CampaignEditPopup.css';
 
-interface AdsetEditPopupProps {
-  adset: any;
+interface CampaignEditPopupProps {
+  campaign: any;
   onClose: () => void;
-  onSave: (updatedAdset: any) => void; // Remova o accessToken daqui
+  onSave: (updatedCampaign: any, accessToken: string) => void;
 }
 
-const AdsetEditPopup: React.FC<AdsetEditPopupProps> = ({ adset, onClose, onSave }) => {
+const CampaignEditPopup: React.FC<CampaignEditPopupProps> = ({ campaign, onClose, onSave }) => {
   const [formData, setFormData] = useState({
-    name: adset.name || '',
-    status: adset.status || '',
-    startDate: adset.startDate || '',
-    endDate: adset.endDate || '',
-    budget: adset.budget || '',
-    optimizationGoal: adset.optimizationGoal || '',
+    name: campaign.name || '',
+    status: campaign.status || '',
+    startDate: campaign.startDate || '',
+    endDate: campaign.endDate || '',
+    budget: campaign.budget || '',
+    objective: campaign.objective || '',
+    specialAdCategories: campaign.specialAdCategories || '',
+    dailyBudget: campaign.dailyBudget || '',
+    lifetimeBudget: campaign.lifetimeBudget || '',
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -37,21 +39,20 @@ const AdsetEditPopup: React.FC<AdsetEditPopupProps> = ({ adset, onClose, onSave 
     setError(null);
     try {
       const fieldsToUpdate = Object.keys(formData).reduce((acc, key) => {
-        if (formData[key as keyof typeof formData] !== adset[key as keyof typeof formData]) {
+        if (formData[key as keyof typeof formData] !== campaign[key as keyof typeof formData]) {
           (acc as any)[key] = formData[key as keyof typeof formData];
         }
         return acc;
       }, {} as Partial<typeof formData>);
 
       if (accessToken) {
-        await updateMetaAdsAdset(adset.id, fieldsToUpdate); // Certifique-se de que a função correta está sendo chamada
-        onSave(fieldsToUpdate); // Chame onSave sem o accessToken
+        onSave(fieldsToUpdate, accessToken);
       } else {
         setError('Access token is missing.');
       }
     } catch (error) {
-      setError('Erro ao salvar conjunto. Por favor, tente novamente.');
-      console.error('Error saving adset:', error);
+      setError('Erro ao salvar campanha. Por favor, tente novamente.');
+      console.error('Error saving campaign:', error);
     } finally {
       setLoading(false);
     }
@@ -60,9 +61,9 @@ const AdsetEditPopup: React.FC<AdsetEditPopupProps> = ({ adset, onClose, onSave 
   return (
     <div className="popup-overlay">
       <div className="popup-content">
-        <h2>Editar Conjunto</h2>
+        <h2>Editar Campanha</h2>
         <form onSubmit={handleSubmit}>
-          <label>Nome do Conjunto:</label>
+          <label>Nome da Campanha:</label>
           <input type="text" name="name" value={formData.name} onChange={handleChange} />
           <label>Status:</label>
           <select name="status" value={formData.status} onChange={handleChange}>
@@ -77,8 +78,14 @@ const AdsetEditPopup: React.FC<AdsetEditPopupProps> = ({ adset, onClose, onSave 
           <input type="date" name="endDate" value={formData.endDate} onChange={handleChange} />
           <label>Orçamento:</label>
           <input type="number" name="budget" value={formData.budget} onChange={handleChange} />
-          <label>Objetivo de Otimização:</label>
-          <input type="text" name="optimizationGoal" value={formData.optimizationGoal} onChange={handleChange} />
+          <label>Objetivo:</label>
+          <input type="text" name="objective" value={formData.objective} onChange={handleChange} />
+          <label>Categoria de Anúncio Especial:</label>
+          <input type="text" name="specialAdCategories" value={formData.specialAdCategories} onChange={handleChange} />
+          <label>Orçamento Diário:</label>
+          <input type="number" name="dailyBudget" value={formData.dailyBudget} onChange={handleChange} />
+          <label>Orçamento Vitalício:</label>
+          <input type="number" name="lifetimeBudget" value={formData.lifetimeBudget} onChange={handleChange} />
           {error && <p className="error-message">{error}</p>}
           <button type="submit" disabled={loading}>
             {loading ? 'Salvando...' : 'Salvar'}
@@ -90,4 +97,4 @@ const AdsetEditPopup: React.FC<AdsetEditPopupProps> = ({ adset, onClose, onSave 
   );
 };
 
-export default AdsetEditPopup;
+export default CampaignEditPopup;

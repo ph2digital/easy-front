@@ -1,12 +1,13 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { useParams, useLocation } from 'react-router-dom';
-import AdsetList from '../components/AdsetList';
-import CampaignInfo from '../components/CampaignInfo';
-import LoadingSpinner from '../components/LoadingSpinner';
-import CampaignEditPopup from '../components/CampaignEditPopup';
-import AdsetEditPopup from '../components/AdsetEditPopup';
-import AdEditPopup from '../components/AdEditPopup';
+import { useParams } from 'react-router-dom';
+import CampaignEditPopup from '../components/Campaign/CampaignEditPopup';
+import AdsetEditPopup from '../components/ads/AdsetEditPopup';
+import AdEditPopup from '../components/ads/AdEditPopup';
+import CampaignOverview from '../components/Campaign/CampaignOverview';
+import AnalyticsPanel from '../components/Dashboard/AnalyticsPanel';
+import ActionButtons from '../components/ui/Button/ActionButtons';
 import './styles/CampaignDetails.css';
+import LoadingSpinner from '../components/LoadingSpinner';
 
 interface Campaign {
   id: string;
@@ -100,7 +101,6 @@ interface Adset {
 
 const CampaignDetails: React.FC = () => {
   const { id } = useParams<{ id: string }>();
-  const location = useLocation();
   const [campaign, setCampaign] = useState<Campaign | null>(null);
   const [adsetDetails, setAdsetDetails] = useState<Adset[]>([]);
   const [adDetails, setAdDetails] = useState<Ad | null>(null);
@@ -109,7 +109,6 @@ const CampaignDetails: React.FC = () => {
   const [isAdEditPopupOpen, setIsAdEditPopupOpen] = useState(false);
   const [selectedAdset, setSelectedAdset] = useState<Adset | null>(null);
   const [selectedAd, setSelectedAd] = useState<Ad | null>(null);
-  const editType = new URLSearchParams(location.search).get('edit');
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -379,28 +378,6 @@ const CampaignDetails: React.FC = () => {
     }
   };
 
-  const renderAdDetails = () => (
-    <div className="ad-info">
-      <h4>Detalhes do Anúncio</h4>
-      <p><strong>ID:</strong> {adDetails?.id}</p>
-      <p><strong>Nome:</strong> {adDetails?.name}</p>
-      <p><strong>Status:</strong> {adDetails?.status}</p>
-      <p><strong>Criado em:</strong> {adDetails?.createdTime}</p>
-      <p><strong>Atualizado em:</strong> {adDetails?.updatedTime}</p>
-      {adDetails?.insights?.data?.[0] && (
-        <>
-          <p><strong>Gastos:</strong> {adDetails.insights.data[0].spend}</p>
-          <p><strong>Impressões:</strong> {adDetails.insights.data[0].impressions}</p>
-          <p><strong>Cliques:</strong> {adDetails.insights.data[0].clicks}</p>
-          <p><strong>CTR:</strong> {adDetails.insights.data[0].ctr}</p>
-          <p><strong>CPC:</strong> {adDetails.insights.data[0].cpc}</p>
-          <p><strong>CPM:</strong> {adDetails.insights.data[0].cpm}</p>
-          <p><strong>Ações:</strong> {adDetails.insights.data[0].actions?.map((action: any) => `${action.action_type}: ${action.value}`)?.join(', ')}</p>
-        </>
-      )}
-      <p><strong>Creative:</strong> {JSON.stringify(adDetails?.creative)}</p>
-    </div>
-  );
 
   if (loading) {
     return <LoadingSpinner />;
@@ -412,14 +389,24 @@ const CampaignDetails: React.FC = () => {
 
   return (
     <div className="campaign-details">
-      <h2>Detalhes da Campanha</h2>
-      <CampaignInfo
-        campaign={campaign}
-        isEditing={editType === 'campaign'}
-        onEdit={handleEditCampaign}
-        onSave={handleSaveCampaign}
+      <CampaignOverview campaign={campaign} onEditCampaign={handleEditCampaign} />
+      <AnalyticsPanel
+        adsetDetails={adsetDetails}
+        adDetails={adDetails}
+        onAdsetClick={handleAdsetClick}
+        onAdClick={handleAdClick}
+        onCreateAd={handleCreateAd}
         onEditAdset={handleEditAdset}
+        onEditAd={handleEditAd}
       />
+      <ActionButtons
+        onAdsetClick={handleAdsetClick}
+        onAdClick={handleAdClick}
+        onCreateAd={handleCreateAd}
+        onEditAdset={handleEditAdset}
+        onEditAd={handleEditAd}
+      />
+      {loading && <LoadingSpinner />}
       {isEditPopupOpen && (
         <CampaignEditPopup
           campaign={campaign}
@@ -441,17 +428,6 @@ const CampaignDetails: React.FC = () => {
           onSave={handleSaveAd}
         />
       )}
-      <h3>Conjuntos de Anúncios</h3>
-      <AdsetList
-        adsets={adsetDetails}
-        onAdsetClick={handleAdsetClick}
-        onAdClick={handleAdClick}
-        onCreateAd={handleCreateAd}
-        onEditAdset={handleEditAdset}
-        onEditAd={handleEditAd}
-        isEditing={editType === 'adset'}
-      />
-      {adDetails && renderAdDetails()}
     </div>
   );
 };

@@ -1,4 +1,3 @@
-// src/pages/Settings.tsx
 import React, { useState } from 'react';
 import './styles/Settings.css';
 import { fetchUserPages } from '../services/api'; // Import fetchUserPages
@@ -16,6 +15,30 @@ const mockSettings = [
 const mockPostCreation = () => {
   console.log('Mock post created');
   alert('Post created successfully!');
+};
+
+const UserPreferences: React.FC<{ settings: any[], toggleSetting: (id: string) => void }> = ({ settings, toggleSetting }) => {
+  return (
+    <ul>
+      {settings.map((setting) => (
+        <li key={setting.id} className="setting-item">
+          <span>{setting.name}</span>: {setting.description}
+          <button onClick={() => toggleSetting(setting.id)}>
+            {setting.enabled ? 'Disable' : 'Enable'}
+          </button>
+        </li>
+      ))}
+    </ul>
+  );
+};
+
+const NotificationSettings: React.FC = () => {
+  return (
+    <div className="notification-settings">
+      <h2>Notification Settings</h2>
+      {/* Add notification settings implementation here */}
+    </div>
+  );
 };
 
 const Settings: React.FC = () => {
@@ -49,16 +72,8 @@ const Settings: React.FC = () => {
   return (
     <div className="settings">
       <h1>Settings</h1>
-      <ul>
-        {settings.map((setting) => (
-          <li key={setting.id} className="setting-item">
-            <span>{setting.name}</span>: {setting.description}
-            <button onClick={() => toggleSetting(setting.id)}>
-              {setting.enabled ? 'Disable' : 'Enable'}
-            </button>
-          </li>
-        ))}
-      </ul>
+      <UserPreferences settings={settings} toggleSetting={toggleSetting} />
+      <NotificationSettings />
       <button className="reset-button" onClick={handleReset}>Reset Settings</button>
       <button onClick={handleFetchUserPages}>Fetch User Pages</button>
       <button onClick={() => navigate('/create-post')}>Create New Post</button> {/* Add button to navigate */}

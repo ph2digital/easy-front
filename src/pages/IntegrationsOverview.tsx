@@ -1,5 +1,6 @@
 import React from 'react';
 import IntegrationCard from '../components/integrations/IntegrationCard';
+import IntegrationStatus from '../components/integrations/IntegrationStatus';
 import { Settings } from 'lucide-react';
 import { fetchUserPages } from '../services/api'; // Import fetchUserPages
 import { useNavigate } from 'react-router-dom'; // Import useNavigate
@@ -25,10 +26,6 @@ const mockIntegrations = [
   },
 ];
 
-const mockPostCreation = () => {
-  console.log('Mock post created');
-  alert('Post created successfully!');
-};
 
 const IntegrationsOverview: React.FC = () => {
   const handleRefreshToken = () => {
@@ -66,9 +63,7 @@ const IntegrationsOverview: React.FC = () => {
         ))}
       </div>
 
-      <button onClick={handleFetchUserPages}>Fetch User Pages</button>
-      <button onClick={() => navigate('/create-post')}>Create New Post</button> {/* Add button to navigate */}
-      <button className="create-post-button" onClick={mockPostCreation}>Create New Post</button> {/* Mock post creation */}
+      <IntegrationStatus onFetchUserPages={handleFetchUserPages} onCreatePost={() => navigate('/create-post')} />
     </div>
   );
 };

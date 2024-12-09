@@ -2,14 +2,14 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './styles/Home.css';
 import Sidebar from '../components/Sidebar';
-import AccountSidebar from '../components/AccountSidebar';
-import CampaignTable from '../components/CampaignTable';
-import AccountDetails from '../components/AccountDetails';
+import AccountSidebar from '../components/account/AccountSidebar';
+import CampaignTable from '../components/Campaign/CampaignTable';
+import AccountDetails from '../components/account/AccountDetails';
 import RightSidebar from '../components/RightSidebar';
 import { driver } from 'driver.js';
 import 'driver.js/dist/driver.css';
 import { createPagePost } from '../services/api'; // Import createPagePost
-import CampaignSummaryCard from '../components/CampaignSummaryCard'; // Import new component
+import CampaignSummaryCard from '../components/Campaign/CampaignSummaryCard'; // Import new component
 import QuickAccessPanel from '../components/QuickAccessPanel'; // Import new component
 import { Campaign } from '../types'; // Import Campaign type
 import { predefinedCampaigns } from '../mockData'; // Import mock data

@@ -1,13 +1,13 @@
 // src/pages/Dashboard.tsx
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import CampaignCard from '../components/CampaignCard';
-import InsightsPanel from '../components/InsightsPanel';
+import CampaignCard from '../components/Campaign/CampaignCard';
+import InsightsPanel from '../components/inshigths/InsightsPanel';
 import { Campaign } from '../types';
 import { fetchMetaAdsCampaignDetails, fetchPageComments } from '../services/api';
 import './styles/Dashboard.css';
-import PerformanceChart from '../components/PerformanceChart';
-import EngagementGraph from '../components/EngagementGraph';
+import PerformanceChart from '../components/Dashboard/PerformanceChart';
+import EngagementGraph from '../components/Dashboard/EngagementGraph';
 import { mockChartData, mockCampaignPerformance } from '../mockData';
 
 const renderCampaignPerformance = (data: any) => {

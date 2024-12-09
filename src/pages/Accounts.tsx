@@ -1,6 +1,8 @@
 // src/components/Accounts.tsx
 
 import React, { useState } from 'react';
+import AccountConnection from '../components/account/AccountConnection';
+import AccountStatus from '../components/account/AccountStatus';
 import './styles/Accounts.css';
 
 const mockPages = [
@@ -17,8 +19,8 @@ const mockAdAccounts = [
 
 const Accounts: React.FC = () => {
   const [successMessage, setSuccessMessage] = useState('');
-  const [pages, setPages] = useState(mockPages);
-  const [adAccounts, setAdAccounts] = useState(mockAdAccounts);
+  const [pages] = useState(mockPages);
+  const [adAccounts] = useState(mockAdAccounts);
 
   const handleConnectPage = () => {
     console.log('Connect new page');
@@ -29,28 +31,8 @@ const Accounts: React.FC = () => {
   return (
     <div className="accounts" id="accounts-page">
       <h1 className="accounts-title">Conectar Contas</h1>
-      <div className="pages-section">
-        <h2 className="pages-title">Páginas Conectadas</h2>
-        <ul className="pages-list">
-          {pages.map((page) => (
-            <li key={page.id} className="page-item" id={`page-item-${page.id}`}>
-              <img src={page.icon} alt={page.name} className="page-icon" />
-              <span className="page-name">{page.name}</span>
-            </li>
-          ))}
-        </ul>
-        <button className="connect-page-button" onClick={handleConnectPage}>Conectar Página</button>
-      </div>
-      <div className="ad-accounts-section">
-        <h2 className="ad-accounts-title">Contas de Anúncios Conectadas</h2>
-        <ul className="ad-accounts-list">
-          {adAccounts.map((account) => (
-            <li key={account.id} className="ad-account-item" id={`ad-account-item-${account.id}`}>
-              <span className="ad-account-name">{account.name}</span> ({account.type})
-            </li>
-          ))}
-        </ul>
-      </div>
+      <AccountConnection pages={pages} onConnectPage={handleConnectPage} />
+      <AccountStatus adAccounts={adAccounts} />
       {successMessage && <div className="success-message">{successMessage}</div>}
     </div>
   );
