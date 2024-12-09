@@ -1,25 +1,23 @@
 // src/components/InsightsPanel.tsx
-import React, { useEffect, useState } from 'react';
-import axios from 'axios';
+import React from 'react';
 
-const InsightsPanel: React.FC = () => {
-  const [insights, setInsights] = useState<{ id: number; text: string }[]>([]);
+interface InsightsPanelProps {
+  insights: any[];
+}
 
-  useEffect(() => {
-    // Fetch insights from API
-    axios.get('/api/insights')
-      .then(response => setInsights(response.data))
-      .catch(error => console.error('Error fetching insights', error));
-  }, []);
+const InsightsPanel: React.FC<InsightsPanelProps> = ({ insights }) => {
+  if (!Array.isArray(insights)) {
+    return <div>No insights available</div>;
+  }
 
   return (
     <div className="insights-panel">
-      <h3>Insights</h3>
-      <ul>
-        {insights.map((insight) => (
-          <li key={insight.id}>{insight.text}</li>
-        ))}
-      </ul>
+      {insights.map((insight, index) => (
+        <div key={index} className="insight-item">
+          {/* Render insight details */}
+          <p>{insight.metric}: {insight.value}</p>
+        </div>
+      ))}
     </div>
   );
 };

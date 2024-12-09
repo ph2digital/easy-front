@@ -12,7 +12,7 @@ import { createPagePost } from '../services/api'; // Import createPagePost
 import CampaignSummaryCard from '../components/Campaign/CampaignSummaryCard'; // Import new component
 import QuickAccessPanel from '../components/QuickAccessPanel'; // Import new component
 import { Campaign } from '../types'; // Import Campaign type
-import { predefinedCampaigns } from '../mockData'; // Import mock data
+import { predefinedCampaigns, getMockGoogleAdsAccounts, getMockFacebookAdAccounts, getMockCampaigns } from '../services/mockData'; // Import mock data
 
 const Home: React.FC = () => {
   const [campaigns] = useState<Campaign[]>(predefinedCampaigns);
@@ -24,6 +24,9 @@ const Home: React.FC = () => {
   const [selectedAccountDetails, setSelectedAccountDetails] = useState<any | null>(null);
   const [filteredCampaigns, setFilteredCampaigns] = useState<Campaign[]>([]);
   const [isRightSidebarOpen, setIsRightSidebarOpen] = useState(false);
+  const [showPopup, setShowPopup] = useState(true); // Show popup on load
+  const [loadingGoogleAccounts, setLoadingGoogleAccounts] = useState(true);
+  const [loadingFacebookAccounts, setLoadingFacebookAccounts] = useState(true);
   
   const navigate = useNavigate();
 
@@ -32,10 +35,10 @@ const Home: React.FC = () => {
       console.log(`Selected account changed: ${selectedAccount}`);
       localStorage.setItem('selectedAccount', selectedAccount);
       const account = googleAccounts.find(acc => acc.customer_id === selectedAccount) ||
-                      facebookAccounts.find(acc => acc.account_id === selectedAccount);
+                      facebookAccounts.find(acc => acc.customer_id === selectedAccount);
       setSelectedAccountDetails(account);
       const storedCampaigns = JSON.parse(localStorage.getItem('campaigns') || '{}');
-      const accountCampaigns = storedCampaigns[selectedAccount] || [];
+      const accountCampaigns = storedCampaigns[selectedAccount] || getMockCampaigns(selectedAccount);
       setFilteredCampaigns(accountCampaigns);
       console.log('Filtered campaigns for selected account:', accountCampaigns);
     } else {
@@ -55,6 +58,16 @@ const Home: React.FC = () => {
     console.log('Google Accounts:', googleAccounts);
     console.log('Facebook Accounts:', facebookAccounts);
   }, [googleAccounts, facebookAccounts]);
+
+  useEffect(() => {
+    // Load mock accounts on component mount
+    const googleAdsAccounts = getMockGoogleAdsAccounts().customerIds.map(id => ({ customer_id: id.customer_id, type: id.type, is_active: id.is_active }));
+    const facebookAdsAccounts = getMockFacebookAdAccounts().customerIds.map(id => ({ customer_id: id.customer_id, type: id.type, is_active: id.is_active }));
+    setGoogleAccounts(googleAdsAccounts);
+    setFacebookAccounts(facebookAdsAccounts);
+    setLoadingGoogleAccounts(false);
+    setLoadingFacebookAccounts(false);
+  }, []);
 
   const handleEdit = (id: string) => {
     console.log(`handleEdit - Editando campanha ${id}`);
@@ -145,6 +158,32 @@ const Home: React.FC = () => {
     driverObj.drive();
   };
 
+  const handleActivateAccount = async (accountId: string, platform: string) => {
+    console.log(`handleActivateAccount - Ativando conta ${accountId} na plataforma ${platform}`);
+    // Simulated activation logic
+    alert(`Conta ${accountId} ativada na plataforma ${platform}`);
+    setShowPopup(false); // Close the popup
+  };
+
+  const handleLinkAccount = async (platform: string) => {
+    console.log(`handleLinkAccount - Vinculando conta na plataforma ${platform}`);
+    // Simulated linking logic
+    alert(`Conta vinculada na plataforma ${platform}`);
+  };
+
+  const handleFacebookLogin = async () => {
+    console.log('handleFacebookLogin - Iniciando login com Facebook...');
+    // Simulated Facebook login logic
+    alert('Login com Facebook iniciado');
+  };
+
+  const formatCurrency = (amount_spent: number, currency: string): string => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: currency,
+    }).format(amount_spent / 100);
+  };
+
   return (
     <div className="home-content">
       <div className="header">
@@ -152,8 +191,67 @@ const Home: React.FC = () => {
         <button id="tutorial-start-tutorial-button" className="tutorial-button" onClick={startTutorial}>Start Tutorial</button>
         <button id="tutorial-copilot-button" className="copilot-button" onClick={() => setIsRightSidebarOpen(true)}>Open Copilot</button>
         <button className="privacy-policy-button" onClick={() => navigate('/privacy-policy')}>Política de Privacidade</button>
-        <button onClick={handleCreatePagePost}>Create Page Post</button>
       </div>
+
+      {showPopup && (
+        <div className="popup-overlay">
+          <div className="popup-content">
+            <button className="close-button" onClick={() => setShowPopup(false)}>X</button>
+            <h2>Vincule Suas Contas de Anúncios</h2>
+            <p>Por favor, vincule suas contas do Google Ads ou Facebook Ads para continuar.</p>
+            {googleAccounts.length > 0 && (
+              <div>
+                <h3>Contas do Google Ads</h3>
+                <ul>
+                  {googleAccounts.map((account) => (
+                    <li key={account.customer_id}>
+                      <div>ID do Cliente: {account.customer_id}</div>
+                      <div>Tipo: {account.type}</div>
+                      <div>Está Ativo: {account.is_active ? 'Sim' : 'Não'}</div>
+                      <button onClick={() => handleActivateAccount(account.customer_id, 'google_ads')}>Ativar</button>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            {facebookAccounts.length > 0 && (
+              <div>
+                <h3>Contas do Facebook Ads</h3>
+                <table className="account-table">
+                  <thead>
+                    <tr>
+                      <th>ID</th>
+                      <th>Tipo</th>
+                      <th>Está Ativo</th>
+                      <th>Ações</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {facebookAccounts.map((account) => (
+                      <tr key={account.customer_id}>
+                        <td>{account.customer_id}</td>
+                        <td>{account.type}</td>
+                        <td>{account.is_active ? 'Sim' : 'Não'}</td>
+                        <td>
+                          <button onClick={() => handleActivateAccount(account.customer_id, 'meta_ads')}>Ativar</button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+            <div className="link-buttons">
+              {!loadingGoogleAccounts && googleAccounts.length === 0 && (
+                <button onClick={() => handleLinkAccount('google_ads')}>Vincular Google Ads</button>
+              )}
+              {!loadingFacebookAccounts && facebookAccounts.length === 0 && (
+                <button onClick={() => handleFacebookLogin()}>Vincular Facebook Ads</button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className='side-and-content'>
         <div id="tutorial-sidebar">
@@ -161,8 +259,6 @@ const Home: React.FC = () => {
         </div>
         <div id="tutorial-account-sidebar">
           <AccountSidebar
-            googleAccounts={googleAccounts}
-            facebookAccounts={facebookAccounts}
             selectedAccount={selectedAccount}
             setSelectedAccount={(accountId: string) => {
               console.log(`Account selected: ${accountId}`);
@@ -172,8 +268,6 @@ const Home: React.FC = () => {
         </div>
         <div id="tutorial-main-content" className="main-content">
           {selectedAccountDetails && <AccountDetails account={selectedAccountDetails} />}
-          <CampaignSummaryCard campaigns={filteredCampaigns} />
-          <QuickAccessPanel />
           <CampaignTable
             campaigns={filteredCampaigns}
             expandedCampaigns={expandedCampaigns}

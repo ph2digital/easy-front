@@ -1,14 +1,23 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import '../styles/AccountSidebar.css';
+import { getMockGoogleAdsAccounts, getMockFacebookAdAccounts } from '../../services/mockData'; // Import mock data
 
 interface AccountSidebarProps {
-  googleAccounts: any[];
-  facebookAccounts: any[];
   selectedAccount: string | null;
   setSelectedAccount: (accountId: string) => void;
 }
 
-const AccountSidebar: React.FC<AccountSidebarProps> = ({ googleAccounts, facebookAccounts, selectedAccount, setSelectedAccount }) => {
+const AccountSidebar: React.FC<AccountSidebarProps> = ({ selectedAccount, setSelectedAccount }) => {
+  const [googleAccounts, setGoogleAccounts] = useState<any[]>([]);
+  const [facebookAccounts, setFacebookAccounts] = useState<any[]>([]);
+
+  useEffect(() => {
+    const googleAdsAccounts = getMockGoogleAdsAccounts().customerIds.map(id => ({ customer_id: id.customer_id, type: id.type, is_active: id.is_active }));
+    const facebookAdsAccounts = getMockFacebookAdAccounts().customerIds.map(id => ({ customer_id: id.customer_id, type: id.type, is_active: id.is_active }));
+    setGoogleAccounts(googleAdsAccounts);
+    setFacebookAccounts(facebookAdsAccounts);
+  }, []);
+
   useEffect(() => {
     console.log('AccountSidebar - Google Accounts:', googleAccounts);
     console.log('AccountSidebar - Facebook Accounts:', facebookAccounts);
@@ -22,11 +31,23 @@ const AccountSidebar: React.FC<AccountSidebarProps> = ({ googleAccounts, faceboo
         <ul>
           {facebookAccounts.map((account) => (
             <li
-              key={`facebook-${account.account_id}`}
-              className={selectedAccount === account.account_id ? 'selected' : ''}
-              onClick={() => setSelectedAccount(account.account_id)}
+              key={`facebook-${account.customer_id}`}
+              className={selectedAccount === account.customer_id ? 'selected' : ''}
+              onClick={() => setSelectedAccount(account.customer_id)}
             >
-              {account.accountDetails.name}
+              {account.customer_id}
+            </li>
+          ))}
+        </ul>
+        <h4>Google Ads</h4>
+        <ul>
+          {googleAccounts.map((account) => (
+            <li
+              key={`google-${account.customer_id}`}
+              className={selectedAccount === account.customer_id ? 'selected' : ''}
+              onClick={() => setSelectedAccount(account.customer_id)}
+            >
+              {account.customer_id || 'N/A'}
             </li>
           ))}
         </ul>

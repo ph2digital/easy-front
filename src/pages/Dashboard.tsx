@@ -8,7 +8,7 @@ import { fetchMetaAdsCampaignDetails, fetchPageComments } from '../services/api'
 import './styles/Dashboard.css';
 import PerformanceChart from '../components/Dashboard/PerformanceChart';
 import EngagementGraph from '../components/Dashboard/EngagementGraph';
-import { mockChartData, mockCampaignPerformance } from '../mockData';
+import { mockChartData, mockCampaignPerformance } from '../services/mockData';
 
 const renderCampaignPerformance = (data: any) => {
   return data.map((campaign: any, index: any) => (
@@ -21,6 +21,7 @@ const renderCampaignPerformance = (data: any) => {
 const Dashboard: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const [selectedCampaign, setSelectedCampaign] = useState<Campaign | null>(null);
+  const [insights, setInsights] = useState<any[]>([]);
 
   useEffect(() => {
     const fetchCampaign = async () => {
@@ -48,6 +49,7 @@ const Dashboard: React.FC = () => {
             adsets: campaignDetails.adsets || []
           };
           setSelectedCampaign(completeCampaignDetails);
+          setInsights(campaignDetails.insights?.data || []);
         }
       } catch (error) {
         console.error('Error fetching campaign details:', error);
@@ -72,7 +74,7 @@ const Dashboard: React.FC = () => {
         {selectedCampaign && <CampaignCard campaign={selectedCampaign} />}
       </div>
       <div className="dashboard-charts">
-        <InsightsPanel />
+        <InsightsPanel insights={insights} />
         <PerformanceChart data={mockChartData} />
         <EngagementGraph data={mockCampaignPerformance} />
         <div className="campaign-performance">

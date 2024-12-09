@@ -8,7 +8,7 @@ import { RootState } from '../store';
 import CampaignForm from '../components/Campaign/CampaignForm'; // Import new component
 import TargetAudienceSelector from '../components/TargetAudienceSelector'; // Import new component
 import BudgetCalculator from '../components/metrics/BudgetCalculator'; // Ensure this path is correct or update it to the correct path
-import { mockCreateCampaign, mockCreateAdSet, mockCreateAd } from '../mockData'; // Import mock functions
+import { mockCreateCampaign, mockCreateAdSet, mockCreateAd } from '../services/mockData'; // Import mock functions
 
 interface Campaign {
     id: string;

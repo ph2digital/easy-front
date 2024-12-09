@@ -76,8 +76,6 @@ const Settings: React.FC = () => {
       <NotificationSettings />
       <button className="reset-button" onClick={handleReset}>Reset Settings</button>
       <button onClick={handleFetchUserPages}>Fetch User Pages</button>
-      <button onClick={() => navigate('/create-post')}>Create New Post</button> {/* Add button to navigate */}
-      <button className="create-post-button" onClick={mockPostCreation}>Create New Post</button> {/* Mock post creation */}
       {successMessage && <div className="success-message">{successMessage}</div>}
     </div>
   );
