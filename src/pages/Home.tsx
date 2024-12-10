@@ -8,9 +8,6 @@ import AccountDetails from '../components/account/AccountDetails';
 import RightSidebar from '../components/RightSidebar';
 import { driver } from 'driver.js';
 import 'driver.js/dist/driver.css';
-import { createPagePost } from '../services/api'; // Import createPagePost
-import CampaignSummaryCard from '../components/Campaign/CampaignSummaryCard'; // Import new component
-import QuickAccessPanel from '../components/QuickAccessPanel'; // Import new component
 import { Campaign } from '../types'; // Import Campaign type
 import { predefinedCampaigns, getMockGoogleAdsAccounts, getMockFacebookAdAccounts, getMockCampaigns } from '../services/mockData'; // Import mock data
 
@@ -91,14 +88,6 @@ const Home: React.FC = () => {
     );
   };
 
-  const handleCreatePagePost = async () => {
-    const pageId = 'mockPageId'; // Replace with actual page ID
-    const postData = { message: 'Hello, world!' }; // Replace with actual post data
-    const accessToken = 'mockAccessToken'; // Replace with actual access token
-    const response = await createPagePost(pageId, postData, accessToken);
-    console.log('Created page post:', response);
-    alert('Mock post created successfully!');
-  };
 
   const startTutorial = () => {
     const driverObj = driver({
@@ -177,12 +166,6 @@ const Home: React.FC = () => {
     alert('Login com Facebook iniciado');
   };
 
-  const formatCurrency = (amount_spent: number, currency: string): string => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: currency,
-    }).format(amount_spent / 100);
-  };
 
   return (
     <div className="home-content">

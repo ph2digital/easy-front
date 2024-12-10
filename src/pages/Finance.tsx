@@ -36,11 +36,6 @@ interface FinanceItem {
   amount: number;
 }
 
-interface ChartData {
-  name: string;
-  value: number;
-}
-
 const renderFinanceItems = (data: FinanceItem[]): JSX.Element[] => {
   return data.map((item: FinanceItem) => (
     <div key={item.id} className="finance-item" id={`finance-item-${item.id}`}>

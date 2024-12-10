@@ -3,7 +3,7 @@ import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
 import { setUser, setTokens } from '../store/authSlice';
-import { linkMetaAds, setSession, createPagePost } from '../services/api'; // Import createPagePost
+import {  setSession } from '../services/api'; // Import createPagePost
 import easyAdsImage from '../assets/easy.jpg'; // Correct image import
 
   const Login = () => {
@@ -77,14 +77,6 @@ import easyAdsImage from '../assets/easy.jpg'; // Correct image import
     }
   };
 
-  const handleCreatePagePost = async () => {
-    const pageId = 'mockPageId'; // Replace with actual page ID
-    const postData = { message: 'Hello, world!' }; // Replace with actual post data
-    const accessToken = 'mockAccessToken'; // Replace with actual access token
-    const response = await createPagePost(pageId, postData, accessToken);
-    console.log('Created page post:', response);
-    alert('Mock post created successfully!');
-  };
 
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {

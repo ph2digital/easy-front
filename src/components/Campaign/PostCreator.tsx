@@ -1,5 +1,5 @@
+import { Image, Video, Clock, Send } from 'lucide-react';
 import React, { useState } from 'react';
-import { Calendar, Image, Video, Clock, Send } from 'lucide-react';
 
 interface PostCreatorProps {
   pageId: string;

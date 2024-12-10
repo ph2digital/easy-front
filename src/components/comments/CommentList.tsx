@@ -1,5 +1,5 @@
 import React from 'react';
-import { MessageSquare, ThumbsUp, Trash2, EyeOff, Reply } from 'lucide-react';
+import { ThumbsUp, Trash2, EyeOff, Reply } from 'lucide-react';
 
 interface Comment {
   id: string;

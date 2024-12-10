@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import './styles/Settings.css';
 import { fetchUserPages } from '../services/api'; // Import fetchUserPages
-import { useNavigate } from 'react-router-dom'; // Import useNavigate
 
 const mockSettings = [
   { id: '1', name: 'Account Information', description: 'Manage your account details', enabled: true },
@@ -12,10 +11,6 @@ const mockSettings = [
   { id: '6', name: 'Privacy', description: 'Adjust your privacy settings', enabled: true },
 ];
 
-const mockPostCreation = () => {
-  console.log('Mock post created');
-  alert('Post created successfully!');
-};
 
 const UserPreferences: React.FC<{ settings: any[], toggleSetting: (id: string) => void }> = ({ settings, toggleSetting }) => {
   return (
@@ -44,7 +39,6 @@ const NotificationSettings: React.FC = () => {
 const Settings: React.FC = () => {
   const [successMessage, setSuccessMessage] = useState('');
   const [settings, setSettings] = useState(mockSettings);
-  const navigate = useNavigate(); // Initialize useNavigate
 
   const handleReset = () => {
     if (window.confirm('Are you sure you want to reset settings?')) {

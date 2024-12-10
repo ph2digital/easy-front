@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { metaAdsService } from '../../services/metaAdsService';
 import { Input } from '../ui/Input/Input';
 import { Button } from '../ui/Button/Button';
-import { Toast } from '../ui/Toast/Toast';
 import { useToast } from '../../hooks/useToast';
 
 interface PagePostSchedulerProps {
