@@ -473,18 +473,47 @@ export const getMockCreativeBasedOnCompetitor = () => {
   return { success: true };
 };
 
-export const getMockPages = () => {
-  return [
-    { id: '4', name: 'Page 1', icon: 'https://via.placeholder.com/50' },
-    { id: '5', name: 'Page 2', icon: 'https://via.placeholder.com/50' },
-    { id: '6', name: 'Page 3', icon: 'https://via.placeholder.com/50' },
-  ];
+
+let mockAdAccounts = [
+  { id: '1', name: 'Ad Account 1', type: 'Facebook Ads', icon: 'https://via.placeholder.com/50', isActive: true },
+  { id: '2', name: 'Ad Account 2', type: 'Instagram Ads', icon: 'https://via.placeholder.com/50', isActive: false },
+  { id: '3', name: 'Ad Account 3', type: 'Google Ads', icon: 'https://via.placeholder.com/50', isActive: true },
+];
+
+export const activateAdAccount = (accountId: string) => {
+  mockAdAccounts = mockAdAccounts.map(account =>
+    account.id === accountId ? { ...account, isActive: true } : account
+  );
+};
+
+export const deactivateAdAccount = (accountId: string) => {
+  mockAdAccounts = mockAdAccounts.map(account =>
+    account.id === accountId ? { ...account, isActive: false } : account
+  );
+};
+
+export const addAdAccount = (newAccount: { id: string; name: string; type: string; icon: string }) => {
+  mockAdAccounts.push({ ...newAccount, isActive: true });
+};
+
+export const removeAdAccount = (accountId: string) => {
+  mockAdAccounts = mockAdAccounts.filter(account => account.id !== accountId);
 };
 
 export const getMockAdAccounts = () => {
-  return [
-    { id: '1', name: 'Ad Account 1', type: 'Facebook Ads', icon: 'https://via.placeholder.com/50' },
-    { id: '2', name: 'Ad Account 2', type: 'Instagram Ads', icon: 'https://via.placeholder.com/50' },
-    { id: '3', name: 'Ad Account 3', type: 'Google Ads', icon: 'https://via.placeholder.com/50' },
-  ];
+  return mockAdAccounts;
+};
+
+let mockPages = [
+  { id: '4', name: 'Page 1', icon: 'https://via.placeholder.com/50' },
+  { id: '5', name: 'Page 2', icon: 'https://via.placeholder.com/50' },
+  { id: '6', name: 'Page 3', icon: 'https://via.placeholder.com/50' },
+];
+
+export const connectPage = (newPage: { id: string; name: string; icon: string }) => {
+  mockPages.push(newPage);
+};
+
+export const getMockPages = () => {
+  return mockPages;
 };

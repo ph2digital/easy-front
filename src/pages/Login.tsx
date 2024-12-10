@@ -12,7 +12,69 @@ import easyAdsImage from '../assets/easy.jpg'; // Correct image import
 
   const handleFacebookLogin = () => {
     console.log('Iniciando login com Facebook...');
-    linkMetaAds();
+    const popup = window.open(
+      '',
+      'facebook-login',
+      'width=600,height=400'
+    );
+
+    if (popup) {
+      popup.document.write(`
+        <html>
+          <head>
+            <title>Facebook Login</title>
+            <style>
+              body {
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                height: 100vh;
+                font-family: Arial, sans-serif;
+                background-color: #f0f2f5;
+                margin: 0;
+              }
+              .login-container {
+                text-align: center;
+                background: white;
+                padding: 20px;
+                border-radius: 8px;
+                box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+              }
+              .login-container h1 {
+                font-size: 24px;
+                margin-bottom: 20px;
+              }
+              .login-container button {
+                padding: 10px 20px;
+                border: none;
+                border-radius: 5px;
+                background-color: #3b5998;
+                color: white;
+                font-size: 16px;
+                cursor: pointer;
+              }
+              .login-container button:hover {
+                background-color: #2d4373;
+              }
+            </style>
+          </head>
+          <body>
+            <div class="login-container">
+              <h1>Facebook Login</h1>
+              <button onclick="window.opener.postMessage({ accessToken: 'fakeAccessToken', user: { id: 'fakeUserId', name: 'Fake User', picture: { data: { url: 'https://via.placeholder.com/150' } } }, type: 'facebook-login', appState: {} }, window.location.origin); window.close();">Login with Facebook</button>
+            </div>
+          </body>
+        </html>
+      `);
+
+      const interval = setInterval(() => {
+        if (popup.closed) {
+          clearInterval(interval);
+          console.log('Popup fechado pelo usuário.');
+          navigate('/home');
+        }
+      }, 1000);
+    }
   };
 
   const handleCreatePagePost = async () => {
