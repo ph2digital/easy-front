@@ -9,9 +9,11 @@ const api = axios.create({
     withCredentials: true,
 });
 const API_URL = import.meta.env.VITE_API_URL;
-const STORAGE_KEY = import.meta.env.VITE_STORAGE_KEY || 'default-auth-token';
+const META_KEY = import.meta.env.VITE_META_KEY || 'default-META-token';
 const USER_KEY = 'user';
 const APP_STATE_KEY = 'app-state';
+const STORAGE_KEY_GOOGLE = import.meta.env.VITE_STORAGE_KEY_GOOGLE || 'default-google-auth-token';
+const STORAGE_KEY_META = import.meta.env.VITE_STORAGE_KEY_META || 'default-meta-auth-token';
 
 const isValidJSON = (str: string | null) => {
     if (!str) return false;
@@ -25,12 +27,14 @@ const isValidJSON = (str: string | null) => {
 
 // Função para obter sessão do token local armazenado
 export const getSessionFromLocalStorage = () => {
-    const storedToken = localStorage.getItem(STORAGE_KEY);
+    const storedGoogleToken = localStorage.getItem(STORAGE_KEY_GOOGLE);
+    const storedMetaToken = localStorage.getItem(STORAGE_KEY_META);
     const storedUser = localStorage.getItem(USER_KEY);
 
-    if (isValidJSON(storedToken) && isValidJSON(storedUser)) {
+    if (isValidJSON(storedGoogleToken) && isValidJSON(storedMetaToken) && isValidJSON(storedUser)) {
         return {
-            ...JSON.parse(storedToken!),
+            google: JSON.parse(storedGoogleToken!),
+            meta: JSON.parse(storedMetaToken!),
             user: JSON.parse(storedUser!),
         };
     }
@@ -38,15 +42,17 @@ export const getSessionFromLocalStorage = () => {
 };
 
 // Função para configurar sessão no localStorage
-export const setSession = (accessToken: string, refreshToken: string, user: any, appState: any) => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({ access_token: accessToken, refresh_token: refreshToken }));
+export const setSession = (googleAccessToken: string, googleRefreshToken: string, metaAccessToken: string, metaRefreshToken: string, user: any, appState: any) => {
+    localStorage.setItem(STORAGE_KEY_GOOGLE, JSON.stringify({ access_token: googleAccessToken, refresh_token: googleRefreshToken }));
+    localStorage.setItem(STORAGE_KEY_META, JSON.stringify({ access_token: metaAccessToken, refresh_token: metaRefreshToken }));
     localStorage.setItem(USER_KEY, JSON.stringify(user));
     localStorage.setItem(APP_STATE_KEY, JSON.stringify(appState));
 };
 
 // Função para limpar sessão local
 export const clearSession = () => {
-    localStorage.removeItem(STORAGE_KEY);
+    localStorage.removeItem(STORAGE_KEY_GOOGLE);
+    localStorage.removeItem(STORAGE_KEY_META);
     localStorage.removeItem(USER_KEY);
     localStorage.removeItem(APP_STATE_KEY);
 };
@@ -94,18 +100,14 @@ export const signInWithGoogle = async () => {
 
 export const saveGoogleSessionToDatabase = async (accessToken: string, refreshToken: string) => {
     try {
-        console.log('Tentando salvar sessão no banco de dados com accessToken:', accessToken, 'e refreshToken:', refreshToken);
         const response = await axios.post(`${API_URL}/auth/save-session`, { accessToken, refreshToken });
-
-        console.log('Resposta da API ao salvar sessão:', response.data);
 
         if (!response.data.user) {
             throw new Error('User data is undefined in the response');
         }
 
-        console.log('Chamando setSession com:', accessToken, refreshToken, response.data.user);
-        setSession(accessToken, refreshToken, response.data.user, response.data.appState);
-        localStorage.setItem(STORAGE_KEY, JSON.stringify({ access_token: accessToken, refresh_token: refreshToken }));
+        setSession(accessToken, refreshToken, '', '', response.data.user, response.data.appState);
+        localStorage.setItem(STORAGE_KEY_GOOGLE, JSON.stringify({ access_token: accessToken, refresh_token: refreshToken }));
         localStorage.setItem('user', JSON.stringify(response.data.user));
         return response.data;
     } catch (error) {
@@ -122,14 +124,16 @@ export const saveGoogleSessionToDatabase = async (accessToken: string, refreshTo
     }
 };
 
-export const saveMetaSessionToDatabase = async (accessToken: string) => {
+export const saveMetaSessionToDatabase = async (accessToken: string, refreshToken: string) => {
     try {
-        console.log('Tentando salvar sessão no banco de dados com accessToken:', accessToken);
-        const response = await axios.post(`${API_URL}/auth/save-session`, { accessToken });
+        const response = await axios.post(`${API_URL}/auth/save-session`, { accessToken, refreshToken });
 
-        console.log('Chamando setSession com:', accessToken, '', response.data.user);
-        setSession(accessToken, '', response.data.user, response.data.appState);
-        localStorage.setItem(STORAGE_KEY, JSON.stringify({ access_token: accessToken, refresh_token: '' }));
+        if (!response.data.user) {
+            throw new Error('User data is undefined in the response');
+        }
+
+        setSession('', '', accessToken, refreshToken, response.data.user, response.data.appState);
+        localStorage.setItem(STORAGE_KEY_META, JSON.stringify({ access_token: accessToken, refresh_token: refreshToken }));
         localStorage.setItem('user', JSON.stringify(response.data.user));
         return response.data;
     } catch (error) {
@@ -148,12 +152,10 @@ export const saveMetaSessionToDatabase = async (accessToken: string) => {
 
 export const saveFacebookSessionToDatabase = async (accessToken: string) => {
     try {
-        console.log('Tentando salvar sessão no banco de dados com accessToken:', accessToken);
         const response = await axios.post(`${API_URL}/auth/save-session`, { accessToken });
 
-        console.log('Chamando setSession com:', accessToken, '', response.data.user);
-        setSession(accessToken, '', response.data.user, response.data.appState);
-        localStorage.setItem(STORAGE_KEY, JSON.stringify({ access_token: accessToken, refresh_token: '' }));
+        setSession('', '', accessToken, '', response.data.user, response.data.appState);
+        localStorage.setItem(META_KEY, JSON.stringify({ access_token: accessToken, refresh_token: '' }));
         localStorage.setItem('user', JSON.stringify(response.data.user));
         return response.data;
     } catch (error) {
@@ -196,7 +198,7 @@ export const linkMetaAds = (id?: string) => {
       if (type === 'facebook-login') {
         if (accessToken && user) {
           console.log('Facebook OAuth successful:', event.data);
-          setSession(accessToken, '', user, event.data.appState);
+          setSession(accessToken, '', '', '', user, event.data.appState);
           localStorage.setItem('user', JSON.stringify(user));
           if (newWindow) {
             newWindow.close();
@@ -562,7 +564,7 @@ export const updateMetaAdsAdset = async (adsetId: string, adsetData: any, access
 export const linkAccountFromHome = async (platform: string, userId: string) => {
   try {
     const session = getSessionFromLocalStorage();
-    const accessToken = session?.access_token;
+    const accessToken = platform === 'google_ads' ? session?.google.access_token : session?.meta.access_token;
 
     if (!accessToken) {
       throw new Error('Token de acesso não encontrado');
@@ -636,13 +638,127 @@ export const createCustomAudience = async (accessToken: string, adAccountId: str
     }
 };
 
-export const getGPTResponse = async (prompt: string, userId: string) => {
+export const getGPTResponse = async (prompt: string, userId: string, activeThread: string | null) => {
     try {
-        const response = await axios.post(`${API_URL}/gpt`, { prompt, userId });
+        const response = await axios.post(`${API_URL}/gpt`, { prompt, userId, activeThread });
         return response.data;
     } catch (error) {
         console.error('Erro ao obter resposta do GPT:', error);
         throw new Error('Erro ao obter resposta do GPT');
+    }
+};
+
+export const listLinkedAccounts = async (accessToken: string, userId: string) => {
+    const response = await api.get(`/accounts/${userId}`, {
+        headers: {
+            Authorization: `Bearer ${accessToken}`,
+        },
+    });
+    return response.data;
+};
+
+export const createGoogleAdsCampaign = async (accessToken: string, accountId: string, campaignData: any) => {
+    const response = await api.post(`/accounts/${accountId}/campaigns`, campaignData, {
+        headers: {
+            Authorization: `Bearer ${accessToken}`,
+        },
+    });
+    return response.data;
+};
+
+export const updateGoogleAdsCampaign = async (accessToken: string, accountId: string, campaignId: string, campaignData: any) => {
+    const response = await api.put(`/accounts/${accountId}/campaigns/${campaignId}`, campaignData, {
+        headers: {
+            Authorization: `Bearer ${accessToken}`,
+        },
+    });
+    return response.data;
+};
+
+export const deleteGoogleAdsCampaign = async (accessToken: string, accountId: string, campaignId: string) => {
+    const response = await api.delete(`/accounts/${accountId}/campaigns/${campaignId}`, {
+        headers: {
+            Authorization: `Bearer ${accessToken}`,
+        },
+    });
+    return response.data;
+};
+
+export const createGoogleAdsAdGroup = async (accessToken: string, accountId: string, adGroupData: any) => {
+    const response = await api.post(`/accounts/${accountId}/ad-groups`, adGroupData, {
+        headers: {
+            Authorization: `Bearer ${accessToken}`,
+        },
+    });
+    return response.data;
+};
+
+export const deleteGoogleAdsAdGroup = async (accessToken: string, accountId: string, adGroupId: string) => {
+    const response = await api.delete(`/accounts/${accountId}/ad-groups/${adGroupId}`, {
+        headers: {
+            Authorization: `Bearer ${accessToken}`,
+        },
+    });
+    return response.data;
+};
+
+export const fetchGoogleAdsCampaigns = async (accessToken: string, accountId: string, startDate?: string, endDate?: string) => {
+  const response = await api.post(`/google-ads/${accountId}/campaigns`, {
+    startDate,
+    endDate
+  }, {
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+    },
+  });
+  return response.data;
+};
+
+export const submitComment = async (userId: string, messageIndex: number, comment: string) => {
+    try {
+        const response = await axios.post(`${API_URL}/gpt/comments`, {
+            userId,
+            messageIndex,
+            comment,
+        }, {
+            headers: {
+                'Content-Type': 'application/json',
+            },
+        });
+        return response.data;
+    } catch (error) {
+        console.error('Error submitting comment:', error);
+        throw new Error('Error submitting comment');
+    }
+};
+
+export const fetchThreads = async (userId: string) => {
+    try {
+        const response = await axios.get(`${API_URL}/gpt/threads/user/${userId}`);
+        return response.data;
+    } catch (error) {
+        console.error('Error fetching threads:', error);
+        throw new Error('Error fetching threads');
+    }
+};
+
+export const createThread = async (userId: string) => {
+    try {
+        const response = await axios.post(`${API_URL}/gpt/threads`, { userId });
+        return response.data;
+    } catch (error) {
+        console.error('Error creating thread:', error);
+        throw new Error('Error creating thread');
+    }
+};
+
+export const fetchMessages = async (threadId: string) => {
+    try {
+        const response = await axios.get(`${API_URL}/gpt/threads/${threadId}/messages`);
+        return response.data;
+    } catch (error) {
+        console.error('Error fetching messages:', error);
+        throw new Error('Error fetching messages');
     }
 };
 

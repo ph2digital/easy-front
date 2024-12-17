@@ -2,7 +2,7 @@
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
-import { setTokens, setUser } from '../store/authSlice';
+import { setGoogleTokens, setMetaTokens, setUser } from '../store/authSlice';
 import { saveGoogleSessionToDatabase, saveMetaSessionToDatabase, saveFacebookSessionToDatabase, setSession } from '../services/api';
 
 const AuthCallback = () => {
@@ -11,29 +11,24 @@ const AuthCallback = () => {
 
   useEffect(() => {
     const handleAuthCallback = async () => {
-      console.log('AuthCallback: Iniciando handleAuthCallback');
       const urlParams = new URLSearchParams(window.location.search);
       const accessToken = urlParams.get('access_token');
       const refreshToken = urlParams.get('refresh_token');
       const metaAccessToken = urlParams.get('meta_access_token');
       const facebookAccessToken = urlParams.get('facebook_access_token');
-      console.log('AuthCallback: Obtidos accessToken e refreshToken:', accessToken, refreshToken);
 
       if (accessToken && refreshToken) {
         try {
           const response = await saveGoogleSessionToDatabase(accessToken, refreshToken);
-          console.log('AuthCallback: User data from saveGoogleSessionToDatabase:', response);
           if (response.user) {
             const profileImage = response.user.picture?.data?.url || response.user.picture || '';
-            dispatch(setTokens({ accessToken, refreshToken }));
+            dispatch(setGoogleTokens({ accessToken, refreshToken }));
             dispatch(setUser({ user: response.user, profileImage }));
             localStorage.setItem('user', JSON.stringify(response.user));
-            console.log('User email:', response.user.email); // Log the user's email
           } else {
             console.error('Error saving session: User data is undefined');
           }
-          console.log('Chamando setSession com:', accessToken, refreshToken, response.user);
-          setSession(accessToken, refreshToken, response.user, {}); // Store tokens in local storage
+          setSession(accessToken, refreshToken, '', '', response.user, {});
           if (window.opener) {
             window.opener.location.href = '/home';
             window.close();
@@ -51,19 +46,16 @@ const AuthCallback = () => {
         }
       } else if (metaAccessToken) {
         try {
-          const response = await saveMetaSessionToDatabase(metaAccessToken);
-          console.log('AuthCallback: User data from saveMetaSessionToDatabase:', response);
+          const response = await saveMetaSessionToDatabase(metaAccessToken, '');
           if (response.user) {
             const profileImage = response.user.picture?.data?.url || response.user.picture || '';
-            dispatch(setTokens({ accessToken: metaAccessToken, refreshToken: '' }));
+            dispatch(setMetaTokens({ accessToken: metaAccessToken, refreshToken: '' }));
             dispatch(setUser({ user: response.user, profileImage }));
             localStorage.setItem('user', JSON.stringify(response.user));
-            console.log('User email:', response.user.email); // Log the user's email
           } else {
             console.error('Error saving session: User data is undefined');
           }
-          console.log('Chamando setSession com:', metaAccessToken, '', response.user);
-          setSession(metaAccessToken, '', response.user, {}); // Store tokens in local storage
+          setSession('', '', metaAccessToken, '', response.user, {});
           if (window.opener) {
             window.opener.location.href = '/home';
             window.close();
@@ -82,18 +74,15 @@ const AuthCallback = () => {
       } else if (facebookAccessToken) {
         try {
           const response = await saveFacebookSessionToDatabase(facebookAccessToken);
-          console.log('AuthCallback: User data from saveFacebookSessionToDatabase:', response);
           if (response.user) {
             const profileImage = response.user.picture?.data?.url || response.user.picture || '';
-            dispatch(setTokens({ accessToken: facebookAccessToken, refreshToken: '' }));
+            dispatch(setMetaTokens({ accessToken: facebookAccessToken, refreshToken: '' }));
             dispatch(setUser({ user: response.user, profileImage }));
             localStorage.setItem('user', JSON.stringify(response.user));
-            console.log('User email:', response.user.email); // Log the user's email
           } else {
             console.error('Error saving session: User data is undefined');
           }
-          console.log('Chamando setSession com:', facebookAccessToken, '', response.user);
-          setSession(facebookAccessToken, '', response.user, {}); // Store tokens in local storage
+          setSession('', '', facebookAccessToken, '', response.user, {});
           if (window.opener) {
             window.opener.location.href = '/home';
             window.close();

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { Routes, Route, useLocation } from 'react-router-dom';
-import { setUser, setTokens, selectIsAuthenticated, validateToken } from './store/authSlice';
+import { setUser, setGoogleTokens, setMetaTokens, selectIsAuthenticated, validateToken } from './store/authSlice';
 import { getSessionFromLocalStorage } from './services/api';
 import Home from './pages/Home';
 import Login from './pages/Login';
@@ -24,18 +24,16 @@ const App = () => {
 
   useEffect(() => {
     const checkSession = async () => {
-      const session = getSessionFromLocalStorage();
-      console.log('checkSession - Session from localStorage:', session);
+      const session = getSessionFromLocalStorage() as { google: any; meta: any; user: any; appState?: any } | null;
       if (session) {
-        const { access_token, refresh_token, user, appState } = session;
-        dispatch(setTokens({ accessToken: access_token, refreshToken: refresh_token }));
-        console.log('checkSession - User from localStorage:', user);
+        const { google, meta, user, appState } = session;
+        dispatch(setGoogleTokens({ accessToken: google.access_token, refreshToken: google.refresh_token }));
+        dispatch(setMetaTokens({ accessToken: meta.access_token, refreshToken: meta.refresh_token }));
         if (user && user !== 'undefined') {
           const profileImage = user.picture?.data?.url || user.picture || '';
           dispatch(setUser({ user, profileImage }));
         }
         if (appState) {
-          console.log('checkSession - AppState from localStorage:', appState);
           // Restore other parts of the app state if needed
           // Example: dispatch(setAppState(appState));
         }
@@ -49,11 +47,15 @@ const App = () => {
   useEffect(() => {
     const validateUserToken = async () => {
       const session = getSessionFromLocalStorage();
-      console.log('validateUserToken - Session from localStorage:', session);
       if (session) {
-        const { access_token } = session;
+        const { google, meta } = session;
         try {
-          await dispatch<any>(validateToken(access_token));
+          if (google.access_token) {
+            await dispatch<any>(validateToken(google.access_token));
+          }
+          if (meta.access_token) {
+            await dispatch<any>(validateToken(meta.access_token));
+          }
         } catch (error) {
           console.error('Token validation failed:', error);
         }
@@ -153,7 +155,6 @@ const App = () => {
     </Routes>
   );
 };
-
 
 export default App;
 

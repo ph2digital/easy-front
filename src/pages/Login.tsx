@@ -2,13 +2,13 @@ import './styles/Login.css';
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
-import { setUser, setTokens } from '../store/authSlice';
-import { signInWithGoogle, linkMetaAds,setSession } from '../services/api'; // Ensure this path is correct
+import { setUser, setMetaTokens } from '../store/authSlice';
+import { signInWithGoogle, linkMetaAds, setSession } from '../services/api'; // Ensure this path is correct
 import easyAdsImage from '../assets/easy.jpg'; // Correct image import
 
-  const Login = () => {
-    const navigate = useNavigate();
-    const dispatch = useDispatch();
+const Login = () => {
+  const navigate = useNavigate();
+  const dispatch = useDispatch();
 
   const handleFacebookLogin = () => {
     console.log('Iniciando login com Facebook...');
@@ -23,10 +23,10 @@ import easyAdsImage from '../assets/easy.jpg'; // Correct image import
         if (type === 'facebook-login') {
           if (accessToken && user) {
             console.log('Login com Facebook bem-sucedido:', event.data);
-            dispatch(setTokens({ accessToken, refreshToken: '' }));
+            dispatch(setMetaTokens({ accessToken, refreshToken: '' }));
             dispatch(setUser({ user, profileImage: user.picture.data.url }));
             console.log('Chamando setSession com:', accessToken, '', user);
-            setSession(accessToken, '', user, event.data.appState);
+            setSession('', '', accessToken, '', user, event.data.appState);
             // Use navigate instead of window.location.href to avoid full page reload
             navigate('/home');
           } else {
@@ -62,6 +62,6 @@ import easyAdsImage from '../assets/easy.jpg'; // Correct image import
       </div>
     </div>
   );
-  };
+};
 
 export default Login;

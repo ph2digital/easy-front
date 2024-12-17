@@ -7,9 +7,9 @@ import AccountSidebar from '../components/AccountSidebar';
 import CampaignTable from '../components/CampaignTable';
 import AccountDetails from '../components/AccountDetails';
 import RightSidebar from '../components/RightSidebar';
+import AccountPopup from '../components/AccountPopup';
 import { RootState } from '../store';
-import { checkAdsAccounts, fetchGoogleAdsAccounts, fetchFacebookAdAccounts, activateAccount, fetchMetaAdsCampaigns, linkMetaAds, linkAccountFromHome, getSessionFromLocalStorage } from '../services/api';
-import { setIsCustomerLinked } from '../store/authSlice';
+import { checkAdsAccounts, fetchGoogleAdsAccounts, fetchFacebookAdAccounts, fetchMetaAdsCampaigns, linkMetaAds, linkAccountFromHome, getSessionFromLocalStorage, listLinkedAccounts, fetchGoogleAdsCampaigns } from '../services/api';
 
 interface Campaign {
   id: string;
@@ -24,10 +24,13 @@ interface Campaign {
   clicks: number;
   spend: string;
   ctr: string;
-  cpc: number;
-  cpm: number;
-  reach: number;
-  frequency: number;
+  cpc: string;
+  cpm: string;
+  reach: string;
+  frequency: string;
+  device: string;
+  date: string;
+  customer_id: string; // Add this line
   adsets?: Adset[];
 }
 
@@ -54,7 +57,6 @@ const Home: React.FC = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [googleAccounts, setGoogleAccounts] = useState<any[]>([]);
   const [facebookAccounts, setFacebookAccounts] = useState<any[]>([]);
-  const [] = useState<any[]>([]);
   const [expandedCampaigns, setExpandedCampaigns] = useState<string[]>([]);
   const [showPopup, setShowPopup] = useState(false);
   const [loadingGoogleAccounts, setLoadingGoogleAccounts] = useState(true);
@@ -63,19 +65,42 @@ const Home: React.FC = () => {
   const [selectedAccountDetails, setSelectedAccountDetails] = useState<any | null>(null);
   const [filteredCampaigns, setFilteredCampaigns] = useState<Campaign[]>([]);
   const [isRightSidebarOpen, setIsRightSidebarOpen] = useState(false);
+  const [activeCustomers, setActiveCustomers] = useState<any[]>([]);
   
   const navigate = useNavigate();
   const dispatch = useDispatch();
-  const accessToken = useSelector((state: RootState) => state.auth.accessToken);
+  const accessTokenGoogle = useSelector((state: RootState) => state.auth.googleAccessToken);
+  const accessTokenMeta = useSelector((state: RootState) => state.auth.metaAccessToken);
   const userId = useSelector((state: RootState) => state.auth.user?.id);
 
+  console.log('campaigns:', campaigns);
+  console.log('isSidebarOpen:', isSidebarOpen);
+  console.log('googleAccounts:', googleAccounts);
+  console.log('facebookAccounts:', facebookAccounts);
+  console.log('expandedCampaigns:', expandedCampaigns);
+  console.log('showPopup:', showPopup);
+  console.log('loadingGoogleAccounts:', loadingGoogleAccounts);
+  console.log('loadingFacebookAccounts:', loadingFacebookAccounts);
+  console.log('selectedAccount:', selectedAccount);
+  console.log('selectedAccountDetails:', selectedAccountDetails);
+  console.log('filteredCampaigns:', filteredCampaigns);
+  console.log('isRightSidebarOpen:', isRightSidebarOpen);
+  console.log('activeCustomers:', activeCustomers);
+  console.log('accessTokenGoogle:', accessTokenGoogle);
+  console.log('accessTokenMeta:', accessTokenMeta);
+  console.log('userId:', userId);
+
   const fetchCampaignsForAccount = async (account: any) => {
-    console.log('fetchCampaignsForAccount - Início', account);
-    if (account.type === 'Meta Ads' && accessToken) {
+    const storedFacebookAccounts = JSON.parse(localStorage.getItem('facebookAccounts') || '[]');
+    const accessTokenMeta = storedFacebookAccounts.find((acc: any) => acc.user_id === account.user_id)?.access_token;
+
+    const storedGoogleAccounts = JSON.parse(localStorage.getItem('googleAccounts') || '[]');
+    const accessTokenGoogle = storedGoogleAccounts.find((acc: any) => acc.user_id === account.user_id)?.access_token;
+    console.log('Fetching campaigns for account:', account, accessTokenMeta);
+    if (account.type === 'meta_ads' && accessTokenMeta) {
       try {
-        console.log('fetchCampaignsForAccount - Fetching campaigns for account:', account);
-        const campaignsResponse = await fetchMetaAdsCampaigns(accessToken, account.customer_id || account.account_id);
-        console.log('fetchCampaignsForAccount - campaignsResponse:', campaignsResponse);
+        const campaignsResponse = await fetchMetaAdsCampaigns(accessTokenMeta, account.customer_id || account.account_id);
+        console.log('Campaigns response:', campaignsResponse);
 
         const campaignsWithDetails = campaignsResponse.map((campaign: any) => {
           const insights = campaign.insights?.data?.[0] || {};
@@ -102,125 +127,195 @@ const Home: React.FC = () => {
         setCampaigns(prevCampaigns => {
           const updatedCampaigns = [...prevCampaigns, ...campaignsWithDetails];
           const storedCampaigns = JSON.parse(localStorage.getItem('campaigns') || '{}');
-          storedCampaigns[account.customer_id || account.account_id] = campaignsWithDetails;
+          if (!storedCampaigns[account.customer_id || account.account_id]) {
+            storedCampaigns[account.customer_id || account.account_id] = {};
+          }
+          campaignsWithDetails.forEach((campaign: Campaign) => {
+            if (!storedCampaigns[account.customer_id || account.account_id][campaign.id]) {
+              storedCampaigns[account.customer_id || account.account_id][campaign.id] = [];
+            }
+            storedCampaigns[account.customer_id || account.account_id][campaign.id].push(campaign);
+          });
           localStorage.setItem('campaigns', JSON.stringify(storedCampaigns));
           return updatedCampaigns;
         });
       } catch (error) {
-        console.error('fetchCampaignsForAccount - Error fetching campaigns:', error);
+        console.error('Error fetching campaigns:', error);
+      }
+    } else if (account.type === 'google_ads' && accessTokenGoogle) {
+      try {
+        const campaignsResponse = await fetchGoogleAdsCampaigns(accessTokenGoogle, account.customer_id, 'LAST_7_DAYS', 'TODAY');
+        console.log('Campaigns response:', campaignsResponse);
+        const storedCampaigns = JSON.parse(localStorage.getItem('campaigns') || '{}');
+
+        campaignsResponse.forEach((campaignData: { campaign: any; metrics: any; campaignBudget: any; segments: { device: any; date: any; }; }) => {
+          const campaign = campaignData.campaign;
+          const metrics = campaignData.metrics || {};
+          const campaignBudget = campaignData.campaignBudget || {};
+          const resourceName = campaign.resourceName;
+          const [customer_id, campaign_id] = resourceName.split('/').filter((_: any, i: number) => i === 1 || i === 3);
+      
+          // Formata os dados da campanha
+          const formattedCampaign = {
+            name: campaign.name,
+            platform: 'Google Ads',
+            objective: campaign.biddingStrategyType || 'N/A',
+            budget: ((parseInt(campaignBudget.amountMicros || '0') / 1000000) || 0).toFixed(2),
+            status: campaign.status,
+            startDate: campaign.startDate || 'N/A',
+            endDate: campaign.endDate || 'N/A',
+            metrics: {
+              impressions: metrics.impressions || 0,
+              clicks: metrics.clicks || 0,
+              spend: ((parseInt(metrics.costMicros || '0') / 1000000) || 0).toFixed(2),
+              ctr: metrics.ctr || 0,
+              cpc: ((metrics.averageCpc || 0) / 1000000).toFixed(2),
+            },
+            device: campaignData.segments?.device || 'UNKNOWN',
+            date: campaignData.segments?.date || 'N/A',
+          };
+
+          console.log("dados:",resourceName,customer_id, campaign_id,campaign,'Formatted campaign:', formattedCampaign);
+      
+          // Insere os dados formatados na estrutura
+          if (!storedCampaigns[customer_id]) {
+            storedCampaigns[customer_id] = {};
+          }
+          if (!storedCampaigns[customer_id][campaign_id]) {
+            storedCampaigns[customer_id][campaign_id] = [];
+          }
+          storedCampaigns[customer_id][campaign_id].push(formattedCampaign);
+        });
+      
+        // Armazena no localStorage
+        localStorage.setItem('campaigns', JSON.stringify(storedCampaigns));
+        console.log('Campaigns successfully saved to localStorage.');
+  
+              } catch (error) {
+        console.error('Error fetching campaigns:', error);
       }
     }
   };
 
   const fetchCampaigns = async () => {
-    console.log('fetchCampaigns - Início');
-    const allAccounts = [
-      ...googleAccounts.map(account => ({ ...account, type: 'Google Ads' })),
-      ...facebookAccounts.map(account => ({ ...account, type: 'Meta Ads' }))
-    ];
-    console.log('fetchCampaigns - allAccounts:', allAccounts);
+    console.log('Fetching campaigns for all accounts',activeCustomers);
 
-    if (allAccounts.length > 0) {
-      for (const account of allAccounts) {
+    if (activeCustomers.length > 0) {
+      for (const account of activeCustomers) {
         await fetchCampaignsForAccount(account);
       }
     }
   };
 
   const checkActiveCustomers = async () => {
+    console.log('Checking active customers');
     const session = getSessionFromLocalStorage();
     const userId = session?.user?.id;
-    if (accessToken && userId) {
+    if (accessTokenGoogle && userId) {
       try {
-        console.log('checkActiveCustomers - Checking active customers...');
-        const response = await checkAdsAccounts(accessToken, userId);
-        console.log('checkActiveCustomers - Active customers:', response);
+        const response = await checkAdsAccounts(accessTokenGoogle, userId);
+        console.log('Active customers response:', response);
         localStorage.setItem('activeCustomers', JSON.stringify(response.linked_customers));
         return response.linked_customers.length > 0;
       } catch (error) {
-        console.error('checkActiveCustomers - Error checking active customers:', error);
+        console.error('Error checking active customers:', error);
         return false;
       }
     }
     return false;
   };
 
-  const fetchLinkedAccountsGoogle = async () => {
+  const fetchLinkedAccounts = async () => {
+    console.log('Fetching linked accounts');
     const session = getSessionFromLocalStorage();
     const userId = session?.user?.id;
-    if (accessToken && userId) {
+    if (accessTokenGoogle && userId) {
       try {
-        console.log('fetchLinkedAccountsGoogle - Fetching Google Ads accounts...');
-        const googleAdsAccounts = await fetchGoogleAdsAccounts(accessToken, userId);
-        console.log('fetchLinkedAccountsGoogle - Google Ads accounts fetched:', googleAdsAccounts);
-        setGoogleAccounts(googleAdsAccounts.customerIds.map((customerId: string) => ({
-          customer_id: customerId,
-          type: 'Google Ads',
-          is_active: true
-        })));
-        localStorage.setItem('googleAccounts', JSON.stringify(googleAdsAccounts.customerIds));
+        const linkedAccounts = await listLinkedAccounts(accessTokenGoogle, userId);
+        console.log('Linked accounts:', linkedAccounts);
+
+        const googleAccountsData = linkedAccounts.data
+          .filter((account: any) => account.account_type === 'google_ads')
+          .map((account: any) => ({
+            account_id: account.account_id,
+            type: 'Google Ads',
+            is_active: account.is_active,
+            access_token: account.access_token,
+            user_id: account.user_id
+          }));
+
+        const facebookAccountsData = linkedAccounts.data
+          .filter((account: any) => account.account_type === 'meta_ads')
+          .map((account: any) => ({
+            account_id: account.account_id,
+            type: 'Meta Ads',
+            is_active: account.is_active,
+            access_token: account.access_token,
+            refresh_token: account.refresh_token,
+            user_id: account.user_id
+          }));
+
+        setGoogleAccounts(googleAccountsData);
+        setFacebookAccounts(facebookAccountsData);
+
+        localStorage.setItem('googleAccounts', JSON.stringify(googleAccountsData));
+        localStorage.setItem('facebookAccounts', JSON.stringify(facebookAccountsData));
       } catch (error) {
-        console.error('fetchLinkedAccountsGoogle - Error fetching linked accounts:', error);
+        console.error('Error fetching linked accounts:', error);
       } finally {
         setLoadingGoogleAccounts(false);
-      }
-    } else {
-      console.log('fetchLinkedAccountsGoogle - Missing accessToken or userId');
-    }
-  };
-
-  const fetchLinkedAccountsMeta = async () => {
-    console.log('fetchLinkedAccountsMeta - Fetching Meta Ads accounts...');
-    const session = getSessionFromLocalStorage();
-    const userId = session?.user?.id;
-    console.log('fetchLinkedAccountsMeta - userId:', userId, 'accessToken:', accessToken, 'session:', session);
-    if (accessToken && userId) {
-      try {
-        console.log('fetchLinkedAccountsMeta - Fetching Facebook Ad accounts...');
-        const facebookAdAccounts = await fetchFacebookAdAccounts(accessToken, userId);
-        console.log('fetchLinkedAccountsMeta - Facebook Ad accounts fetched:', facebookAdAccounts);
-        setFacebookAccounts(facebookAdAccounts.adAccounts);
-        localStorage.setItem('facebookAccounts', JSON.stringify(facebookAdAccounts.adAccounts));
-      } catch (error) {
-        console.error('fetchLinkedAccountsMeta - Error fetching linked accounts:', error);
-      } finally {
         setLoadingFacebookAccounts(false);
       }
     } else {
-      console.log('fetchLinkedAccountsMeta - Missing accessToken or userId');
+      console.log('Missing accessToken or userId');
     }
   };
 
   useEffect(() => {
-    const checkLinkedAccounts = async () => {
-      console.log('checkLinkedAccounts - Início');
-      const hasActiveCustomers = await checkActiveCustomers();
-      console.log('checkLinkedAccounts - hasActiveCustomers:', hasActiveCustomers);
+    console.log('Loading active customers from localStorage');
+    const storedActiveCustomers = JSON.parse(localStorage.getItem('activeCustomers') || '[]');
+    setActiveCustomers(storedActiveCustomers);
 
-      if (!hasActiveCustomers) {
-        setShowPopup(true);
-        await fetchLinkedAccountsGoogle();
-        await fetchLinkedAccountsMeta();
-      } else {
-        setShowPopup(false);
-        dispatch(setIsCustomerLinked(true));
+    const storedSelectedCustomer = localStorage.getItem('selectedCustomer');
+    if (storedSelectedCustomer) {
+      setSelectedAccount(storedSelectedCustomer);
+    } else {
+      setShowPopup(true);
+    }
+  }, []);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      console.log('Fetching data');
+      await fetchLinkedAccounts();
+      const hasActiveCustomers = await checkActiveCustomers();
+      if (hasActiveCustomers) {
+        await fetchCampaigns();
       }
     };
 
-    if (accessToken && userId) {
-      checkLinkedAccounts();
-    }
-  }, [accessToken, userId, dispatch]);
+    fetchData();
+  }, [accessTokenGoogle, userId, dispatch,AccountDetails]);
 
   useEffect(() => {
+    console.log('Fetching Google Ads accounts');
+    const session = getSessionFromLocalStorage();
+    const userId = session?.user?.id;
+    if (accessTokenGoogle && userId) {
+      fetchGoogleAdsAccounts(accessTokenGoogle, userId);
+    }
+  }, [accessTokenGoogle]);
+
+  useEffect(() => {
+    console.log('Fetching campaigns for Google and Facebook accounts');
     if (googleAccounts.length > 0 || facebookAccounts.length > 0) {
       fetchCampaigns();
     }
   }, [googleAccounts, facebookAccounts]);
 
   useEffect(() => {
+    console.log('Updating selected account details and filtered campaigns');
     if (selectedAccount) {
-      console.log(`Selected account changed: ${selectedAccount}`);
       localStorage.setItem('selectedAccount', selectedAccount);
       const account = googleAccounts.find(acc => acc.customer_id === selectedAccount) ||
                       facebookAccounts.find(acc => acc.account_id === selectedAccount);
@@ -228,27 +323,22 @@ const Home: React.FC = () => {
       const storedCampaigns = JSON.parse(localStorage.getItem('campaigns') || '{}');
       const accountCampaigns = storedCampaigns[selectedAccount] || [];
       setFilteredCampaigns(accountCampaigns);
-      console.log('Filtered campaigns for selected account:', accountCampaigns);
     } else {
       setSelectedAccountDetails(null);
-      setFilteredCampaigns(campaigns);
+      setFilteredCampaigns([]);
     }
-  }, [selectedAccount, googleAccounts, facebookAccounts, campaigns]);
+  }, [selectedAccount, googleAccounts, facebookAccounts]);
 
   useEffect(() => {
+    console.log('Loading Google and Facebook accounts from localStorage');
     const storedGoogleAccounts = JSON.parse(localStorage.getItem('googleAccounts') || '[]');
     const storedFacebookAccounts = JSON.parse(localStorage.getItem('facebookAccounts') || '[]');
     setGoogleAccounts(storedGoogleAccounts);
     setFacebookAccounts(storedFacebookAccounts);
   }, []);
 
-  useEffect(() => {
-    console.log('Google Accounts:', googleAccounts);
-    console.log('Facebook Accounts:', facebookAccounts);
-  }, [googleAccounts, facebookAccounts]);
-
   const handleFacebookLogin = async () => {
-    console.log('handleFacebookLogin - Iniciando login com Facebook...');
+    console.log('Handling Facebook login');
     const session = getSessionFromLocalStorage();
     const userId = session?.user?.id;
 
@@ -257,91 +347,65 @@ const Home: React.FC = () => {
     const checkWindowClosed = setInterval(() => {
       if (newWindow && newWindow.closed) {
         clearInterval(checkWindowClosed);
-        console.log('handleFacebookLogin - Janela fechada, recarregando a página...');
         window.location.reload();
       }
     }, 500);
   };
 
   const handleEdit = (id: string) => {
-    console.log(`handleEdit - Editando campanha ${id}`);
+    console.log('Editing campaign:', id);
     navigate(`/campaign-details/${id}?edit=true`);
   };
 
   const handleViewReports = (id: string) => {
-    console.log(`handleViewReports - Visualizando relatórios da campanha ${id}`);
+    console.log('Viewing reports for campaign:', id);
   };
 
   const handleCampaignClick = (id: string) => {
-    console.log(`handleCampaignClick - Navegando para detalhes da campanha ${id}`);
+    console.log('Campaign clicked:', id);
     navigate(`/campaign-details/${id}`);
   };
 
-  const handleActivateAccount = async (accountId: string, platform: string) => {
-    console.log(`handleActivateAccount - Ativando conta ${accountId} na plataforma ${platform}`);
-    try {
-      const response = await activateAccount(accessToken!, accountId, platform);
-      console.log('handleActivateAccount - Account activated:', response);
-      
-      // Check active customers after activating an account
-      const hasActiveCustomers = await checkActiveCustomers();
-      console.log('handleActivateAccount - hasActiveCustomers:', hasActiveCustomers);
-      if (hasActiveCustomers) {
-        setShowPopup(false);
-        dispatch(setIsCustomerLinked(true));
-      }
-    } catch (error) {
-      console.error('handleActivateAccount - Error activating account:', error);
-    }
-  };
-
   const toggleCampaign = (campaignId: string) => {
-    console.log(`toggleCampaign - Toggling campaign ${campaignId}`);
+    console.log('Toggling campaign:', campaignId);
     setExpandedCampaigns((prev) =>
       prev.includes(campaignId) ? prev.filter((id) => id !== campaignId) : [...prev, campaignId]
     );
   };
 
-
   const handleLinkAccount = async (platform: string) => {
+    console.log('Linking account for platform:', platform);
     try {
-      console.log('handleLinkAccount - Início');
       const session = getSessionFromLocalStorage();
-      console.log('handleLinkAccount - Session:', session);
       const userId = session?.user?.id;
-      console.log('handleLinkAccount - userId:', userId);
 
       if (!userId) {
         throw new Error('User ID não encontrado na sessão');
       }
 
       const authUrl = await linkAccountFromHome(platform, userId);
-      console.log('handleLinkAccount - authUrl:', authUrl);
 
-      if (accessToken && userId) {
+      if (accessTokenGoogle && userId) {
         try {
-          console.log('handleFacebookLogin - Fetching Facebook Ad accounts...');
-          const facebookAdAccounts = await fetchFacebookAdAccounts(accessToken, userId);
-          console.log('handleFacebookLogin - Facebook Ad accounts fetched:', facebookAdAccounts);
+          const facebookAdAccounts = await fetchFacebookAdAccounts(accessTokenGoogle, userId);
           setFacebookAccounts(facebookAdAccounts.adAccounts);
           localStorage.setItem('facebookAccounts', JSON.stringify(facebookAdAccounts.adAccounts));
         } catch (error) {
-          console.error('handleFacebookLogin - Error fetching Facebook Ad accounts:', error);
+          console.error('Error fetching Facebook Ad accounts:', error);
         }
       }
       window.location.href = authUrl;
 
     } catch (error) {
-      console.error('handleLinkAccount - Erro ao vincular conta:', error);
+      console.error('Error linking account:', error);
     }
   };
 
-  function formatCurrency(amount_spent: number, currency: string): React.ReactNode {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: currency,
-    }).format(amount_spent / 100); // Assuming amount_spent is in cents
-  }
+  const handleAccountClick = (accountId: string) => {
+    console.log('Account clicked:', accountId);
+    setSelectedAccount(accountId);
+    // localStorage.setItem('selectedCustomer', accountId);
+  };
 
   return (
     <div className="home-content">
@@ -350,81 +414,28 @@ const Home: React.FC = () => {
         <button className="copilot-button" onClick={() => setIsRightSidebarOpen(true)}>Open Copilot</button>
       </div>
       {showPopup && (
-        <div className="popup-overlay">
-          <div className="popup-content">
-            <button className="close-button" onClick={() => setShowPopup(false)}>X</button>
-            <h2>Vincule Suas Contas de Anúncios</h2>
-            <p>Por favor, vincule suas contas do Google Ads ou Facebook Ads para continuar.</p>
-            {googleAccounts.length > 0 && (
-              <div>
-                <h3>Contas do Google Ads</h3>
-                <ul>
-                  {googleAccounts.map((account) => (
-                    <li key={account.customer_id}>
-                      <div>ID do Cliente: {account.customer_id}</div>
-                      <div>Tipo: {account.type}</div>
-                      <div>Está Ativo: {account.is_active ? 'Sim' : 'Não'}</div>
-                      <button onClick={() => handleActivateAccount(account.customer_id, 'google_ads')}>Ativar</button>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-            {facebookAccounts.length > 0 && (
-              <div>
-                <h3>Contas do Facebook Ads</h3>
-                <table className="account-table">
-                  <thead>
-                    <tr>
-                      <th>ID</th>
-                      <th>Nome</th>
-                      <th>Nome da Empresa</th>
-                      <th>Valor Gasto</th>
-                      <th>Ações</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {facebookAccounts.map((account) => (
-                      <tr key={account.account_id}>
-                        <td>{account.account_id}</td>
-                        <td>{account.accountDetails.name}</td>
-                        <td>{account.accountDetails.business_name}</td>
-                        <td>{formatCurrency(account.accountDetails.amount_spent, account.accountDetails.currency)}</td>
-                        <td>
-                          <button onClick={() => handleActivateAccount(account.account_id, 'meta_ads')}>Ativar</button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-            <div className="link-buttons">
-              {!loadingGoogleAccounts && googleAccounts.length === 0 && (
-                <button onClick={() => handleLinkAccount('google_ads')}>Vincular Google Ads</button>
-              )}
-              {!loadingFacebookAccounts && facebookAccounts.length === 0 && (
-                <button onClick={() => handleFacebookLogin()}>Vincular Facebook Ads</button>
-              )}
-            </div>
-          </div>
-        </div>
+        <AccountPopup
+          googleAccounts={googleAccounts}
+          facebookAccounts={facebookAccounts}
+          handleAccountClick={handleAccountClick}
+          handleLinkAccount={handleLinkAccount}
+          handleFacebookLogin={handleFacebookLogin}
+          setShowPopup={setShowPopup}
+          loadingGoogleAccounts={loadingGoogleAccounts}
+          loadingFacebookAccounts={loadingFacebookAccounts}
+          activeCustomers={activeCustomers}
+          toggleAccountStatus={() => {}}
+        />
       )}
       <div className='side-and-content'>
         <Sidebar isOpen={isSidebarOpen} toggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)} />
         <AccountSidebar
-          googleAccounts={googleAccounts}
-          facebookAccounts={facebookAccounts}
           selectedAccount={selectedAccount}
-          setSelectedAccount={(accountId: string) => {
-            console.log(`Account selected: ${accountId}`);
-            setSelectedAccount(accountId);
-          }}
+          setSelectedAccount={handleAccountClick}
+          activeCustomers={activeCustomers}
         />
         <div className="main-content">
-          {selectedAccountDetails && <AccountDetails account={selectedAccountDetails} />}
           <CampaignTable
-            campaigns={filteredCampaigns}
             expandedCampaigns={expandedCampaigns}
             toggleCampaign={toggleCampaign}
             handleCampaignClick={handleCampaignClick}

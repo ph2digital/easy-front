@@ -2,12 +2,11 @@
 
 import React, { useEffect, useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
-import { selectAccessToken, logout } from '../store/authSlice';
-import { createMetaAdsCampaign,createFacebookAdAccount,createFacebookBusinessManager } from '../services/api';
+import { selectGoogleAccessToken, selectMetaAccessToken, logout, setUser, setMetaTokens } from '../store/authSlice';
+import { createMetaAdsCampaign, createFacebookAdAccount, createFacebookBusinessManager } from '../services/api';
 import { updateAccount } from '../store/accountSlice'; // Ensure this path is correct
 import { RootState, AppDispatch } from '../store';
 import { addCustomer, removeCustomer, setCustomers } from '../store/selectedCustomersSlice';
-import { setUser, setTokens } from '../store/authSlice';
 const API_URL = import.meta.env.VITE_API_URL;
 
 interface Account {
@@ -28,7 +27,8 @@ interface Campaign {
 }
 
 const Accounts: React.FC = () => {
-  const accessToken = useSelector(selectAccessToken);
+  const accessTokenGoogle = useSelector(selectGoogleAccessToken);
+  const accessTokenMeta = useSelector(selectMetaAccessToken);
   const dispatch: AppDispatch = useDispatch();
   const user = useSelector((state: RootState) => state.auth.user);
   const [accounts, setAccounts] = useState<Account[]>([]);
@@ -44,7 +44,7 @@ const Accounts: React.FC = () => {
   const [devices, setDevices] = useState<any[]>([]);
 
   const fetchGoogleAdsAccounts = async () => {
-    if (!accessToken) {
+    if (!accessTokenGoogle) {
       console.error('AccessToken não encontrado');
       return;
     }
@@ -60,12 +60,12 @@ const Accounts: React.FC = () => {
     setLoading(true);
     try {
       console.log('Iniciando requisição para buscar contas do Google Ads');
-      console.log('AccessToken atual:', accessToken);
+      console.log('AccessToken atual:', accessTokenGoogle);
   
       const response = await fetch(`${API_URL}/accounts/${userId}`, {
         method: 'GET',
         headers: {
-          Authorization: `Bearer ${accessToken}`,
+          Authorization: `Bearer ${accessTokenGoogle}`,
           'Content-Type': 'application/json',
         },
       });
@@ -94,7 +94,7 @@ const Accounts: React.FC = () => {
   };
 
   const fetchMetaAdsData = async (endpoint: string, setData: React.Dispatch<React.SetStateAction<any[]>>) => {
-    if (!accessToken) {
+    if (!accessTokenMeta) {
       console.error('AccessToken não encontrado');
       return;
     }
@@ -104,7 +104,7 @@ const Accounts: React.FC = () => {
       const response = await fetch(`${API_URL}/meta-ads/${endpoint}`, {
         method: 'GET',
         headers: {
-          Authorization: `Bearer ${accessToken}`,
+          Authorization: `Bearer ${accessTokenMeta}`,
           'Content-Type': 'application/json',
         },
       });
@@ -145,10 +145,10 @@ const Accounts: React.FC = () => {
       if (accessToken && user) {
         console.log('Facebook OAuth successful:', event.data);
         // Save the response data in the frontend
-        dispatch(setTokens({ accessToken, refreshToken: '' }));
+        dispatch(setMetaTokens({ accessToken, refreshToken: '' }));
         dispatch(setUser({ user, profileImage: user.picture.data.url }));
         localStorage.setItem('user', JSON.stringify(user));
-        setSession(accessToken, '');
+        setSession('', '', accessToken, '', user, event.data.appState);
         if (newWindow) {
           newWindow.close();
         }
@@ -166,8 +166,8 @@ const Accounts: React.FC = () => {
     };
   
     try {
-      if (accessToken) {
-        const response = await createMetaAdsCampaign(accessToken, campaignData);
+      if (accessTokenMeta) {
+        const response = await createMetaAdsCampaign(accessTokenMeta, campaignData);
         console.log('Campanha criada com sucesso:', response);
       } else {
         console.error('AccessToken não encontrado');
@@ -186,8 +186,8 @@ const Accounts: React.FC = () => {
     };
   
     try {
-      if (accessToken && user) {
-        const response = await createFacebookBusinessManager(accessToken, user.id, businessData);
+      if (accessTokenMeta && user) {
+        const response = await createFacebookBusinessManager(accessTokenMeta, user.id, businessData);
         console.log('Business Manager criado com sucesso:', response);
       } else {
         console.error('AccessToken ou User não encontrado');
@@ -206,8 +206,8 @@ const Accounts: React.FC = () => {
     };
   
     try {
-      if (accessToken) {
-        const response = await createFacebookAdAccount(accessToken, businessId, adAccountData);
+      if (accessTokenMeta) {
+        const response = await createFacebookAdAccount(accessTokenMeta, businessId, adAccountData);
         console.log('Ad Account criada com sucesso:', response);
       } else {
         console.error('AccessToken não encontrado');
@@ -236,7 +236,7 @@ const Accounts: React.FC = () => {
   };
 
   const fetchGoogleAdsDataForSelectedCustomers = async (endpoint: string, setData: React.Dispatch<React.SetStateAction<any[]>>) => {
-    if (!accessToken) {
+    if (!accessTokenGoogle) {
         console.error('AccessToken não encontrado');
         return;
     }
@@ -247,7 +247,7 @@ const Accounts: React.FC = () => {
             const response: Response = await fetch(`${API_URL}/google-ads/accounts/${customerId}/${endpoint}`, {
           method: 'GET',
           headers: {
-              Authorization: `Bearer ${accessToken}`,
+              Authorization: `Bearer ${accessTokenGoogle}`,
               'Content-Type': 'application/json',
           },
             });
@@ -278,11 +278,11 @@ const Accounts: React.FC = () => {
   };
 
   useEffect(() => {
-    console.log('AccessToken verificado no useEffect:', accessToken);
-    if (accessToken) {
+    console.log('AccessToken verificado no useEffect:', accessTokenGoogle);
+    if (accessTokenGoogle) {
       fetchGoogleAdsAccounts();
     }
-  }, [accessToken]);
+  }, [accessTokenGoogle]);
 
   useEffect(() => {
     const storedCustomers = localStorage.getItem('selected-customers');
@@ -430,9 +430,13 @@ function getUserEmailFromSession(): string | null {
   return null;
 }
 
-function setSession(accessToken: string, refreshToken: string) {
-  sessionStorage.setItem('accessToken', accessToken);
-  sessionStorage.setItem('refreshToken', refreshToken);
+function setSession(googleAccessToken: string, googleRefreshToken: string, metaAccessToken: string, metaRefreshToken: string, user: any, appState: any) {
+  sessionStorage.setItem('googleAccessToken', googleAccessToken);
+  sessionStorage.setItem('googleRefreshToken', googleRefreshToken);
+  sessionStorage.setItem('metaAccessToken', metaAccessToken);
+  sessionStorage.setItem('metaRefreshToken', metaRefreshToken);
+  sessionStorage.setItem('user', JSON.stringify(user));
+  sessionStorage.setItem('appState', JSON.stringify(appState));
 }
 
 

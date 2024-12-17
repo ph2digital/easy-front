@@ -9,7 +9,8 @@ interface PrivateRouteProps {
   children: ReactNode;
 }
 
-const STORAGE_KEY = import.meta.env.VITE_STORAGE_KEY || 'default-auth-token';
+const STORAGE_KEY_GOOGLE = import.meta.env.VITE_STORAGE_KEY_GOOGLE || 'default-google-auth-token';
+const STORAGE_KEY_META = import.meta.env.VITE_STORAGE_KEY_META || 'default-meta-auth-token';
 
 const PrivateRoute = ({ children }: PrivateRouteProps) => {
   const user = useSelector((state: RootState) => state.auth.user);
@@ -21,9 +22,14 @@ const PrivateRoute = ({ children }: PrivateRouteProps) => {
     const checkAuthFromStorage = async () => {
       const session = getSessionFromLocalStorage();
       if (session) {
-        const { access_token } = session;
+        const { google, meta } = session;
         try {
-          await dispatch<any>(validateToken(access_token)).unwrap();
+          if (google.access_token) {
+            await dispatch<any>(validateToken(google.access_token)).unwrap();
+          }
+          if (meta.access_token) {
+            await dispatch<any>(validateToken(meta.access_token)).unwrap();
+          }
         } catch (error) {
           clearSession();
         }
@@ -42,7 +48,7 @@ const PrivateRoute = ({ children }: PrivateRouteProps) => {
     return <div>Carregando...</div>;
   }
 
-  if (!user && !localStorage.getItem(STORAGE_KEY)) {
+  if (!user && (!localStorage.getItem(STORAGE_KEY_GOOGLE) || !localStorage.getItem(STORAGE_KEY_META))) {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 

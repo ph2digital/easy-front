@@ -11,7 +11,7 @@
     align-items: flex-start;
     position: relative;
     border-radius: 10px;
-    margin-right: 4rem;
+    margin-right: 20px;
 }
 
 .sidebar.expanded {

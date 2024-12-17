@@ -2,9 +2,9 @@
   position: fixed;
   right: 0;
   top: 0;
-  width: 350px;
+  width: 70vw;
   height: 100%;
-  background-color: #ffffff;
+  background-color: #f9f9f9;
   box-shadow: -2px 0 10px rgba(0, 0, 0, 0.1);
   padding: 20px;
   overflow-y: auto;
@@ -45,7 +45,23 @@
   margin-bottom: 20px;
 }
 
+.right-sidebar .sidebar {
+  display: flex;
+  flex-direction: row;
+  flex-grow: 1;
+}
+
+.right-sidebar .threads-list {
+  width: 30%;
+  border-right: 1px solid #ddd;
+  padding-right: 10px;
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 20px;
+}
+
 .right-sidebar .content {
+  width: 70%;
   flex-grow: 1;
   margin-bottom: 20px;
   overflow-y: auto;
@@ -84,12 +100,13 @@
 }
 
 .message-box {
-  background-color: #f1f1f1;
+  background-color: #ffffff;
   border: 1px solid #ddd;
   border-radius: 5px;
   padding: 10px;
   margin-bottom: 10px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  transition: background-color 0.2s ease;
 }
 
 .message-box.user {
@@ -106,4 +123,100 @@
   margin: 0;
   font-size: 1rem;
   color: #333;
+}
+
+.message-box .comment-button {
+  background: none;
+  border: none;
+  color: #0073e6;
+  cursor: pointer;
+  font-size: 0.9rem;
+  margin-top: 5px;
+}
+
+.message-box .comment-button:hover {
+  text-decoration: underline;
+}
+
+.comment-input-container {
+  display: flex;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.comment-input-container input {
+  flex-grow: 1;
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 5px;
+  font-size: 1rem;
+}
+
+.comment-input-container button {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 5px;
+  background-color: #0073e6;
+  color: white;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  font-size: 1rem;
+}
+
+.comment-input-container button:hover {
+  background-color: #005bb5;
+}
+
+.thread-button {
+  padding: 10px;
+  border: none;
+  background-color: #f1f1f1;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  font-size: 1rem;
+  text-align: left;
+  margin-bottom: 5px;
+  border-radius: 5px;
+}
+
+.thread-button.active {
+  background-color: #0073e6;
+  color: white;
+}
+
+.thread-button:hover {
+  background-color: #ddd;
+}
+
+@media (max-width: 768px) {
+  .right-sidebar {
+    width: 100vw;
+  }
+
+  .right-sidebar .sidebar {
+    flex-direction: column;
+  }
+
+  .right-sidebar .threads-list {
+    width: 100%;
+    border-right: none;
+    padding-right: 0;
+  }
+
+  .right-sidebar .content {
+    width: 100%;
+  }
+
+  .right-sidebar .input-container {
+    flex-direction: column;
+    gap: 5px;
+  }
+
+  .right-sidebar input {
+    width: 100%;
+  }
+
+  .right-sidebar button {
+    width: 100%;
+  }
 }
