@@ -742,9 +742,9 @@ export const fetchThreads = async (userId: string) => {
     }
 };
 
-export const createThread = async (userId: string) => {
+export const createThread = async (userId: string, messageContent: string) => {
     try {
-        const response = await axios.post(`${API_URL}/gpt/threads`, { userId });
+        const response = await axios.post(`${API_URL}/gpt/threads`, { userId, messageContent });
         return response.data;
     } catch (error) {
         console.error('Error creating thread:', error);

@@ -1,4 +1,3 @@
-import { openDB } from 'idb';
 
 // Local Storage
 export const getFromLocalStorage = (key: string) => {

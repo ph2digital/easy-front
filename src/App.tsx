@@ -15,6 +15,7 @@ import CampaignDetails from './pages/CampaignDetails';
 import CampaignCreation from './pages/CampaignCreation';
 import CustomAudienceCreation from './pages/CustomAudienceCreation';
 import PrivacyPolicy from './pages/PrivacyPolicy';
+import Chat from './pages/Chat';
 
 const App = () => {
   const dispatch = useDispatch();
@@ -140,6 +141,14 @@ const App = () => {
         element={
           <PrivateRoute>
             <CampaignCreation />
+          </PrivateRoute>
+        }
+      />
+      <Route
+        path="/chat"
+        element={
+          <PrivateRoute>
+            <Chat />
           </PrivateRoute>
         }
       />
