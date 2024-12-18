@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat Interface</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/brands.min.css">
+</head>
+<body>
+    <div class="app">
+        <!-- Botão de Tela Cheia -->
+        <button id="fullscreen-btn" class="fullscreen-toggle">
+            <i class="fullscreen-icon"></i>
+            <span class="tooltip">Expandir tela cheia</span>
+        </button>
+        <!-- Account Switcher (fora do sidebar) -->
+        <div class="account-switcher">
+            <div class="account-item active">
+                <div class="account-avatar">CC#2</div>
+            </div>
+            <div class="account-item">
+                <div class="account-avatar">CC#5</div>
+            </div>
+            <div class="account-add">
+                <button class="add-account-btn">
+                    <i class="fas fa-plus"></i>
+                </button>
+            </div>
+        </div>
+        <!-- Vertical Separator -->
+        <div class="vertical-separator"></div>
+
+        <!-- Sidebar -->
+        <nav class="sidebar">
+            <!-- User Profile Section -->
+            <div class="user-section">
+                <div class="user-profile-header">
+                    <img src="https://via.placeholder.com/40" alt="User Profile">
+                    <button class="menu-button">
+                        <i class="fas fa-bars"></i>
+                    </button>
+                </div>
+                <!-- User Menu Tooltip -->
+                <div class="user-menu-tooltip" style="display: block;">
+                    <div class="tooltip-item">
+                        <i class="fas fa-cog"></i>
+                        <span>Configurações</span>
+                    </div>
+                    <div class="tooltip-item">
+                        <i class="fas fa-credit-card"></i>
+                        <span>Pagamento</span>
+                    </div>
+                    <div class="tooltip-item">
+                        <i class="fas fa-sign-out-alt"></i>
+                        <span>Sair</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Navigation Menu -->
+            <div class="main-nav">
+                <button class="nav-btn active">
+                    <span>Chat</span>
+                </button>
+                <button class="nav-btn">
+                    <span>Histórico</span>
+                </button>
+                <button class="nav-btn">
+                    <span>Navegador</span>
+                </button>
+            </div>
+
+            <!-- New Chat Button -->
+            <button class="new-chat">
+                <i class="fas fa-plus"></i>
+                <span>Nova conversa</span>
+            </button>
+            <!-- Chat History -->
+            <div class="chat-history">
+                <div class="chat-group">
+                    <div class="chat-group-title">Hoje</div>
+                    <div class="chat-item active">
+                        <span>Análise de Campanhas</span>
+                    </div>
+                    <div class="chat-item">
+                        <span>Otimização de Anúncios</span>
+                    </div>
+                </div>
+                
+                <div class="chat-group">
+                    <div class="chat-group-title">Ontem</div>
+                    <div class="chat-item">
+                        <span>Relatório de Performance</span>
+                    </div>
+                    <div class="chat-item">
+                        <span>Planejamento de Mídia</span>
+                    </div>
+                </div>
+
+                <div class="chat-group">
+                    <div class="chat-group-title">7 dias atrás</div>
+                    <div class="chat-item">
+                        <span>Estratégia de Marketing</span>
+                    </div>
+                </div>
+            </div>
+        </nav>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Chat Content -->
+            <div id="chatContent" class="content-section active">
+                <div class="chat-container">
+                    <div class="welcome-screen">
+                        <h1>Como posso ajudar?</h1>
+                    </div>
+                </div>
+        
+                <div class="input-container">
+                    <div class="input-box">
+                        <textarea placeholder="Envie uma mensagem"></textarea>
+                        <button class="send-button"><i class="fas fa-paper-plane"></i></button>
+                    </div>
+                </div>
+            </div>
+        
+            <!-- Browser Content -->
+            <div id="browserContent" class="content-section">
+                <div class="webview-container">
+                    <!-- Webviews will be added dynamically -->
+                </div>
+            </div>
+        </main>
+    </div>
+    <script src="account-manager.js"></script>
+    <script src="chat.js"></script>
+    <script src="scripts.js"></script>
+    <!-- Modal de vinculação de contas -->
+<div class="modal" id="accountModal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>Vincular nova conta</h2>
+            <button class="close-modal">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="modal-body">
+            <div class="platform-options">
+                <button class="platform-btn meta">
+                    <i class="fab fa-facebook"></i>
+                    <div class="platform-info">
+                        <span class="platform-name">Meta Ads</span>
+                        <span class="platform-desc">Facebook e Instagram Ads</span>
+                    </div>
+                </button>
+                <button class="platform-btn google">
+                    <i class="fab fa-google"></i>
+                    <div class="platform-info">
+                        <span class="platform-name">Google Ads</span>
+                        <span class="platform-desc">Search, Display e Youtube Ads</span>
+                    </div>
+                </button>
+                <button class="platform-btn tiktok">
+                    <i class="fab fa-tiktok"></i>
+                    <div class="platform-info">
+                        <span class="platform-name">TikTok Ads</span>
+                        <span class="platform-desc">TikTok For Business</span>
+                    </div>
+                </button>
+                <button class="platform-btn linkedin">
+                    <i class="fab fa-linkedin"></i>
+                    <div class="platform-info">
+                        <span class="platform-name">LinkedIn Ads</span>
+                        <span class="platform-desc">LinkedIn Campaign Manager</span>
+                    </div>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>

@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Chat ADS</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="login.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <div class="login-container">
+        <div class="login-content">
+            <div class="login-header">
+                <div class="logo">
+                    <i class="fas fa-robot"></i>
+                </div>
+                <h1>Chat ADS</h1>
+                <p>Gerencie suas campanhas com IA</p>
+            </div>
+
+            <div class="login-options">
+                <div class="social-login">
+                    <button class="social-btn google">
+                        <div class="btn-content">
+                            <i class="fab fa-google"></i>
+                            <span>Continuar com Google</span>
+                        </div>
+                    </button>
+                    <button class="social-btn facebook">
+                        <div class="btn-content">
+                            <i class="fab fa-facebook"></i>
+                            <span>Continuar com Facebook</span>
+                        </div>
+                    </button>
+                </div>
+
+                <div class="divider">
+                    <span>ou</span>
+                </div>
+
+                <div class="email-signup">
+                    <p>Ainda não tem uma conta?</p>
+                    <button class="signup-btn">
+                        <span>Criar conta</span>
+                        <i class="fas fa-arrow-right"></i>
+                    </button>
+                </div>
+            </div>
+
+            <div class="signup-form">
+                <button class="back-to-login">
+                    <i class="fas fa-arrow-left"></i>
+                    <span>Voltar para login</span>
+                </button>
+
+                <div class="form-group">
+                    <label for="name">Nome completo</label>
+                    <input type="text" id="name" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="email">E-mail</label>
+                    <input type="email" id="email" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="password">Senha</label>
+                    <input type="password" id="password" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="confirm-password">Confirmar senha</label>
+                    <input type="password" id="confirm-password" required>
+                </div>
+
+                <div class="captcha-container">
+                    <input type="checkbox" id="captcha">
+                    <label for="captcha">Não sou um robô</label>
+                </div>
+
+                <button class="signup-btn">
+                    <span>Criar conta</span>
+                    <i class="fas fa-arrow-right"></i>
+                </button>
+            </div>
+
+            <div class="login-footer">
+                <p>Ao continuar, você concorda com nossos <a href="#">Termos</a> e <a href="#">Política de Privacidade</a></p>
+            </div>
+        </div>
+    </div>
+    <script src="login.js"></script>
+</body>
+</html>

@@ -10,6 +10,7 @@ import RightSidebar from '../components/RightSidebar';
 import AccountPopup from '../components/AccountPopup';
 import { RootState } from '../store';
 import { checkAdsAccounts, fetchGoogleAdsAccounts, fetchFacebookAdAccounts, fetchMetaAdsCampaigns, linkMetaAds, linkAccountFromHome, getSessionFromLocalStorage, listLinkedAccounts, fetchGoogleAdsCampaigns } from '../services/api';
+import { setToSessionStorage, getFromSessionStorage } from '../utils/storage';
 
 interface Campaign {
   id: string;
@@ -113,20 +114,23 @@ const Home: React.FC = () => {
             status: campaign.status,
             startDate: campaign.start_time,
             endDate: campaign.updated_time,
-            impressions: insights.impressions || 'N/A',
-            clicks: insights.clicks || 'N/A',
+            impressions: insights.impressions || 0,
+            clicks: insights.clicks || 0,
             spend: insights.spend || 'N/A',
             ctr: insights.ctr || 'N/A',
             cpc: insights.cpc || 'N/A',
             cpm: insights.cpm || 'N/A',
             reach: insights.reach || 'N/A',
             frequency: insights.frequency || 'N/A',
-          };
+            device: 'N/A',
+            date: 'N/A',
+            customer_id: account.customer_id || account.account_id
+          } as Campaign;
         });
 
         setCampaigns(prevCampaigns => {
           const updatedCampaigns = [...prevCampaigns, ...campaignsWithDetails];
-          const storedCampaigns = JSON.parse(localStorage.getItem('campaigns') || '{}');
+          const storedCampaigns: { [key: string]: { [key: string]: Campaign[] } } = JSON.parse(localStorage.getItem('campaigns') || '{}');
           if (!storedCampaigns[account.customer_id || account.account_id]) {
             storedCampaigns[account.customer_id || account.account_id] = {};
           }
@@ -136,7 +140,7 @@ const Home: React.FC = () => {
             }
             storedCampaigns[account.customer_id || account.account_id][campaign.id].push(campaign);
           });
-          localStorage.setItem('campaigns', JSON.stringify(storedCampaigns));
+          setToSessionStorage('campaigns', updatedCampaigns);
           return updatedCampaigns;
         });
       } catch (error) {
@@ -146,7 +150,7 @@ const Home: React.FC = () => {
       try {
         const campaignsResponse = await fetchGoogleAdsCampaigns(accessTokenGoogle, account.customer_id, 'LAST_7_DAYS', 'TODAY');
         console.log('Campaigns response:', campaignsResponse);
-        const storedCampaigns = JSON.parse(localStorage.getItem('campaigns') || '{}');
+        const storedCampaigns: { [key: string]: { [key: string]: Campaign[] } } = JSON.parse(localStorage.getItem('campaigns') || '{}');
 
         campaignsResponse.forEach((campaignData: { campaign: any; metrics: any; campaignBudget: any; segments: { device: any; date: any; }; }) => {
           const campaign = campaignData.campaign;
@@ -156,7 +160,8 @@ const Home: React.FC = () => {
           const [customer_id, campaign_id] = resourceName.split('/').filter((_: any, i: number) => i === 1 || i === 3);
       
           // Formata os dados da campanha
-          const formattedCampaign = {
+          const formattedCampaign: Campaign = {
+            id: campaign_id,
             name: campaign.name,
             platform: 'Google Ads',
             objective: campaign.biddingStrategyType || 'N/A',
@@ -164,15 +169,17 @@ const Home: React.FC = () => {
             status: campaign.status,
             startDate: campaign.startDate || 'N/A',
             endDate: campaign.endDate || 'N/A',
-            metrics: {
-              impressions: metrics.impressions || 0,
-              clicks: metrics.clicks || 0,
-              spend: ((parseInt(metrics.costMicros || '0') / 1000000) || 0).toFixed(2),
-              ctr: metrics.ctr || 0,
-              cpc: ((metrics.averageCpc || 0) / 1000000).toFixed(2),
-            },
+            impressions: metrics.impressions || 0,
+            clicks: metrics.clicks || 0,
+            spend: ((parseInt(metrics.costMicros || '0') / 1000000) || 0).toFixed(2),
+            ctr: metrics.ctr || 'N/A',
+            cpc: ((metrics.averageCpc || 0) / 1000000).toFixed(2),
+            cpm: 'N/A',
+            reach: 'N/A',
+            frequency: 'N/A',
             device: campaignData.segments?.device || 'UNKNOWN',
             date: campaignData.segments?.date || 'N/A',
+            customer_id: customer_id
           };
 
           console.log("dados:",resourceName,customer_id, campaign_id,campaign,'Formatted campaign:', formattedCampaign);
@@ -187,9 +194,9 @@ const Home: React.FC = () => {
           storedCampaigns[customer_id][campaign_id].push(formattedCampaign);
         });
       
-        // Armazena no localStorage
-        localStorage.setItem('campaigns', JSON.stringify(storedCampaigns));
-        console.log('Campaigns successfully saved to localStorage.');
+        // Armazena na session storage
+        setToSessionStorage('campaigns', Object.values(storedCampaigns).flat());
+        console.log('Campaigns successfully saved to session storage.');
   
               } catch (error) {
         console.error('Error fetching campaigns:', error);
@@ -279,6 +286,8 @@ const Home: React.FC = () => {
     const storedSelectedCustomer = localStorage.getItem('selectedCustomer');
     if (storedSelectedCustomer) {
       setSelectedAccount(storedSelectedCustomer);
+    } else if (storedActiveCustomers.length > 0) {
+      setSelectedAccount(storedActiveCustomers[0].customer_id);
     } else {
       setShowPopup(true);
     }
@@ -290,12 +299,14 @@ const Home: React.FC = () => {
       await fetchLinkedAccounts();
       const hasActiveCustomers = await checkActiveCustomers();
       if (hasActiveCustomers) {
-        await fetchCampaigns();
+        if (selectedAccount) {
+          await fetchCampaignsForAccount({ customer_id: selectedAccount });
+        }
       }
     };
 
     fetchData();
-  }, [accessTokenGoogle, userId, dispatch,AccountDetails]);
+  }, [accessTokenGoogle, userId, dispatch, AccountDetails, selectedAccount]);
 
   useEffect(() => {
     console.log('Fetching Google Ads accounts');
@@ -314,19 +325,23 @@ const Home: React.FC = () => {
   }, [googleAccounts, facebookAccounts]);
 
   useEffect(() => {
-    console.log('Updating selected account details and filtered campaigns');
-    if (selectedAccount) {
-      localStorage.setItem('selectedAccount', selectedAccount);
-      const account = googleAccounts.find(acc => acc.customer_id === selectedAccount) ||
-                      facebookAccounts.find(acc => acc.account_id === selectedAccount);
-      setSelectedAccountDetails(account);
-      const storedCampaigns = JSON.parse(localStorage.getItem('campaigns') || '{}');
-      const accountCampaigns = storedCampaigns[selectedAccount] || [];
-      setFilteredCampaigns(accountCampaigns);
-    } else {
-      setSelectedAccountDetails(null);
-      setFilteredCampaigns([]);
-    }
+    const updateSelectedAccountDetails = async () => {
+      console.log('Updating selected account details and filtered campaigns');
+      if (selectedAccount) {
+        localStorage.setItem('selectedAccount', selectedAccount);
+        const account = googleAccounts.find(acc => acc.customer_id === selectedAccount) ||
+                        facebookAccounts.find(acc => acc.account_id === selectedAccount);
+        setSelectedAccountDetails(account);
+        const storedCampaigns = getFromSessionStorage('campaigns');
+        const accountCampaigns = storedCampaigns.filter((campaign: Campaign) => campaign.customer_id === selectedAccount);
+        setFilteredCampaigns(accountCampaigns);
+      } else {
+        setSelectedAccountDetails(null);
+        setFilteredCampaigns([]);
+      }
+    };
+
+    updateSelectedAccountDetails();
   }, [selectedAccount, googleAccounts, facebookAccounts]);
 
   useEffect(() => {
@@ -401,9 +416,10 @@ const Home: React.FC = () => {
     }
   };
 
-  const handleAccountClick = (accountId: string) => {
+  const handleAccountClick = async (accountId: string) => {
     console.log('Account clicked:', accountId);
     setSelectedAccount(accountId);
+    await fetchCampaignsForAccount({ customer_id: accountId });
     // localStorage.setItem('selectedCustomer', accountId);
   };
 

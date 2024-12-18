@@ -27,27 +27,3 @@ export const setToSessionStorage = (key: string, value: any) => {
 export const removeFromSessionStorage = (key: string) => {
   sessionStorage.removeItem(key);
 };
-
-// IndexedDB
-export const saveToIndexedDB = async (storeName: string, data: any[]) => {
-  const db = await openDB('appDB', 1, {
-    upgrade(db) {
-      db.createObjectStore(storeName, { keyPath: 'id' });
-    },
-  });
-  const tx = db.transaction(storeName, 'readwrite');
-  const store = tx.objectStore(storeName);
-  data.forEach(item => {
-    store.put(item);
-  });
-  await tx.done;
-};
-
-export const getFromIndexedDB = async (storeName: string) => {
-  const db = await openDB('appDB', 1);
-  const tx = db.transaction(storeName, 'readonly');
-  const store = tx.objectStore(storeName);
-  const allItems = await store.getAll();
-  await tx.done;
-  return allItems;
-};

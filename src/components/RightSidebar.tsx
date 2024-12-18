@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import './styles/RightSidebar.css';
-import { getGPTResponse, getSessionFromLocalStorage, submitComment, fetchThreads, createThread, fetchMessages } from '../services/api';
+import { getGPTResponse, getSessionFromLocalStorage, submitComment, fetchThreads, createThread, fetchMessages, fetchRuns } from '../services/api';
+import { setToSessionStorage, getFromSessionStorage } from '../utils/storage';
 
 interface RightSidebarProps {
   isOpen: boolean;
@@ -9,11 +10,12 @@ interface RightSidebarProps {
 
 const RightSidebar: React.FC<RightSidebarProps> = ({ isOpen, onClose }) => {
   const [text, setText] = useState('');
-  const [messages, setMessages] = useState<{ role: string; content: string }[]>([]);
+  const [messages, setMessages] = useState<{ id: string; role: string; content: string }[]>([]);
   const [comment, setComment] = useState('');
-  const [showCommentInput, setShowCommentInput] = useState<number | null>(null);
+  const [showCommentInput, setShowCommentInput] = useState<string | null>(null);
   const [threads, setThreads] = useState<any[]>([]);
   const [activeThread, setActiveThread] = useState<string | null>(null);
+  const [runs, setRuns] = useState<any[]>([]);
 
   useEffect(() => {
     const session = getSessionFromLocalStorage();
@@ -26,6 +28,7 @@ const RightSidebar: React.FC<RightSidebarProps> = ({ isOpen, onClose }) => {
   useEffect(() => {
     if (activeThread) {
       fetchMessagesForThread(activeThread);
+      fetchRunsForThread(activeThread);
     }
   }, [activeThread]);
 
@@ -35,7 +38,8 @@ const RightSidebar: React.FC<RightSidebarProps> = ({ isOpen, onClose }) => {
     if (isOpen && activeThread) {
       intervalId = setInterval(() => {
         fetchMessagesForThread(activeThread);
-      }, 10000); // Fetch messages every 10 seconds
+        fetchRunsForThread(activeThread);
+      }, 10000); // Fetch messages and runs every 10 seconds
     }
 
     return () => {
@@ -52,13 +56,13 @@ const RightSidebar: React.FC<RightSidebarProps> = ({ isOpen, onClose }) => {
         const newThread = await createThread(userId);
         setThreads([newThread]);
         setActiveThread(newThread.id);
-        localStorage.setItem('threads', JSON.stringify([newThread]));
-        localStorage.setItem('activeThread', newThread.id);
+        sessionStorage.setItem('threads', JSON.stringify([newThread]));
+        sessionStorage.setItem('activeThread', newThread.id);
       } else {
         setThreads(response);
         setActiveThread(response[0].id);
-        localStorage.setItem('threads', JSON.stringify(response));
-        localStorage.setItem('activeThread', response[0].id);
+        sessionStorage.setItem('threads', JSON.stringify(response));
+        sessionStorage.setItem('activeThread', response[0].id);
       }
     } catch (error) {
       console.error('Error fetching threads:', error);
@@ -68,19 +72,33 @@ const RightSidebar: React.FC<RightSidebarProps> = ({ isOpen, onClose }) => {
   const fetchMessagesForThread = async (threadId: string) => {
     try {
       const response = await fetchMessages(threadId);
-      const formattedMessages = response.data.map((msg: any) => ({
+      const formattedMessages = response.map((msg: any) => ({
+        id: msg.id,
         role: msg.role,
         content: msg.content.map((c: any) => c.text.value).join(' ')
       }));
       setMessages(formattedMessages);
+      setToSessionStorage('messages', formattedMessages);
     } catch (error) {
       console.error('Error fetching messages:', error);
     }
   };
 
+  const fetchRunsForThread = async (threadId: string) => {
+    try {
+      const response = await fetchRuns(threadId);
+      setRuns(Array.isArray(response) ? response : []);
+      setToSessionStorage('runs', Array.isArray(response) ? response : []);
+    } catch (error) {
+      console.error('Error fetching runs:', error);
+    }
+  };
+
   const handleSend = async () => {
     if (text.trim()) {
-      setMessages([...messages, { role: 'user', content: text }]);
+      const newMessage = { id: `temp-${Date.now()}`, role: 'user', content: text };
+      setMessages([...messages, newMessage]);
+      setToSessionStorage('messages', [...messages, newMessage]);
       const userMessage = text;
       setText('');
       try {
@@ -90,7 +108,9 @@ const RightSidebar: React.FC<RightSidebarProps> = ({ isOpen, onClose }) => {
         // const formattedResponse = response.replace(/\n/g, '<br/>');
         // setMessages((prevMessages) => [...prevMessages, { role: 'copilot', content: formattedResponse }]);
       } catch (error) {
-        setMessages((prevMessages) => [...prevMessages, { role: 'copilot', content: 'Erro ao obter resposta do GPT' }]);
+        const errorMessage = { id: `temp-${Date.now()}`, role: 'copilot', content: 'Erro ao obter resposta do GPT' };
+        setMessages((prevMessages) => [...prevMessages, errorMessage]);
+        setToSessionStorage('messages', [...messages, errorMessage]);
       }
     }
   };
@@ -101,21 +121,25 @@ const RightSidebar: React.FC<RightSidebarProps> = ({ isOpen, onClose }) => {
     }
   };
 
-  const handleAddComment = (index: number) => {
-    setShowCommentInput(index);
+  const handleAddComment = (messageId: string) => {
+    setShowCommentInput(messageId);
   };
 
-  const handleCommentSubmit = async (index: number) => {
+  const handleCommentSubmit = async (messageId: string) => {
     if (comment.trim()) {
       try {
         const session = getSessionFromLocalStorage();
         const userId = session?.user?.id;
-        await submitComment(userId, index, comment);
+        await submitComment(userId, messageId, comment);
         setMessages((prevMessages) => {
           const newMessages = [...prevMessages];
-          newMessages[index].content += `<br/><strong>Comment:</strong> ${comment}`;
+          const messageIndex = newMessages.findIndex((msg) => msg.id === messageId);
+          if (messageIndex !== -1) {
+            newMessages[messageIndex].content += `<br/><strong>Comment:</strong> ${comment}`;
+          }
           return newMessages;
         });
+        setToSessionStorage('messages', messages);
         setComment('');
         setShowCommentInput(null);
       } catch (error) {
@@ -126,8 +150,39 @@ const RightSidebar: React.FC<RightSidebarProps> = ({ isOpen, onClose }) => {
 
   const handleThreadClick = (threadId: string) => {
     setActiveThread(threadId);
-    localStorage.setItem('activeThread', threadId);
+    sessionStorage.setItem('activeThread', threadId);
   };
+
+  const handleCreateThread = async () => {
+    try {
+      const session = getSessionFromLocalStorage();
+      const userId = session?.user?.id;
+      if (userId) {
+        const newThread = await createThread(userId);
+        setThreads((prevThreads) => [...prevThreads, newThread]);
+        setActiveThread(newThread.id);
+        sessionStorage.setItem('threads', JSON.stringify([...threads, newThread]));
+        sessionStorage.setItem('activeThread', newThread.id);
+      }
+    } catch (error) {
+      console.error('Error creating new thread:', error);
+    }
+  };
+
+  useEffect(() => {
+    const loadMessagesFromSession = () => {
+      const storedMessages = getFromSessionStorage('messages');
+      setMessages(storedMessages || []);
+    };
+
+    const loadRunsFromSession = () => {
+      const storedRuns = getFromSessionStorage('runs');
+      setRuns(storedRuns || []);
+    };
+
+    loadMessagesFromSession();
+    loadRunsFromSession();
+  }, []);
 
   return (
     <div className={`right-sidebar ${isOpen ? 'open' : ''}`}>
@@ -144,13 +199,14 @@ const RightSidebar: React.FC<RightSidebarProps> = ({ isOpen, onClose }) => {
               {thread.title || `Thread ${thread.id}`}
             </button>
           ))}
+          <button className="new-thread-button" onClick={handleCreateThread}>New Thread</button>
         </div>
         <div className="content">
-          {messages.map((msg, index) => (
-            <div key={index} className={`message-box ${msg.role}`}>
+          {messages.map((msg) => (
+            <div key={msg.id} className={`message-box ${msg.role}`}>
               <p dangerouslySetInnerHTML={{ __html: msg.content }}></p>
-              <button className="comment-button" onClick={() => handleAddComment(index)}>Add Comment</button>
-              {showCommentInput === index && (
+              <button className="comment-button" onClick={() => handleAddComment(msg.id)}>Add Comment</button>
+              {showCommentInput === msg.id && (
                 <div className="comment-input-container">
                   <input
                     type="text"
@@ -158,11 +214,20 @@ const RightSidebar: React.FC<RightSidebarProps> = ({ isOpen, onClose }) => {
                     onChange={(e) => setComment(e.target.value)}
                     placeholder="Type a comment"
                   />
-                  <button onClick={() => handleCommentSubmit(index)}>Submit</button>
+                  <button onClick={() => handleCommentSubmit(msg.id)}>Submit</button>
                 </div>
               )}
             </div>
           ))}
+          <div className="runs-list">
+            {runs.map((run: any) => (
+              <div key={run.id} className="run-box">
+                <p><strong>Run ID:</strong> {run.id}</p>
+                <p><strong>Status:</strong> {run.status}</p>
+                <p><strong>Created At:</strong> {new Date(run.created_at * 1000).toLocaleString()}</p>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
       <div className="input-container">

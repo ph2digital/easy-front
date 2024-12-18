@@ -714,11 +714,11 @@ export const fetchGoogleAdsCampaigns = async (accessToken: string, accountId: st
   return response.data;
 };
 
-export const submitComment = async (userId: string, messageIndex: number, comment: string) => {
+export const submitComment = async (userId: string, messageId: string, comment: string) => {
     try {
         const response = await axios.post(`${API_URL}/gpt/comments`, {
             userId,
-            messageIndex,
+            messageId,
             comment,
         }, {
             headers: {
@@ -759,6 +759,16 @@ export const fetchMessages = async (threadId: string) => {
     } catch (error) {
         console.error('Error fetching messages:', error);
         throw new Error('Error fetching messages');
+    }
+};
+
+export const fetchRuns = async (threadId: string) => {
+    try {
+        const response = await axios.get(`${API_URL}/gpt/threads/${threadId}/runs`);
+        return response.data;
+    } catch (error) {
+        console.error('Error fetching runs:', error);
+        throw new Error('Error fetching runs');
     }
 };
 
