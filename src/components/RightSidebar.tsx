@@ -53,7 +53,7 @@ const RightSidebar: React.FC<RightSidebarProps> = ({ isOpen, onClose }) => {
     try {
       const response = await fetchThreads(userId);
       if (response.length === 0) {
-        const newThread = await createThread(userId, "inicio da conversa");
+        const newThread = await createThread(userId);
         setThreads([newThread]);
         setActiveThread(newThread.id);
         sessionStorage.setItem('threads', JSON.stringify([newThread]));
@@ -94,28 +94,19 @@ const RightSidebar: React.FC<RightSidebarProps> = ({ isOpen, onClose }) => {
     }
   };
 
-  const handleSend = async (messageContent: string) => {
-    if (!activeThread) {
-      const session = getSessionFromLocalStorage();
-      const userId = session?.user?.id;
-      if (userId) {
-        const newThread = await createThread(userId, messageContent);
-        setThreads((prevThreads) => [...prevThreads, newThread]);
-        setActiveThread(newThread.id);
-        sessionStorage.setItem('activeThread', newThread.id);
-      }
-    }
-
-    if (activeThread) {
-      const newMessage = { id: `temp-${Date.now()}`, role: 'user', content: messageContent };
+  const handleSend = async () => {
+    if (text.trim()) {
+      const newMessage = { id: `temp-${Date.now()}`, role: 'user', content: text };
       setMessages([...messages, newMessage]);
       setToSessionStorage('messages', [...messages, newMessage]);
-      const userMessage = messageContent;
+      const userMessage = text;
       setText('');
       try {
         const session = getSessionFromLocalStorage();
         const userId = session?.user?.id;
         await getGPTResponse(userMessage, userId, activeThread);
+        // const formattedResponse = response.replace(/\n/g, '<br/>');
+        // setMessages((prevMessages) => [...prevMessages, { role: 'copilot', content: formattedResponse }]);
       } catch (error) {
         const errorMessage = { id: `temp-${Date.now()}`, role: 'copilot', content: 'Erro ao obter resposta do GPT' };
         setMessages((prevMessages) => [...prevMessages, errorMessage]);
@@ -126,7 +117,7 @@ const RightSidebar: React.FC<RightSidebarProps> = ({ isOpen, onClose }) => {
 
   const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
-      handleSend(text);
+      handleSend();
     }
   };
 
@@ -162,25 +153,20 @@ const RightSidebar: React.FC<RightSidebarProps> = ({ isOpen, onClose }) => {
     sessionStorage.setItem('activeThread', threadId);
   };
 
-  const handleCreateThread = () => {
-    const initialMessage = {
-      id: `temp-${Date.now()}`,
-      role: 'system',
-      content: `
-        <p>Bem-vindo! Como posso ajudar você hoje?</p>
-        <button onclick="handleOptionClick('info')">Informações</button>
-        <button onclick="handleOptionClick('create')">Criar Campanhas</button>
-        <button onclick="handleOptionClick('optimize')">Otimizar Campanhas</button>
-      `
-    };
-    setMessages([initialMessage]);
-    setActiveThread(null);
-    sessionStorage.removeItem('activeThread');
-  };
-
-  const handleOptionClick = (option: string) => {
-    const messageContent = `Você escolheu: ${option}`;
-    handleSend(messageContent);
+  const handleCreateThread = async () => {
+    try {
+      const session = getSessionFromLocalStorage();
+      const userId = session?.user?.id;
+      if (userId) {
+        const newThread = await createThread(userId);
+        setThreads((prevThreads) => [...prevThreads, newThread]);
+        setActiveThread(newThread.id);
+        sessionStorage.setItem('threads', JSON.stringify([...threads, newThread]));
+        sessionStorage.setItem('activeThread', newThread.id);
+      }
+    } catch (error) {
+      console.error('Error creating new thread:', error);
+    }
   };
 
   useEffect(() => {
@@ -252,7 +238,7 @@ const RightSidebar: React.FC<RightSidebarProps> = ({ isOpen, onClose }) => {
           onKeyPress={handleKeyPress}
           placeholder="Type a message"
         />
-        <button onClick={() => handleSend(text)}>Send</button>
+        <button onClick={handleSend}>Send</button>
       </div>
     </div>
   );

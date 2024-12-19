@@ -1,0 +1,69 @@
+.input-container {
+    position: relative;
+    padding: var(--spacing-sm);
+    background-color: var(--main-bg);
+    border-top: 1px solid var(--border-color);
+    z-index: 10;
+    display: flex;
+    align-items: center;
+}
+
+.input-box {
+    position: relative;
+    max-width: 1500px;
+    margin: 0 auto;
+    background-color: #2F2F2F;
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius-lg);
+    padding: var(--spacing-xs);
+    display: flex;
+    align-items: center;
+    flex: 1;
+}
+
+.input-box textarea {
+    width: 100%;
+    padding: 8px var(--spacing-xl) 8px var(--spacing-md);
+    background-color: #2F2F2F;
+    border: none;
+    color: var(--text-color);
+    resize: none;
+    height: 40px; 
+    max-height: 144px; /* 6 lines * 24px per line */
+    font-family: inherit;
+    font-size: 14px;
+    line-height: 20px;
+    overflow-y: hidden; 
+    font-weight: 400;
+}
+
+.input-box textarea:focus {
+    outline: none;
+}
+
+.input-box:focus-within {
+    border-color: var(--active-color);
+    box-shadow: 0 0 0 2px rgba(0, 120, 212, 0.1);
+}
+
+.send-button {
+    background: none;
+    border: none;
+    color: var(--text-color);
+    cursor: pointer;
+    opacity: 0.8;
+    transition: all 0.2s ease;
+    padding: var(--spacing-sm);
+    border-radius: var(--border-radius-sm);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 40px; /* Increase size */
+    width: 40px; /* Increase size */
+    margin-left: var(--spacing-sm); /* Add some space between input and button */
+}
+
+.send-button:hover {
+    opacity: 1;
+    background-color: var(--hover-color);
+}

@@ -1,7 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { useSelector } from 'react-redux';
+import ReactMarkdown from 'react-markdown';
 import './styles/Chat.css';
 import AccountPopup from '../components/AccountPopup';
+import Browser from '../components/Browser';
+import AccountSidebar from '../components/AccountSidebar';
+import ChatInput from '../components/ChatInput';
+import ChatHeader from '../components/ChatHeader';
 import { RootState } from '../store';
 import { linkMetaAds, linkAccountFromHome, getSessionFromLocalStorage, fetchFacebookAdAccounts, fetchThreads, fetchMessages, getGPTResponse, createThread, submitComment } from '../services/api';
 
@@ -14,10 +19,14 @@ const Chat: React.FC = () => {
   const [loadingGoogleAccounts, setLoadingGoogleAccounts] = useState(true);
   const [loadingFacebookAccounts, setLoadingFacebookAccounts] = useState(true);
   const [threads, setThreads] = useState<any[]>([]);
-  const [selectedThread, setSelectedThread] = useState<any | null>(localStorage.getItem('selectedThread'));
+  const [selectedThread, setSelectedThread] = useState<any | null>(null);
   const [messages, setMessages] = useState<any[]>([]);
   const [showCommentInput, setShowCommentInput] = useState<string | null>(null);
   const [comment, setComment] = useState('');
+  const [pollingInterval, setPollingInterval] = useState<number | null>(null);
+  const [elapsedTime, setElapsedTime] = useState(0);
+  const [isTyping, setIsTyping] = useState(false);
+  const [browserUrl, setBrowserUrl] = useState<string>('https://www.google.com');
 
   const accessTokenGoogle = useSelector((state: RootState) => state.auth.googleAccessToken);
 
@@ -26,14 +35,9 @@ const Chat: React.FC = () => {
     const storedActiveCustomers = JSON.parse(localStorage.getItem('activeCustomers') || '[]');
     setActiveCustomers(storedActiveCustomers);
 
-    const storedSelectedCustomer = localStorage.getItem('selectedCustomer');
-    if (storedSelectedCustomer) {
-      setSelectedAccount(storedSelectedCustomer);
-    } else if (storedActiveCustomers.length > 0) {
-      setSelectedAccount(storedActiveCustomers[0].customer_id);
-    } else {
-      setShowPopup(true);
-    }
+    const session = getSessionFromLocalStorage();
+    const userId = session?.user?.id;
+    setSelectedAccount(userId);
   }, []);
 
   useEffect(() => {
@@ -53,14 +57,70 @@ const Chat: React.FC = () => {
       if (userId) {
         const fetchedThreads = await fetchThreads(userId);
         setThreads(fetchedThreads);
+        setSelectedAccount(userId);
         if (!selectedThread && fetchedThreads.length > 0) {
-          setSelectedThread(fetchedThreads[0]);
-          localStorage.setItem('selectedThread', fetchedThreads[0].id);
+          // setSelectedThread(fetchedThreads[0]);
+          // localStorage.setItem('selectedThread', fetchedThreads[0].id);
         }
       }
     };
     loadThreads();
   }, [selectedAccount]);
+
+  useEffect(() => {
+    let intervalId: NodeJS.Timeout | null = null;
+
+    if (pollingInterval !== null && selectedThread) {
+      setIsTyping(true);
+      intervalId = setInterval(() => {
+        setElapsedTime((prev) => prev + 1);
+        if (selectedThread) {
+          fetchMessagesForThread(selectedThread.id);
+        }
+      }, pollingInterval);
+    } else {
+      setIsTyping(false);
+    }
+
+    return () => {
+      if (intervalId) {
+        clearInterval(intervalId);
+      }
+    };
+  }, [pollingInterval, selectedThread]);
+
+  useEffect(() => {
+    if (elapsedTime <= 60) {
+      setPollingInterval(1000); // 1 second
+    } else if (elapsedTime <= 300) {
+      setPollingInterval(10000); // 10 seconds
+    } else {
+      setPollingInterval(60000); // 60 seconds
+    }
+  }, [elapsedTime]);
+
+  const fetchMessagesForThread = async (threadId: string) => {
+    const fetchedMessages = await fetchMessages(threadId);
+    const result = fetchedMessages?.result?.data;
+    const formattedMessages = result.map((msg: any) => ({
+      ...msg,
+      content: msg.content.map((c: any) => c.text.value).join(' ')
+    })).sort((a: { created_at: number; role: string }, b: { created_at: number; role: string }) => {
+      if (a.created_at === b.created_at) {
+        return a.role === 'assistant' ? -1 : 1;
+      }
+      return a.created_at - b.created_at;
+    });
+
+    const currentMessageIds = messages.map((msg: any) => msg.id);
+    const newMessageIds = formattedMessages.map((msg: any) => msg.id);
+
+    if (JSON.stringify(currentMessageIds) !== JSON.stringify(newMessageIds)) {
+      setMessages(formattedMessages);
+      // Stop the polling loop
+      setPollingInterval(null);
+    }
+  };
 
   const handleFacebookLogin = async () => {
     console.log('Handling Facebook login');
@@ -115,56 +175,99 @@ const Chat: React.FC = () => {
     setSelectedThread(thread);
     localStorage.setItem('selectedThread', thread.id);
     const fetchedMessages = await fetchMessages(thread.id);
-    const formattedMessages = fetchedMessages.map((msg: any) => ({
-      ...msg,
-      content: msg.content.map((c: any) => c.text.value).join(' ')
-    }));
-    setMessages(formattedMessages);
+    if (Array.isArray(fetchedMessages)) {
+      const formattedMessages = fetchedMessages.map((msg: any) => ({
+        ...msg,
+        content: msg.content.map((c: any) => c.text.value).join(' ')
+      })).sort((a: { created_at: number; role: string }, b: { created_at: number; role: string }) => {
+        if (a.created_at === b.created_at) {
+          return a.role === 'assistant' ? -1 : 1;
+        }
+        return a.created_at - b.created_at;
+      });
+      setMessages(formattedMessages);
+    } else {
+      console.error('Fetched messages are not an array:', fetchedMessages);
+    }
   };
 
-  const handleCreateThread = () => {
+  const setInitialMessages = (messageContent: string) => {
     const initialMessage = {
       id: `temp-${Date.now()}`,
       role: 'system',
-      content: `
-        <p>Bem-vindo! Como posso ajudar você hoje?</p>
-        <button onclick="handleOptionClick('info')">Informações</button>
-        <button onclick="handleOptionClick('create')">Criar Campanhas</button>
-        <button onclick="handleOptionClick('optimize')">Otimizar Campanhas</button>
-      `
+      content: `Como posso te ajudar hoje?`
     };
-    setMessages([initialMessage]);
-    setSelectedThread(null);
-    localStorage.removeItem('selectedThread');
+    const userMessage = {
+      id: `temp-${Date.now() + 1}`,
+      role: 'user',
+      content: messageContent
+    };
+    console.log('messages: ', messages)
+    console.log('Setting initial messages:', initialMessage, userMessage);
+    // Set initial messages immediately
+    setMessages(() => [initialMessage]);
+    console.log('Initial messages set:', [initialMessage, userMessage]);
+    console.log('messages: ', messages)
+
   };
 
-  const handleOptionClick = async (option: string) => {
-    const messageContent = `${option}`;
+  const sendFirstMessage = (messageContent: string) => {
+    const session = getSessionFromLocalStorage();
+    const userId = session?.user?.id;
+    const selectedCustomer = localStorage.getItem('selectedCustomer') || undefined;
+    setInitialMessages(messageContent);
+    handleOptionClick(messageContent, userId, selectedCustomer);
+  };
+
+  const handleOptionClick = async (messageContent: string, userId?: string, selectedCustomer?: string) => {
     if (!selectedThread) {
-      const session = getSessionFromLocalStorage();
-      const userId = session?.user?.id;
       if (userId) {
-        const newThread = await createThread(userId, messageContent);
+        const newThreadResponse = await createThread(userId, messageContent);
+        const newThread = newThreadResponse.result;
         setThreads((prevThreads) => [...prevThreads, newThread]);
         setSelectedThread(newThread);
         localStorage.setItem('selectedThread', newThread.id);
+
+        await handleSendMessage(messageContent, newThread.id, userId, selectedCustomer);
+        const fetchedMessages = await fetchMessages(newThread.id);
+        const formattedMessages = fetchedMessages.map((msg: any) => ({
+          ...msg,
+          content: msg.content.map((c: any) => c.text.value).join(' ')
+        })).sort((a: { created_at: number; role: string }, b: { created_at: number; role: string }) => {
+          if (a.created_at === b.created_at) {
+            return a.role === 'assistant' ? -1 : 1;
+          }
+          return a.created_at - b.created_at;
+        });
+        setMessages(() => [...formattedMessages]);
       }
+    } else {
+      await handleSendMessage(messageContent, selectedThread.id, userId, selectedCustomer);
     }
-    handleSendMessage(messageContent);
   };
 
-  const handleSendMessage = async (messageContent: string) => {
-    if (!selectedThread) {
-      handleOptionClick(messageContent);
+  const handleSendMessage = async (messageContent: string, threadId?: string, userId?: string, selectedCustomer?: string) => {
+    const textarea = document.querySelector('textarea') as HTMLTextAreaElement;
+    textarea.value = ''; // Clear the textarea
+
+    const thread = threadId || selectedThread?.id;
+    if (!thread) {
+      sendFirstMessage(messageContent);
       return;
     }
 
     const newMessage = { id: `temp-${Date.now()}`, role: 'user', content: messageContent };
-    setMessages([...messages, newMessage]);
-    const session = getSessionFromLocalStorage();
-    const userId = session?.user?.id;
+    setMessages((prevMessages) => [...prevMessages, newMessage].sort((a, b) => {
+      if (a.created_at === b.created_at) {
+        return a.role === 'assistant' ? -1 : 1;
+      }
+      return a.created_at - b.created_at;
+    }));
     try {
-      await getGPTResponse(messageContent, userId, selectedThread.id);
+      const session = getSessionFromLocalStorage();
+      const userId = session?.user?.id;
+      await getGPTResponse(messageContent, userId, thread, selectedCustomer);
+      setElapsedTime(0); // Reset elapsed time after sending a message
     } catch (error) {
       console.error('Error sending message:', error);
     }
@@ -184,7 +287,7 @@ const Chat: React.FC = () => {
           const newMessages = [...prevMessages];
           const messageIndex = newMessages.findIndex((msg) => msg.id === messageId);
           if (messageIndex !== -1) {
-            newMessages[messageIndex].content += `<br/><strong>Comment:</strong> ${comment}`;
+            newMessages[messageIndex].content += `\n\n**Comment:** ${comment}`;
           }
           return newMessages;
         });
@@ -208,9 +311,8 @@ const Chat: React.FC = () => {
     const navButtons = document.querySelectorAll('.nav-btn');
     const chatContent = document.getElementById('chatContent');
     const browserContent = document.getElementById('browserContent');
-    const webviewContainer = document.querySelector('.webview-container');
 
-    if (navButtons && chatContent && browserContent && webviewContainer) {
+    if (navButtons && chatContent && browserContent) {
       navButtons.forEach(button => {
         button.addEventListener('click', () => {
           const buttonText = button.querySelector('span')?.textContent?.trim();
@@ -221,8 +323,7 @@ const Chat: React.FC = () => {
           if (buttonText === 'Navegador') {
             (chatContent as HTMLElement).classList.remove('active');
             (browserContent as HTMLElement).classList.add('active');
-            // Carrega a URL do Google Ads
-            loadWebview('https://ads.google.com');
+            setBrowserUrl('https://www.google.com');
           } else if (buttonText === 'Chat') {
             (browserContent as HTMLElement).classList.remove('active');
             (chatContent as HTMLElement).classList.add('active');
@@ -239,21 +340,10 @@ const Chat: React.FC = () => {
           item.classList.add('active');
 
           if (browserContent?.classList.contains('active')) {
-            loadWebview('https://ads.google.com');
+            setBrowserUrl('https://www.google.com');
           }
         });
       });
-    }
-
-    function loadWebview(url: string) {
-      if (!url || !webviewContainer) return;
-      webviewContainer.innerHTML = '';
-      const webview = document.createElement('iframe');
-      webview.style.width = '100%';
-      webview.style.height = '100%';
-      webview.style.border = 'none';
-      webview.src = url;
-      webviewContainer.appendChild(webview);
     }
 
     const fullscreenBtn = document.getElementById('fullscreen-btn');
@@ -314,19 +404,11 @@ const Chat: React.FC = () => {
         <i className="fullscreen-icon"></i>
         <span className="tooltip">Expandir tela cheia</span>
       </button>
-      <div className="account-switcher">
-        <div className="account-item active">
-          <div className="account-avatar">CC#2</div>
-        </div>
-        <div className="account-item">
-          <div className="account-avatar">CC#5</div>
-        </div>
-        <div className="account-add">
-          <button className="add-account-btn">
-            <i className="fas fa-plus"></i>
-          </button>
-        </div>
-      </div>
+      <AccountSidebar
+        selectedAccount={selectedAccount}
+        setSelectedAccount={handleAccountClick}
+        activeCustomers={activeCustomers}
+      />
       <div className="vertical-separator"></div>
       <nav className="sidebar">
         <div className="user-section">
@@ -362,10 +444,7 @@ const Chat: React.FC = () => {
             <span>Navegador</span>
           </button>
         </div>
-        <button className="new-chat" onClick={handleInitChat}>
-          <i className="fas fa-plus"></i>
-          <span>Nova conversa</span>
-        </button>
+        <ChatHeader onInitChat={handleInitChat} />
         <div className="chat-history">
           {threads
             .sort((a, b) => b.created_at - a.created_at)
@@ -373,7 +452,7 @@ const Chat: React.FC = () => {
               <div key={index} className="chat-group">
                 <div className="chat-group-title">{new Date(thread.created_at * 1000).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}</div>
                 <div className="chat-item" onClick={() => handleThreadClick(thread)}>
-                  <span>{thread.metadata ? JSON.stringify(thread.metadata) : 'init message'}</span>
+                  <span>{thread.metadata ? thread?.metadata?.last_message : 'init message'}...</span>
                 </div>
               </div>
           ))}
@@ -387,7 +466,7 @@ const Chat: React.FC = () => {
               {selectedThread ? (
                 messages.map((message) => (
                   <div key={message.id} className={`message-box ${message.role}`}>
-                    <p dangerouslySetInnerHTML={{ __html: message.content }}></p>
+                    <ReactMarkdown>{message.content}</ReactMarkdown>
                     <button className={`comment-button ${message.role === 'user' ? 'left' : 'right'}`} onClick={() => handleAddComment(message.id)}>
                       <i className="fas fa-reply"></i>
                     </button>
@@ -408,28 +487,28 @@ const Chat: React.FC = () => {
                 <div className="welcome-screen">
                   <h1>Bem-vindo! Como posso ajudar você hoje?</h1>
                   <div className="welcome-buttons">
-                    <button className="welcome-button" onClick={() => handleOptionClick('Quero informações sobre minhas campanhas')}>Informações</button>
-                    <button className="welcome-button" onClick={() => handleOptionClick('Quero criar uma campanha')}>Criar Campanhas</button>
-                    <button className="welcome-button" onClick={() => handleOptionClick('Quero otimizar minhas campanhas')}>Otimizar Campanhas</button>
+                    <button className="welcome-button" onClick={() => sendFirstMessage('Quero informações sobre minhas campanhas')}>Informações</button>
+                    <button className="welcome-button" onClick={() => sendFirstMessage('Quero criar uma campanha')}>Criar Campanhas</button>
+                    <button className="welcome-button" onClick={() => sendFirstMessage('Quero otimizar minhas campanhas')}>Otimizar Campanhas</button>
+                  </div>
+                </div>
+              )}
+              {isTyping && (
+                <div className="message-box assistant typing">
+                  <div className="typing-indicator">
+                    <span></span>
+                    <span></span>
+                    <span></span>
                   </div>
                 </div>
               )}
             </div>
-            <div className="input-container">
-              <div className="input-box">
-                <textarea placeholder="Envie uma mensagem"></textarea>
-  
-              </div>
-              <button className="send-button" onClick={() => handleSendMessage((document.querySelector('textarea') as HTMLTextAreaElement).value)}>
-                  <i className="fas fa-paper-plane"></i>
-                </button>
-            </div>
+
+            <ChatInput onSendMessage={handleSendMessage} />
           </div>
         </div>
         <div id="browserContent" className="content-section">
-          <div className="webview-container">
-            {/* Webviews will be added dynamically */}
-          </div>
+          <Browser initialUrl={browserUrl} />
         </div>
       </main>
 
