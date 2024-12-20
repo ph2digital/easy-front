@@ -638,9 +638,9 @@ export const createCustomAudience = async (accessToken: string, adAccountId: str
     }
 };
 
-export const getGPTResponse = async (prompt: string, userId: string, activeThread: string | null, selectedCustomer?: string) => {
+export const getGPTResponse = async (prompt: string, userId: string, activeThread: string | null, selectedCustomer?: string, accessToken?: string) => {
     try {
-        const response = await axios.post(`${API_URL}/gpt`, { prompt, userId, activeThread, selectedCustomer });
+        const response = await axios.post(`${API_URL}/gpt`, { prompt, userId, activeThread, selectedCustomer, accessToken });
         return response.data;
     } catch (error) {
         console.error('Erro ao obter resposta do GPT:', error);

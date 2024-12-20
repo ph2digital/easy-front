@@ -27,7 +27,7 @@ const Chat: React.FC = () => {
   const [elapsedTime, setElapsedTime] = useState(0);
   const [isTyping, setIsTyping] = useState(false);
   const [browserUrl, setBrowserUrl] = useState<string>('https://www.google.com');
-
+  
   const accessTokenGoogle = useSelector((state: RootState) => state.auth.googleAccessToken);
 
   useEffect(() => {
@@ -264,9 +264,16 @@ const Chat: React.FC = () => {
       return a.created_at - b.created_at;
     }));
     try {
-      const session = getSessionFromLocalStorage();
-      const userId = session?.user?.id;
-      await getGPTResponse(messageContent, userId, thread, selectedCustomer);
+      const user = localStorage.getItem('user') || undefined;
+      const google = localStorage.getItem('googleAccounts') || undefined;
+      const parsedUser = user ? JSON.parse(user) : undefined;
+      const userId = parsedUser?.id;
+      const parsedGoogle = google ? JSON.parse(google) : [];
+      const accessToken = parsedGoogle?.[0]?.access_token;
+
+      const selectedCustomer = localStorage.getItem('selectedCustomer') || undefined;
+
+      await getGPTResponse(messageContent, userId, thread, selectedCustomer, accessToken);
       setElapsedTime(0); // Reset elapsed time after sending a message
     } catch (error) {
       console.error('Error sending message:', error);
