@@ -709,6 +709,7 @@ export const fetchGoogleAdsCampaigns = async (accessToken: string, accountId: st
   }, {
     headers: {
       Authorization: `Bearer ${accessToken}`,
+      accessToken,accountId
     },
   });
   return response.data;
