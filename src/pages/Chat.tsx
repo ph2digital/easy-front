@@ -473,7 +473,9 @@ const Chat: React.FC = () => {
               {selectedThread ? (
                 messages.map((message) => (
                   <div key={message.id} className={`message-box ${message.role}`}>
-                    <ReactMarkdown>{message.content}</ReactMarkdown>
+                    <ReactMarkdown>
+                      {message.role === 'user' ? (message.content.startsWith('\n      Prompt:') ? message.content.match(/Prompt:\s*(.*?)\s*User ID:/)?.[1]?.trim() : message.content) : message.content }
+                    </ReactMarkdown>
                     <button className={`comment-button ${message.role === 'user' ? 'left' : 'right'}`} onClick={() => handleAddComment(message.id)}>
                       <i className="fas fa-reply"></i>
                     </button>
