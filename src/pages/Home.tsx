@@ -9,7 +9,7 @@ import AccountDetails from '../components/AccountDetails';
 import RightSidebar from '../components/RightSidebar';
 import AccountPopup from '../components/AccountPopup';
 import { RootState } from '../store';
-import { checkAdsAccounts, fetchGoogleAdsAccounts, fetchFacebookAdAccounts, fetchMetaAdsCampaigns, linkMetaAds, linkAccountFromHome, getSessionFromLocalStorage, listLinkedAccounts, fetchGoogleAdsCampaigns } from '../services/api';
+import { checkAdsAccounts, fetchGoogleAdsAccounts, fetchMetaAdsCampaigns, linkMetaAds, getSessionFromLocalStorage, listLinkedAccounts, fetchGoogleAdsCampaigns } from '../services/api';
 import { setToSessionStorage, getFromSessionStorage } from '../utils/storage';
 
 interface Campaign {
@@ -388,33 +388,6 @@ const Home: React.FC = () => {
     );
   };
 
-  const handleLinkAccount = async (platform: string) => {
-    console.log('Linking account for platform:', platform);
-    try {
-      const session = getSessionFromLocalStorage();
-      const userId = session?.user?.id;
-
-      if (!userId) {
-        throw new Error('User ID não encontrado na sessão');
-      }
-
-      const authUrl = await linkAccountFromHome(platform, userId);
-
-      if (accessTokenGoogle && userId) {
-        try {
-          const facebookAdAccounts = await fetchFacebookAdAccounts(accessTokenGoogle, userId);
-          setFacebookAccounts(facebookAdAccounts.adAccounts);
-          localStorage.setItem('facebookAccounts', JSON.stringify(facebookAdAccounts.adAccounts));
-        } catch (error) {
-          console.error('Error fetching Facebook Ad accounts:', error);
-        }
-      }
-      window.location.href = authUrl;
-
-    } catch (error) {
-      console.error('Error linking account:', error);
-    }
-  };
 
   const handleAccountClick = async (accountId: string) => {
     console.log('Account clicked:', accountId);
@@ -427,6 +400,7 @@ const Home: React.FC = () => {
     <div className="home-content">
       <div className="header">
         <div className="title">Campanhas de Tráfego Pago</div>
+        <button className="chat-button" onClick={() => navigate('/chat')}>Ir pro Chat</button>
         <button className="copilot-button" onClick={() => setIsRightSidebarOpen(true)}>Open Copilot</button>
       </div>
       {showPopup && (
@@ -434,13 +408,9 @@ const Home: React.FC = () => {
           googleAccounts={googleAccounts}
           facebookAccounts={facebookAccounts}
           handleAccountClick={handleAccountClick}
-          handleLinkAccount={handleLinkAccount}
           handleFacebookLogin={handleFacebookLogin}
-          setShowPopup={setShowPopup}
           loadingGoogleAccounts={loadingGoogleAccounts}
           loadingFacebookAccounts={loadingFacebookAccounts}
-          activeCustomers={activeCustomers}
-          toggleAccountStatus={() => {}}
         />
       )}
       <div className='side-and-content'>

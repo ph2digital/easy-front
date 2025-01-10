@@ -743,9 +743,9 @@ export const fetchThreads = async (userId: string) => {
     }
 };
 
-export const createThread = async (userId: string, messageContent: string) => {
+export const createThread = async (prompt: string, userId: string, selectedCustomer?: string, accessToken?: string) => {
     try {
-        const response = await axios.post(`${API_URL}/gpt/threads`, { userId, messageContent });
+        const response = await axios.post(`${API_URL}/gpt/threads`, { prompt, userId, selectedCustomer, accessToken });
         return response.data;
     } catch (error) {
         console.error('Error creating thread:', error);
@@ -771,6 +771,49 @@ export const fetchRuns = async (threadId: string) => {
         console.error('Error fetching runs:', error);
         throw new Error('Error fetching runs');
     }
+};
+
+export const validateGoogleToken = async (accessToken: string) => {
+  try {
+    const response = await axios.get(`https://www.googleapis.com/oauth2/v1/tokeninfo?access_token=${accessToken}`);
+    return response.data;
+  } catch (error) {
+    console.error('Error validating Google token:', error);
+    throw new Error('Error validating Google token');
+  }
+};
+
+export const validateAndRefreshGoogleToken = async (accessToken: string, refreshToken: string) => {
+  try {
+    // Validate the token
+    await validateGoogleToken(accessToken);
+  } catch (error) {
+    console.log('Google token expired, refreshing token...');
+    try {
+      // Refresh the token
+      const response = await axios.post('https://oauth2.googleapis.com/token', {
+        client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID,
+        client_secret: import.meta.env.VITE_GOOGLE_CLIENT_SECRET,
+        refresh_token: refreshToken,
+        grant_type: 'refresh_token',
+      });
+
+      const newAccessToken = response.data.access_token;
+      const newRefreshToken = response.data.refresh_token || refreshToken;
+
+      // Update the session with the new tokens
+      const session = getSessionFromLocalStorage();
+      if (session) {
+        setSession(newAccessToken, newRefreshToken, session.meta.access_token, session.meta.refresh_token, session.user, {}); // Remove appState
+      }
+
+      return newAccessToken;
+    } catch (refreshError) {
+      console.error('Error refreshing Google token:', refreshError);
+      throw new Error('Error refreshing Google token');
+    }
+  }
+  return accessToken;
 };
 
 export default api;

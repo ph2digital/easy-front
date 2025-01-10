@@ -23,7 +23,7 @@ const CampaignEditPopup: React.FC<CampaignEditPopupProps> = ({ campaign, onClose
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const accessToken: string | null = useSelector((state: RootState) => state.auth.accessToken);
+  const accessToken: string | null = useSelector((state: RootState) => state.auth.googleAccessToken);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;

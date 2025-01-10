@@ -1,17 +1,16 @@
 import React, { useEffect, useState } from 'react';
-import { useSelector } from 'react-redux';
 import ReactMarkdown from 'react-markdown';
+import { useNavigate } from 'react-router-dom';
 import './styles/Chat.css';
 import AccountPopup from '../components/AccountPopup';
 import Browser from '../components/Browser';
 import AccountSidebar from '../components/AccountSidebar';
 import ChatInput from '../components/ChatInput';
 import ChatHeader from '../components/ChatHeader';
-import { RootState } from '../store';
-import { linkMetaAds, linkAccountFromHome, getSessionFromLocalStorage, fetchFacebookAdAccounts, fetchThreads, fetchMessages, getGPTResponse, createThread, submitComment } from '../services/api';
+import { linkMetaAds, getSessionFromLocalStorage, fetchThreads, fetchMessages, getGPTResponse, createThread, submitComment, validateAndRefreshGoogleToken } from '../services/api';
 
 const Chat: React.FC = () => {
-  const [showPopup, setShowPopup] = useState(false);
+  const [showPopup] = useState(false);
   const [selectedAccount, setSelectedAccount] = useState<string | null>(localStorage.getItem('selectedAccount'));
   const [googleAccounts, setGoogleAccounts] = useState<any[]>([]);
   const [facebookAccounts, setFacebookAccounts] = useState<any[]>([]);
@@ -28,7 +27,7 @@ const Chat: React.FC = () => {
   const [isTyping, setIsTyping] = useState(false);
   const [browserUrl, setBrowserUrl] = useState<string>('https://www.google.com');
   
-  const accessTokenGoogle = useSelector((state: RootState) => state.auth.googleAccessToken);
+  const navigate = useNavigate();
 
   useEffect(() => {
     console.log('Loading active customers from localStorage');
@@ -102,15 +101,17 @@ const Chat: React.FC = () => {
   const fetchMessagesForThread = async (threadId: string) => {
     const fetchedMessages = await fetchMessages(threadId);
     const result = fetchedMessages?.result?.data;
-    const formattedMessages = result.map((msg: any) => ({
-      ...msg,
-      content: msg.content.map((c: any) => c.text.value).join(' ')
-    })).sort((a: { created_at: number; role: string }, b: { created_at: number; role: string }) => {
-      if (a.created_at === b.created_at) {
-        return a.role === 'assistant' ? -1 : 1;
-      }
-      return a.created_at - b.created_at;
-    });
+    const formattedMessages = result
+      .filter((msg: any) => !msg.metadata?.system)
+      .map((msg: any) => ({
+        ...msg,
+        content: msg.content.map((c: any) => c.text.value).join(' ')
+      })).sort((a: { created_at: number; role: string }, b: { created_at: number; role: string }) => {
+        if (a.created_at === b.created_at) {
+          return a.role === 'assistant' ? -1 : 1;
+        }
+        return a.created_at - b.created_at;
+      });
 
     const currentMessageIds = messages.map((msg: any) => msg.id);
     const newMessageIds = formattedMessages.map((msg: any) => msg.id);
@@ -137,33 +138,6 @@ const Chat: React.FC = () => {
     }, 500);
   };
 
-  const handleLinkAccount = async (platform: string) => {
-    console.log('Linking account for platform:', platform);
-    try {
-      const session = getSessionFromLocalStorage();
-      const userId = session?.user?.id;
-
-      if (!userId) {
-        throw new Error('User ID não encontrado na sessão');
-      }
-
-      const authUrl = await linkAccountFromHome(platform, userId);
-
-      if (accessTokenGoogle && userId) {
-        try {
-          const facebookAdAccounts = await fetchFacebookAdAccounts(accessTokenGoogle, userId);
-          setFacebookAccounts(facebookAdAccounts.adAccounts);
-          localStorage.setItem('facebookAccounts', JSON.stringify(facebookAdAccounts.adAccounts));
-        } catch (error) {
-          console.error('Error fetching Facebook Ad accounts:', error);
-        }
-      }
-      window.location.href = authUrl;
-
-    } catch (error) {
-      console.error('Error linking account:', error);
-    }
-  };
 
   const handleAccountClick = async (accountId: string) => {
     console.log('Account clicked:', accountId);
@@ -176,15 +150,17 @@ const Chat: React.FC = () => {
     localStorage.setItem('selectedThread', thread.id);
     const fetchedMessages = await fetchMessages(thread.id);
     if (Array.isArray(fetchedMessages)) {
-      const formattedMessages = fetchedMessages.map((msg: any) => ({
-        ...msg,
-        content: msg.content.map((c: any) => c.text.value).join(' ')
-      })).sort((a: { created_at: number; role: string }, b: { created_at: number; role: string }) => {
-        if (a.created_at === b.created_at) {
-          return a.role === 'assistant' ? -1 : 1;
-        }
-        return a.created_at - b.created_at;
-      });
+      const formattedMessages = fetchedMessages
+        .filter((msg: any) => !msg.metadata?.system)
+        .map((msg: any) => ({
+          ...msg,
+          content: msg.content.map((c: any) => c.text.value).join(' ')
+        })).sort((a: { created_at: number; role: string }, b: { created_at: number; role: string }) => {
+          if (a.created_at === b.created_at) {
+            return a.role === 'assistant' ? -1 : 1;
+          }
+          return a.created_at - b.created_at;
+        });
       setMessages(formattedMessages);
     } else {
       console.error('Fetched messages are not an array:', fetchedMessages);
@@ -221,32 +197,38 @@ const Chat: React.FC = () => {
 
   const handleOptionClick = async (messageContent: string, userId?: string, selectedCustomer?: string) => {
     if (!selectedThread) {
+      const google = localStorage.getItem('googleAccounts') || undefined;
+      const parsedGoogle = google ? JSON.parse(google) : [];
+      const accessToken = parsedGoogle?.[0]?.access_token;
+
       if (userId) {
-        const newThreadResponse = await createThread(userId, messageContent);
+        const newThreadResponse = await createThread(messageContent, userId, selectedCustomer, accessToken);
         const newThread = newThreadResponse.result;
         setThreads((prevThreads) => [...prevThreads, newThread]);
         setSelectedThread(newThread);
         localStorage.setItem('selectedThread', newThread.id);
 
-        await handleSendMessage(messageContent, newThread.id, userId, selectedCustomer);
+        await handleSendMessage(messageContent, newThread.id);
         const fetchedMessages = await fetchMessages(newThread.id);
-        const formattedMessages = fetchedMessages.map((msg: any) => ({
-          ...msg,
-          content: msg.content.map((c: any) => c.text.value).join(' ')
-        })).sort((a: { created_at: number; role: string }, b: { created_at: number; role: string }) => {
-          if (a.created_at === b.created_at) {
-            return a.role === 'assistant' ? -1 : 1;
-          }
-          return a.created_at - b.created_at;
-        });
+        const formattedMessages = fetchedMessages
+          .filter((msg: any) => !msg.metadata?.system)
+          .map((msg: any) => ({
+            ...msg,
+            content: msg.content.map((c: any) => c.text.value).join(' ')
+          })).sort((a: { created_at: number; role: string }, b: { created_at: number; role: string }) => {
+            if (a.created_at === b.created_at) {
+              return a.role === 'assistant' ? -1 : 1;
+            }
+            return a.created_at - b.created_at;
+          });
         setMessages(() => [...formattedMessages]);
       }
     } else {
-      await handleSendMessage(messageContent, selectedThread.id, userId, selectedCustomer);
+      await handleSendMessage(messageContent, selectedThread.id);
     }
   };
 
-  const handleSendMessage = async (messageContent: string, threadId?: string, userId?: string, selectedCustomer?: string) => {
+  const handleSendMessage = async (messageContent: string, threadId?: string) => {
     const textarea = document.querySelector('textarea') as HTMLTextAreaElement;
     textarea.value = ''; // Clear the textarea
 
@@ -263,6 +245,7 @@ const Chat: React.FC = () => {
       }
       return a.created_at - b.created_at;
     }));
+
     try {
       const user = localStorage.getItem('user') || undefined;
       const google = localStorage.getItem('googleAccounts') || undefined;
@@ -270,13 +253,16 @@ const Chat: React.FC = () => {
       const userId = parsedUser?.id;
       const parsedGoogle = google ? JSON.parse(google) : [];
       const accessToken = parsedGoogle?.[0]?.access_token;
+      const refreshToken = parsedGoogle?.[0]?.refresh_token;
 
       const selectedCustomer = localStorage.getItem('selectedCustomer') || undefined;
 
-      await getGPTResponse(messageContent, userId, thread, selectedCustomer, accessToken);
+      const validAccessToken = await validateAndRefreshGoogleToken(accessToken, refreshToken);
+      await getGPTResponse(messageContent, userId, thread, selectedCustomer, validAccessToken);
       setElapsedTime(0); // Reset elapsed time after sending a message
     } catch (error) {
       console.error('Error sending message:', error);
+      navigate('/login');
     }
   };
 
@@ -526,13 +512,9 @@ const Chat: React.FC = () => {
           googleAccounts={googleAccounts}
           facebookAccounts={facebookAccounts}
           handleAccountClick={handleAccountClick}
-          handleLinkAccount={handleLinkAccount}
           handleFacebookLogin={handleFacebookLogin}
-          setShowPopup={setShowPopup}
           loadingGoogleAccounts={loadingGoogleAccounts}
           loadingFacebookAccounts={loadingFacebookAccounts}
-          activeCustomers={activeCustomers}
-          toggleAccountStatus={() => {}}
         />
       )}
     </div>

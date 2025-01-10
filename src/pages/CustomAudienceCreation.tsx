@@ -13,32 +13,37 @@ const CustomAudienceCreation: React.FC = () => {
   const [customerFileSource, setCustomerFileSource] = useState('');
   const [customAudiences, setCustomAudiences] = useState<any[]>([]);
   const dispatch = useDispatch();
-  const { access_token } = getSessionFromLocalStorage();
   const storedActiveCustomers = JSON.parse(localStorage.getItem('activeCustomers') || '[]');
   const customerId = storedActiveCustomers?.[0]?.customer_id;
   console.log(`customer_id: ${customerId}`);
 
   useEffect(() => {
-    const fetchAudiences = async () => {
-      if (access_token && customerId) {
-        try {
-          console.log('Fetching custom audiences with access_token:', access_token, 'and adAccountuser.id:', customerId);
-          const audiences = await fetchCustomAudiences(access_token, customerId);
-          console.log('Fetched custom audiences:', audiences);
-          setCustomAudiences(audiences);
-        } catch (error) {
-          console.error('Error fetching custom audiences:', error);
+    const session = getSessionFromLocalStorage();
+    if (session) {
+      const accessToken = session.google.access_token;
+      const fetchAudiences = async () => {
+        if (accessToken && customerId) {
+          try {
+            console.log('Fetching custom audiences with access_token:', accessToken, 'and adAccountuser.id:', customerId);
+            const audiences = await fetchCustomAudiences(accessToken, customerId);
+            console.log('Fetched custom audiences:', audiences);
+            setCustomAudiences(audiences);
+          } catch (error) {
+            console.error('Error fetching custom audiences:', error);
+          }
+        } else {
+          console.warn('Access token or adAccountuser.id is missing:', { accessToken, meta_id: customerId });
         }
-      } else {
-        console.warn('Access token or adAccountuser.id is missing:', { access_token, meta_id: customerId });
-      }
-    };
+      };
 
-    fetchAudiences();
-  }, [customerId, access_token]);
+      fetchAudiences();
+    }
+  }, [customerId]);
 
   const handleAddCustomer = async () => {
-    if (customerName.trim() && access_token && customerId) {
+    const session = getSessionFromLocalStorage();
+    const accessToken = session?.google?.access_token;
+    if (customerName.trim() && accessToken && customerId) {
       try {
         const audienceData: any = {
           name: customerName,
@@ -64,7 +69,7 @@ const CustomAudienceCreation: React.FC = () => {
         }
 
         console.log('Creating custom audience with data:', audienceData);
-        const newAudience = await createCustomAudience(access_token, customerId, audienceData);
+        const newAudience = await createCustomAudience(accessToken, customerId, audienceData);
         console.log('Created custom audience:', newAudience);
         dispatch(addCustomer(newAudience[0].name));
         setCustomerName('');
@@ -77,7 +82,7 @@ const CustomAudienceCreation: React.FC = () => {
         console.error('Error creating custom audience:', error);
       }
     } else {
-      console.warn('Missing required fields:', { customerName, access_token, customerId });
+      console.warn('Missing required fields:', { customerName, accessToken, customerId });
     }
   };
 

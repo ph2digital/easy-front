@@ -53,7 +53,7 @@ const RightSidebar: React.FC<RightSidebarProps> = ({ isOpen, onClose }) => {
     try {
       const response = await fetchThreads(userId);
       if (response.length === 0) {
-        const newThread = await createThread(userId);
+        const newThread = await createThread('Initial prompt', userId);
         setThreads([newThread]);
         setActiveThread(newThread.id);
         sessionStorage.setItem('threads', JSON.stringify([newThread]));
@@ -158,7 +158,7 @@ const RightSidebar: React.FC<RightSidebarProps> = ({ isOpen, onClose }) => {
       const session = getSessionFromLocalStorage();
       const userId = session?.user?.id;
       if (userId) {
-        const newThread = await createThread(userId);
+        const newThread = await createThread('Initial prompt', userId);
         setThreads((prevThreads) => [...prevThreads, newThread]);
         setActiveThread(newThread.id);
         sessionStorage.setItem('threads', JSON.stringify([...threads, newThread]));

@@ -21,7 +21,7 @@ const AdsetEditPopup: React.FC<AdsetEditPopupProps> = ({ adset, onClose, onSave 
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const accessToken: string | null = useSelector((state: RootState) => state.auth.accessToken);
+  const accessToken: string | null = useSelector((state: RootState) => state.auth.googleAccessToken);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;

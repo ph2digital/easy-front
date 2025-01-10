@@ -123,7 +123,7 @@ const CampaignDetails: React.FC = () => {
   const [selectedAdset, setSelectedAdset] = useState<Adset | null>(null);
   const [selectedAd, setSelectedAd] = useState<Ad | null>(null);
   const editType = new URLSearchParams(location.search).get('edit');
-  const accessToken: string | null = useSelector((state: RootState) => state.auth.accessToken);
+  const accessToken: string | null = useSelector((state: RootState) => state.auth.googleAccessToken);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {

@@ -357,3 +357,23 @@
 .header .copilot-button:hover {
   background-color: #003f7f;
 }
+
+.header .chat-button {
+  padding: 10px 20px;
+  margin-right: 10px;
+  border: none;
+  border-radius: 5px;
+  background-color: #28a745;
+  color: white;
+  cursor: pointer;
+  transition: background-color 0.2s ease, transform 0.1s ease;
+}
+
+.header .chat-button:hover {
+  background-color: #218838;
+  transform: translateY(-2px);
+}
+
+.header .chat-button:active {
+  transform: translateY(1px);
+}

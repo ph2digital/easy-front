@@ -52,7 +52,7 @@ const CampaignCreation: React.FC = () => {
     const [competitorAdId, setCompetitorAdId] = useState<string>('');
     const [uploadedCreativeIds, setUploadedCreativeIds] = useState<string[]>([]);
     const dispatch = useDispatch();
-    const accessToken = useSelector((state: RootState) => state.auth.accessToken);
+    const accessToken = useSelector((state: RootState) => state.auth.googleAccessToken);
     const [pageId, setPageId] = useState<string>('113761611224912'); // Default page ID
     const [link, setLink] = useState<string>('https://ph2digital.com/'); // Default link
     const [message, setMessage] = useState<string>('Ad message'); // Default message
