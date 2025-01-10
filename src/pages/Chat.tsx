@@ -262,7 +262,7 @@ const Chat: React.FC = () => {
       setElapsedTime(0); // Reset elapsed time after sending a message
     } catch (error) {
       console.error('Error sending message:', error);
-      navigate('/login');
+      // navigate('/login');
     }
   };
 
