@@ -258,11 +258,20 @@ const Chat: React.FC = () => {
       const selectedCustomer = localStorage.getItem('selectedCustomer') || undefined;
 
       const validAccessToken = await validateAndRefreshGoogleToken(accessToken, refreshToken);
-      await getGPTResponse(messageContent, userId, thread, selectedCustomer, validAccessToken);
+      await getGPTResponseWithToken(messageContent, userId, thread, selectedCustomer, validAccessToken);
       setElapsedTime(0); // Reset elapsed time after sending a message
     } catch (error) {
       console.error('Error sending message:', error);
-      // navigate('/login');
+      navigate('/login');
+    }
+  };
+
+  const getGPTResponseWithToken = async (messageContent: string, userId: string, thread: string, selectedCustomer?: string, accessToken?: string) => {
+    try {
+      await getGPTResponse(messageContent, userId, thread, selectedCustomer, accessToken);
+    } catch (error) {
+      console.error('Error getting GPT response:', error);
+      throw new Error('Error getting GPT response');
     }
   };
 
