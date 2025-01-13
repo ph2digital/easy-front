@@ -256,13 +256,19 @@ const Chat: React.FC = () => {
       const refreshToken = parsedGoogle?.[0]?.refresh_token;
 
       const selectedCustomer = localStorage.getItem('selectedCustomer') || undefined;
-
-      const validAccessToken = await validateAndRefreshGoogleToken(accessToken, refreshToken);
+      let validAccessToken
+      try {
+        validAccessToken = await validateAndRefreshGoogleToken(accessToken, refreshToken);
+      } catch (tokenError) {
+        console.error('Error validating or refreshing token:', tokenError);
+        navigate('/login');
+        return;
+      }
       await getGPTResponseWithToken(messageContent, userId, thread, selectedCustomer, validAccessToken);
+
       setElapsedTime(0); // Reset elapsed time after sending a message
     } catch (error) {
       console.error('Error sending message:', error);
-      navigate('/login');
     }
   };
 
