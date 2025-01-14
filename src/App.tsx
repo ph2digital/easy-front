@@ -16,6 +16,7 @@ import CampaignCreation from './pages/CampaignCreation';
 import CustomAudienceCreation from './pages/CustomAudienceCreation';
 import PrivacyPolicy from './pages/PrivacyPolicy';
 import Chat from './pages/Chat';
+import ErrorBoundary from './components/ErrorBoundary';
 
 const App = () => {
   const dispatch = useDispatch();
@@ -148,7 +149,9 @@ const App = () => {
         path="/chat"
         element={
           <PrivateRoute>
-            <Chat />
+            <ErrorBoundary>
+              <Chat />
+            </ErrorBoundary>
           </PrivateRoute>
         }
       />
