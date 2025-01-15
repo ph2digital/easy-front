@@ -18,9 +18,9 @@ const AccountSidebar: React.FC<AccountSidebarProps> = ({ selectedAccount, setSel
 
   return (
     <div className="account-sidebar">
-      <h3>Contas Vinculadas</h3>
+      <h2>Contas Vinculadas</h2>
       <div className="account-list">
-        <h4>Google Ads</h4>
+        <h3>Google Ads</h3>
         <ul>
           {googleAccounts.map((account) => (
             <li
@@ -32,7 +32,7 @@ const AccountSidebar: React.FC<AccountSidebarProps> = ({ selectedAccount, setSel
             </li>
           ))}
         </ul>
-        <h4>Facebook Ads</h4>
+        <h3>Facebook Ads</h3>
         <ul>
           {facebookAccounts.map((account) => (
             <li
