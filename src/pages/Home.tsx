@@ -9,7 +9,7 @@ import AccountDetails from '../components/AccountDetails';
 import RightSidebar from '../components/RightSidebar';
 import AccountPopup from '../components/AccountPopup';
 import { RootState } from '../store';
-import { checkAdsAccounts, fetchGoogleAdsAccounts, fetchMetaAdsCampaigns, linkMetaAds, getSessionFromLocalStorage, listLinkedAccounts, fetchGoogleAdsCampaigns } from '../services/api';
+import { checkAdsAccounts, fetchGoogleAdsAccounts, fetchMetaAdsCampaigns, linkMetaAds, getSessionFromLocalStorage, listLinkedAccounts, fetchGoogleAdsCampaigns, listAccessibleCustomers, identifyManagerAccount } from '../services/api';
 import { setToSessionStorage, getFromSessionStorage } from '../utils/storage';
 
 interface Campaign {
@@ -278,6 +278,33 @@ const Home: React.FC = () => {
     }
   };
 
+  const fetchAccessibleCustomersAndManagerAccount = async () => {
+    const session = getSessionFromLocalStorage();
+    const accessToken = session?.google?.access_token;
+    const userId = session?.user?.id;
+  
+    if (accessToken && userId) {
+      try {
+        console.log('Fetching accessible customers');
+        const accessibleCustomers = await listAccessibleCustomers(accessToken);
+        console.log('Accessible customers:', accessibleCustomers);
+  
+        console.log('Identifying manager account');
+        const customerGestor = await identifyManagerAccount(accessToken, userId);
+        console.log('Manager account:', customerGestor);
+  
+        // Store the accessible customers and manager account in local storage or state
+        localStorage.setItem('accessibleCustomers', JSON.stringify(accessibleCustomers));
+        localStorage.setItem('customerGestor', customerGestor);
+  
+        // Fetch campaigns only after identifying the manager account
+        await fetchCampaigns();
+      } catch (error) {
+        console.error('Error fetching accessible customers and manager account:', error);
+      }
+    }
+  };
+
   useEffect(() => {
     console.log('Loading active customers from localStorage');
     const storedActiveCustomers = JSON.parse(localStorage.getItem('activeCustomers') || '[]');
@@ -345,11 +372,7 @@ const Home: React.FC = () => {
   }, [selectedAccount, googleAccounts, facebookAccounts]);
 
   useEffect(() => {
-    console.log('Loading Google and Facebook accounts from localStorage');
-    const storedGoogleAccounts = JSON.parse(localStorage.getItem('googleAccounts') || '[]');
-    const storedFacebookAccounts = JSON.parse(localStorage.getItem('facebookAccounts') || '[]');
-    setGoogleAccounts(storedGoogleAccounts);
-    setFacebookAccounts(storedFacebookAccounts);
+    fetchAccessibleCustomersAndManagerAccount();
   }, []);
 
   const handleFacebookLogin = async () => {

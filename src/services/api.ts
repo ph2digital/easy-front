@@ -816,4 +816,35 @@ export const validateAndRefreshGoogleToken = async (accessToken: string, refresh
   return accessToken;
 };
 
+export const listAccessibleCustomers = async (accessToken: string) => {
+  try {
+    const response = await api.get('/google-ads/customers', {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    });
+    return response.data.accessibleCustomers;
+  } catch (error) {
+    console.error('Erro ao listar clientes acessíveis:', error);
+    throw new Error('Erro ao listar clientes acessíveis');
+  }
+};
+
+export const identifyManagerAccount = async (accessToken: string, userId: string) => {
+  try {
+    const response = await api.get('/google-ads/manager-account', {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+      params: {
+        userId,
+      },
+    });
+    return response.data.customerGestor;
+  } catch (error) {
+    console.error('Erro ao identificar conta gestora:', error);
+    throw new Error('Erro ao identificar conta gestora');
+  }
+};
+
 export default api;
