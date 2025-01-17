@@ -12,37 +12,47 @@ const AuthCallback = () => {
   useEffect(() => {
     const handleAuthCallback = async () => {
       const urlParams = new URLSearchParams(window.location.search);
-      const accessToken = urlParams.get('access_token');
-      const refreshToken = urlParams.get('refresh_token');
+      const accessToken = urlParams.get('accessToken');
+      const refreshToken = urlParams.get('refreshToken');
       const metaAccessToken = urlParams.get('meta_access_token');
       const facebookAccessToken = urlParams.get('facebook_access_token');
 
       if (accessToken && refreshToken) {
         try {
-          const response = await saveGoogleSessionToDatabase(accessToken, refreshToken);
+          // Fetch user information
+          const userInfoResponse = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+            headers: {
+              Authorization: `Bearer ${accessToken}`,
+            },
+          });
+
+          if (!userInfoResponse.ok) {
+            throw new Error('Erro ao buscar informações do usuário');
+          }
+
+          const userInfo = await userInfoResponse.json();
+
+          // Call backend with all necessary data
+          const response = await saveGoogleSessionToDatabase(
+            accessToken,
+            refreshToken,
+            userInfo.email,
+            userInfo.name,
+            userInfo.picture
+          );
+
           if (response.user) {
-            const profileImage = response.user.picture?.data?.url || response.user.picture || '';
             dispatch(setGoogleTokens({ accessToken, refreshToken }));
-            dispatch(setUser({ user: response.user, profileImage }));
+            dispatch(setUser({ user: response.user, profileImage: userInfo.picture }));
             localStorage.setItem('user', JSON.stringify(response.user));
-          } else {
-            console.error('Error saving session: User data is undefined');
-          }
-          setSession(accessToken, refreshToken, '', '', response.user, {});
-          if (window.opener) {
-            window.opener.location.href = '/home';
-            window.close();
-          } else {
             navigate('/home');
-          }
-        } catch (error) {
-          console.error('Error saving session:', error);
-          if (window.opener) {
-            window.opener.location.href = '/login';
-            window.close();
           } else {
+            console.error('Erro ao salvar sessão: Dados do usuário indefinidos');
             navigate('/login');
           }
+        } catch (error) {
+          console.error('Erro ao salvar sessão:', error);
+          navigate('/login');
         }
       } else if (metaAccessToken) {
         try {

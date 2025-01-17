@@ -98,9 +98,9 @@ export const signInWithGoogle = async () => {
     }
 };
 
-export const saveGoogleSessionToDatabase = async (accessToken: string, refreshToken: string) => {
+export const saveGoogleSessionToDatabase = async (accessToken: string, refreshToken: string, email: string, name: string, picture: string) => {
     try {
-        const response = await axios.post(`${API_URL}/auth/save-session`, { accessToken, refreshToken });
+        const response = await axios.post(`${API_URL}/auth/save-session`, { accessToken, refreshToken, email, name, picture });
 
         if (!response.data.user) {
             throw new Error('User data is undefined in the response');
