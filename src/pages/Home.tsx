@@ -205,10 +205,11 @@ const Home: React.FC = () => {
   };
 
   const fetchCampaigns = async () => {
-    console.log('Fetching campaigns for all accounts',activeCustomers);
-
-    if (activeCustomers.length > 0) {
-      for (const account of activeCustomers) {
+    console.log('Fetching campaigns for selected account', selectedAccount);
+  
+    if (selectedAccount) {
+      const account = activeCustomers.find((acc: any) => acc.customer_id === selectedAccount);
+      if (account) {
         await fetchCampaignsForAccount(account);
       }
     }

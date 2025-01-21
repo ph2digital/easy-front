@@ -77,7 +77,7 @@ export const useChatFunctions = () => {
         }
       }, pollingInterval);
     } else {
-      // setIsTyping(false);
+      setIsTyping(false);
     }
 
     return () => {
@@ -90,11 +90,9 @@ export const useChatFunctions = () => {
   useEffect(() => {
     if (elapsedTime <= 60) {
       setPollingInterval(1000); // 1 second
-    } else if (elapsedTime <= 300) {
-      setPollingInterval(10000); // 10 seconds
     } else {
-      setPollingInterval(60000); // 60 seconds
-    }
+      setPollingInterval(10000); // 10 seconds
+    } 
   }, [elapsedTime]);
 
   const formatMessages = (messages: any[]) => {
@@ -207,18 +205,19 @@ export const useChatFunctions = () => {
     const session = getSessionFromLocalStorage();
     const userId = session?.user?.id;
     const selectedCustomer = localStorage.getItem('selectedCustomer') || undefined;
+    const customerGestor = localStorage.getItem('customerGestor') || undefined;
     setInitialMessages();
-    handleOptionClick(messageContent, userId, selectedCustomer);
+    handleOptionClick(messageContent, userId, selectedCustomer,customerGestor);
   };
 
-  const handleOptionClick = async (messageContent: string, userId?: string, selectedCustomer?: string) => {
+  const handleOptionClick = async (messageContent: string, userId?: string, selectedCustomer?: string,customerGestor?: string) => {
     if (!selectedThread) {
       const google = localStorage.getItem('googleAccounts') || undefined;
       const parsedGoogle = google ? JSON.parse(google) : [];
       const accessToken = parsedGoogle?.[0]?.access_token;
 
       if (userId) {
-        const newThreadResponse = await createThread(messageContent, userId, selectedCustomer, accessToken);
+        const newThreadResponse = await createThread(messageContent, userId, selectedCustomer, accessToken, customerGestor);
         const newThread = newThreadResponse.result;
         setThreads((prevThreads) => [...prevThreads, newThread]);
         setSelectedThread(newThread);
@@ -288,6 +287,7 @@ export const useChatFunctions = () => {
       const refreshToken = parsedGoogle?.[0]?.refresh_token;
   
       const selectedCustomer = localStorage.getItem('selectedCustomer') || undefined;
+      const customerGestor = localStorage.getItem('customerGestor') || undefined;
       let validAccessToken
       try {
         validAccessToken = await validateAndRefreshGoogleToken(accessToken, refreshToken);
@@ -299,7 +299,7 @@ export const useChatFunctions = () => {
   
       // Keep typing indicator active and fetch messages while waiting for GPT response
       setIsTyping(true);
-      const gptResponsePromise = getGPTResponseWithToken(messageContent, userId, thread, selectedCustomer, validAccessToken);
+      const gptResponsePromise = getGPTResponseWithToken(messageContent, userId, thread, selectedCustomer, validAccessToken, customerGestor);
   
       setTimeout(() => {
         const pollingIntervalId = setInterval(async () => {
@@ -329,11 +329,11 @@ export const useChatFunctions = () => {
       // Loop to list runs and messages
       const retryDelays = [
         ...Array(60).fill(1000), // 1 second for the first minute
-        ...Array(108).fill(5000) // 5 seconds for the next 9 minutes
+        ...Array(108).fill(2000) // 5 seconds for the next 2 minutes
       ];
       let retryCount = 0;
       let runsInProgress = true;
-      const maxLoopTime = 10 * 60 * 1000; // 10 minutes
+      const maxLoopTime = 10 * 60 * 300; // 3 minutes
       const startTime = Date.now();
       let currentThread = selectedThread;
   
@@ -395,9 +395,9 @@ export const useChatFunctions = () => {
   };
   
 
-  const getGPTResponseWithToken = async (messageContent: string, userId: string, thread: string, selectedCustomer?: string, accessToken?: string) => {
+  const getGPTResponseWithToken = async (messageContent: string, userId: string, thread: string, selectedCustomer?: string, accessToken?: string, customerGestor?: string) => {
     try {
-      await getGPTResponse(messageContent, userId, thread, selectedCustomer, accessToken);
+      await getGPTResponse(messageContent, userId, thread, selectedCustomer, accessToken, customerGestor);
     } catch (error) {
       console.error('Error getting GPT response:', error);
       throw new Error('Error getting GPT response');
