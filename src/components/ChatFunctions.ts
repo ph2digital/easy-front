@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios'; // Import axios
-import { linkMetaAds, getSessionFromLocalStorage, fetchThreads, getGPTResponse, createThread, submitComment, validateAndRefreshGoogleToken, fetchRuns, fetchMessages as apiFetchMessages } from '../services/api';
+import axios from 'axios';
+import { linkMetaAds, getSessionFromLocalStorage, fetchThreads, createThread, submitComment, validateAndRefreshGoogleToken, fetchRuns,getGPTResponse, fetchMessages as apiFetchMessages } from '../services/api';
 
 export const useChatFunctions = () => {
   const [selectedAccount, setSelectedAccount] = useState<string | null>(localStorage.getItem('selectedAccount'));
@@ -288,7 +288,7 @@ export const useChatFunctions = () => {
   
       const selectedCustomer = localStorage.getItem('selectedCustomer') || undefined;
       const customerGestor = localStorage.getItem('customerGestor') || undefined;
-      let validAccessToken
+      let validAccessToken;
       try {
         validAccessToken = await validateAndRefreshGoogleToken(accessToken, refreshToken);
       } catch (tokenError) {
@@ -316,11 +316,40 @@ export const useChatFunctions = () => {
             console.error('Error fetching messages:', error);
             // Ignore the error and continue
           }
-        }, 1000); // Poll every 1 seconds
+        }, 1000); // Poll every 1 second
   
-        gptResponsePromise.finally(() => {
+        gptResponsePromise.finally(async () => {
           clearInterval(pollingIntervalId);
           setIsTyping(false);
+  
+          // Fetch messages two more times after GPT response is completed
+          for (let i = 0; i < 2; i++) {
+            try {
+              console.log(`Fetching messages for thread ${thread} after GPT response completion, attempt ${i + 1}`);
+              const fetchedMessages = await apiFetchMessages(thread);
+              console.log('Fetched messages after GPT response completion:', fetchedMessages);
+              if (fetchedMessages?.result?.object === 'list' && Array.isArray(fetchedMessages.result.data)) {
+                const formattedMessages = formatMessages(fetchedMessages.result.data);
+                setMessages(formattedMessages);
+                localStorage.setItem('messages', JSON.stringify(formattedMessages)); // Save to localStorage
+              }
+            } catch (error) {
+              console.error('Error fetching messages after GPT response completion:', error);
+            }
+            await new Promise(resolve => setTimeout(resolve, 1000)); // Wait for 1 second before the next fetch
+          }
+        }).catch((error) => {
+          if (error.response?.status === 500) {
+            clearInterval(pollingIntervalId);
+            setIsTyping(false);
+            console.error('GPT response returned status 500, stopping the loop');
+            setMessages((prevMessages) => {
+              const errorMessage = { id: `error-${Date.now()}`, role: 'system', system: true, content: 'Ocorreu um erro ao obter a resposta do GPT. Por favor, tente novamente mais tarde.' };
+              const updatedMessages = [...prevMessages, errorMessage];
+              localStorage.setItem('messages', JSON.stringify(updatedMessages)); // Save to localStorage
+              return updatedMessages;
+            });
+          }
         });
       }, 5000); // Wait for 5 seconds before starting to fetch messages
   
@@ -329,7 +358,7 @@ export const useChatFunctions = () => {
       // Loop to list runs and messages
       const retryDelays = [
         ...Array(60).fill(1000), // 1 second for the first minute
-        ...Array(108).fill(2000) // 5 seconds for the next 2 minutes
+        ...Array(108).fill(2000) // 2 seconds for the next 3.6 minutes
       ];
       let retryCount = 0;
       let runsInProgress = true;
@@ -377,6 +406,12 @@ export const useChatFunctions = () => {
         // Additional exit conditions to prevent infinite loops
         if (retryCount >= retryDelays.length) {
           console.error('Exceeded maximum retry attempts');
+          setMessages((prevMessages) => {
+            const errorMessage = { id: `error-${Date.now()}`, role: 'system', system: true, content: 'Ocorreu um erro ao obter as mensagens ou executar a ação. Por favor, tente novamente mais tarde.' };
+            const updatedMessages = [...prevMessages, errorMessage];
+            localStorage.setItem('messages', JSON.stringify(updatedMessages)); // Save to localStorage
+            return updatedMessages;
+          });
           break;
         }
         if (!runsInProgress && retryCount > 0) {
@@ -391,18 +426,33 @@ export const useChatFunctions = () => {
   
     } catch (error) {
       console.error('Error sending message:', error);
+      setMessages((prevMessages) => {
+        const errorMessage = { id: `error-${Date.now()}`, role: 'system', system: true, content: 'Ocorreu um erro ao enviar a mensagem. Por favor, tente novamente mais tarde.' };
+        const updatedMessages = [...prevMessages, errorMessage];
+        localStorage.setItem('messages', JSON.stringify(updatedMessages)); // Save to localStorage
+        return updatedMessages;
+      });
     }
   };
   
 
   const getGPTResponseWithToken = async (messageContent: string, userId: string, thread: string, selectedCustomer?: string, accessToken?: string, customerGestor?: string) => {
+    console.log('[getGPTResponseWithToken] Starting GPT response with token', { messageContent, userId, thread, selectedCustomer, accessToken, customerGestor });
     try {
-      await getGPTResponse(messageContent, userId, thread, selectedCustomer, accessToken, customerGestor);
+      const response = await getGPTResponse(messageContent, userId, thread, selectedCustomer, accessToken, customerGestor);
+      console.log('[getGPTResponseWithToken] GPT response received', { response });
+      return response;
     } catch (error) {
-      console.error('Error getting GPT response:', error);
+      console.error('[getGPTResponseWithToken] Error getting GPT response', { error });
+      if (axios.isAxiosError(error)) {
+        console.error('Axios error details:', { response: error.response?.data, message: error.message });
+      } else {
+        console.error('Non-Axios error details:', { message: error.message, stack: error.stack });
+      }
       throw new Error('Error getting GPT response');
     }
   };
+  
 
   const handleAddComment = (messageId: string) => {
     setShowCommentInput(messageId);

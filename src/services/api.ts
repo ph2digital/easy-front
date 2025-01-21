@@ -638,14 +638,21 @@ export const createCustomAudience = async (accessToken: string, adAccountId: str
     }
 };
 
-export const getGPTResponse = async (prompt: string, userId: string, activeThread: string | null, selectedCustomer?: string, accessToken?: string,customerGestor?: string) => {
-    try {
-        const response = await axios.post(`${API_URL}/gpt`, { prompt, userId, activeThread, selectedCustomer, accessToken, customerGestor });
-        return response.data;
-    } catch (error) {
-        console.error('Erro ao obter resposta do GPT:', error);
-        throw new Error('Erro ao obter resposta do GPT');
+export const getGPTResponse = async (prompt: string, userId: string, activeThread: string | null, selectedCustomer?: string, accessToken?: string, customerGestor?: string) => {
+  console.log('[getGPTResponse] Starting GPT response', { prompt, userId, activeThread, selectedCustomer, accessToken, customerGestor });
+  try {
+    const response = await axios.post(`${API_URL}/gpt`, { prompt, userId, activeThread, selectedCustomer, accessToken, customerGestor });
+    console.log('[getGPTResponse] GPT response received', { response: response.data });
+    return response.data;
+  } catch (error) {
+    console.error('[getGPTResponse] Error getting GPT response', { error });
+    if (axios.isAxiosError(error)) {
+      console.error('Axios error details:', { response: error.response?.data, message: error.message });
+    } else {
+      console.error('Non-Axios error details:', { message: error.message, stack: error.stack });
     }
+    throw new Error('Error getting GPT response');
+  }
 };
 
 export const listLinkedAccounts = async (accessToken: string, userId: string) => {
