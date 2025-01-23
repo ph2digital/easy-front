@@ -648,8 +648,10 @@ export const getGPTResponse = async (prompt: string, userId: string, activeThrea
     console.error('[getGPTResponse] Error getting GPT response', { error });
     if (axios.isAxiosError(error)) {
       console.error('Axios error details:', { response: error.response?.data, message: error.message });
-    } else {
+    } else if (error instanceof Error) {
       console.error('Non-Axios error details:', { message: error.message, stack: error.stack });
+    } else {
+      console.error('Unknown error:', error);
     }
     throw new Error('Error getting GPT response');
   }

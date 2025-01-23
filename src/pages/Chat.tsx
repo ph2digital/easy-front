@@ -65,7 +65,6 @@ const Chat: React.FC = () => {
     setSelectedThread,
     setMessages,
     setBrowserUrl,
-    setIsTyping,
   } = useChatFunctions();
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -171,15 +170,6 @@ const Chat: React.FC = () => {
     setSelectedThread(null);
     setMessages([]);
     localStorage.removeItem('selectedThread');
-  };
-
-  const isValidJSON = (str: string) => {
-    try {
-      JSON.parse(str);
-      return true;
-    } catch (e) {
-      return false;
-    }
   };
 
   return (
