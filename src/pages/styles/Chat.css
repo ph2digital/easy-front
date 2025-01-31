@@ -289,9 +289,13 @@ body {
 }
 
 .chat-item span {
-    white-space: nowrap;
+    white-space: normal; /* Allow text to wrap */
     overflow: hidden;
     text-overflow: ellipsis;
+    display: -webkit-box;
+    -webkit-line-clamp: 3; /* Show up to 3 lines */
+    line-clamp: 3; /* Show up to 3 lines */
+    -webkit-box-orient: vertical;
 }
 
 /* Main Content */
@@ -1256,3 +1260,23 @@ body {
       transform: scale(1);
     }
   }
+
+.load-more-button {
+  background-color: var(--active-color);
+  color: var(--text-color);
+  border: none;
+  padding: var(--spacing-md);
+  border-radius: var(--border-radius-md);
+  cursor: pointer;
+  transition: background-color 0.3s ease, transform 0.3s ease;
+  font-size: 1rem;
+  font-weight: 500;
+  margin-top: var(--spacing-md);
+  width: 100%;
+  text-align: center;
+}
+
+.load-more-button:hover {
+  background-color: darken(var(--active-color), 10%);
+  transform: translateY(-2px);
+}

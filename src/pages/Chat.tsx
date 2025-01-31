@@ -8,6 +8,10 @@ import ChatInput from '../components/ChatInput';
 import ChatHeader from '../components/ChatHeader';
 import { useChatFunctions } from '../components/ChatFunctions';
 import { DotLottieReact } from '@lottiefiles/dotlottie-react';
+import { useDispatch, useSelector } from 'react-redux';
+import { useNavigate } from 'react-router-dom';
+import { logoutUser, getSessionFromLocalStorage } from '../services/api';
+import { selectProfileImage } from '../store/authSlice';
 
 function SafeMarkdown({ content }: { content: any }) {
   const safeContent = typeof content === 'string' ? content : JSON.stringify(content, null, 2);
@@ -39,6 +43,7 @@ function MessageDropdown({ message }: { message: any }) {
 
 const Chat: React.FC = () => {
   const [showPopup] = useState(false); // Remove setShowPopup
+  const [visibleThreads, setVisibleThreads] = useState(5);
   const {
     selectedAccount,
     googleAccounts,
@@ -68,6 +73,9 @@ const Chat: React.FC = () => {
   } = useChatFunctions();
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const profileImage = useSelector(selectProfileImage);
+  const dispatch = useDispatch();
+  const navigate = useNavigate();
 
   useEffect(() => {
     localStorage.removeItem('messages'); // Clear messages from localStorage on page load
@@ -166,10 +174,38 @@ const Chat: React.FC = () => {
     localStorage.setItem('isTyping', JSON.stringify(isTyping));
   }, [isTyping]);
 
+  useEffect(() => {
+    console.log('Updating AccountSidebar with activeCustomers:', activeCustomers);
+    // Update AccountSidebar or any other necessary components here
+  }, [activeCustomers]);
+
+  useEffect(() => {
+    const session = getSessionFromLocalStorage();
+    if (session?.user?.picture) {
+      dispatch(session.user.picture);
+    }
+  }, [dispatch]);
+
   const handleInitChat = () => {
     setSelectedThread(null);
     setMessages([]);
     localStorage.removeItem('selectedThread');
+  };
+
+  const handleLoadMore = () => {
+    setVisibleThreads((prev) => prev + 5);
+  };
+
+  const handleLogout = async () => {
+    await logoutUser(dispatch);
+    navigate('/login'); // Redireciona para a página de login após o logout
+  };
+
+  const toggleMenu = () => {
+    const userMenuTooltip = document.querySelector('.user-menu-tooltip');
+    if (userMenuTooltip) {
+      (userMenuTooltip as HTMLElement).style.display = (userMenuTooltip as HTMLElement).style.display === 'block' ? 'none' : 'block';
+    }
   };
 
   return (
@@ -186,22 +222,26 @@ const Chat: React.FC = () => {
       <div className="vertical-separator"></div>
       <nav className="sidebar">
         <div className="user-section">
-          <div className="user-profile-header">
-            <img src="https://via.placeholder.com/40" alt="User Profile" />
+          <div className="user-profile-header" onClick={toggleMenu}>
+            {profileImage ? (
+              <img src={profileImage} alt="Profile" className="profile-image" />
+            ) : (
+              <span className="placeholder-icon">👤</span>
+            )}
             <button className="menu-button">
               <i className="fas fa-bars"></i>
             </button>
           </div>
           <div className="user-menu-tooltip" style={{ display: 'none' }}>
-            <div className="tooltip-item">
+            <div className="tooltip-item" onClick={() => navigate('/settings')}>
               <i className="fas fa-cog"></i>
               <span>Configurações</span>
             </div>
-            <div className="tooltip-item">
+            <div className="tooltip-item" onClick={() => navigate('/payment')}>
               <i className="fas fa-credit-card"></i>
               <span>Pagamento</span>
             </div>
-            <div className="tooltip-item">
+            <div className="tooltip-item" onClick={handleLogout}>
               <i className="fas fa-sign-out-alt"></i>
               <span>Sair</span>
             </div>
@@ -221,7 +261,8 @@ const Chat: React.FC = () => {
         <ChatHeader onInitChat={handleInitChat} />
         <div className="chat-history">
           {threads
-            .sort((a, b) => a.created_at - b.created_at)
+            .sort((a, b) => b.created_at - a.created_at)
+            .slice(0, visibleThreads)
             .map((thread, index) => (
               <div key={index} className="chat-group">
                 <div className="chat-group-title">{new Date(thread.created_at * 1000).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}</div>
@@ -230,6 +271,9 @@ const Chat: React.FC = () => {
                 </div>
               </div>
           ))}
+          {visibleThreads < threads.length && (
+            <button className="load-more-button" onClick={handleLoadMore}>Ver Mais</button>
+          )}
         </div>
       </nav>
 

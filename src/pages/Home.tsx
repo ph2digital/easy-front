@@ -376,6 +376,11 @@ const Home: React.FC = () => {
     fetchAccessibleCustomersAndManagerAccount();
   }, []);
 
+  useEffect(() => {
+    console.log('Updating AccountSidebar with activeCustomers:', activeCustomers);
+    // Update AccountSidebar or any other necessary components here
+  }, [activeCustomers]);
+
   const handleFacebookLogin = async () => {
     console.log('Handling Facebook login');
     const session = getSessionFromLocalStorage();
