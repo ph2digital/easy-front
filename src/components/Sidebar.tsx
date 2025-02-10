@@ -3,7 +3,17 @@ import { RiDashboardLine, RiMoneyDollarCircleLine, RiFocusLine, RiLineChartFill 
 import { Link, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import './styles/Sidebar.css';
-import { FaBars, FaSignOutAlt, FaUserCircle, FaCogs, FaLayerGroup, FaWallet, FaPlus, FaUsers } from 'react-icons/fa';
+import { 
+  FaBars, 
+  FaSignOutAlt, 
+  FaUserCircle, 
+  FaCogs, 
+  FaLayerGroup, 
+  FaWallet, 
+  FaPlus, 
+  FaUsers,
+  FaChevronLeft  // Novo ícone para recolher
+} from 'react-icons/fa';
 import { logoutUser } from '../services/api';
 import { selectProfileImage } from '../store/authSlice';
 
@@ -31,8 +41,21 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, toggleSidebar }) => {
     <div className={`sidebar ${isOpen ? 'expanded' : 'collapsed'}`}>
       {/* Botão de Colapso */}
       <div className="sidebar-header">
-        <button onClick={toggleSidebar} className="toggle-btn">
+        <button 
+          onClick={toggleSidebar} 
+          className="toggle-btn"
+          aria-label="Toggle Sidebar"
+        >
           <FaBars />
+        </button>
+        
+        {/* Novo botão de recolher */}
+        <button 
+          onClick={toggleSidebar} 
+          className="collapse-btn"
+          aria-label="Collapse Sidebar"
+        >
+          <FaChevronLeft />
         </button>
       </div>
 

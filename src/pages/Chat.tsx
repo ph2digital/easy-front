@@ -2,16 +2,25 @@ import React, { useEffect, useState, useRef } from 'react';
 import ReactMarkdown from 'react-markdown';
 import './styles/Chat.css';
 import AccountPopup from '../components/AccountPopup';
-import Browser from '../components/Browser';
 import AccountSidebar from '../components/AccountSidebar';
 import ChatInput from '../components/ChatInput';
 import ChatHeader from '../components/ChatHeader';
 import { useChatFunctions } from '../components/ChatFunctions';
-import { DotLottieReact } from '@lottiefiles/dotlottie-react';
-import { useDispatch, useSelector } from 'react-redux';
-import { useNavigate } from 'react-router-dom';
-import { logoutUser, getSessionFromLocalStorage } from '../services/api';
-import { selectProfileImage } from '../store/authSlice';
+import ChatGPTAvatar from '../assets/Logo_branco.svg';
+import UserAvatar from '../assets/user-avatar.svg';
+import EasyAdLogo from '../assets/easy.ad_branco.svg';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { 
+  faBars, 
+  faChevronLeft, 
+  faSearch 
+} from '@fortawesome/free-solid-svg-icons';
+import { 
+  faClone,
+  faThumbsUp,
+  faThumbsDown,
+  faCircleCheck 
+} from '@fortawesome/free-regular-svg-icons';
 
 function SafeMarkdown({ content }: { content: any }) {
   const safeContent = typeof content === 'string' ? content : JSON.stringify(content, null, 2);
@@ -41,9 +50,17 @@ function MessageDropdown({ message }: { message: any }) {
   );
 }
 
+interface MessageFeedback {
+  [key: string]: 'like' | 'dislike' | null;
+}
+
 const Chat: React.FC = () => {
-  const [showPopup] = useState(false); // Remove setShowPopup
-  const [visibleThreads, setVisibleThreads] = useState(5);
+  const [showPopup] = useState(false); 
+  const [visibleThreads, setVisibleThreads] = useState(10);
+  const [isOpen, setIsOpen] = useState(true); 
+  const [activeTab, setActiveTab] = useState('chat');
+  const [messageFeedback, setMessageFeedback] = useState<MessageFeedback>({});
+  const [copiedMessages, setCopiedMessages] = useState<{[key: string]: boolean}>({});
   const {
     selectedAccount,
     googleAccounts,
@@ -57,28 +74,22 @@ const Chat: React.FC = () => {
     showCommentInput,
     comment,
     isTyping,
-    browserUrl,
     setComment,
     handleFacebookLogin,
     handleAccountClick,
     handleThreadClick,
-    sendFirstMessage,
     handleSendMessage,
     handleAddComment,
     handleCommentSubmit,
     adjustTextareaHeight,
     setSelectedThread,
     setMessages,
-    setBrowserUrl,
   } = useChatFunctions();
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const profileImage = useSelector(selectProfileImage);
-  const dispatch = useDispatch();
-  const navigate = useNavigate();
 
   useEffect(() => {
-    localStorage.removeItem('messages'); // Clear messages from localStorage on page load
+    localStorage.removeItem('messages'); 
 
     const navButtons = document.querySelectorAll('.nav-btn');
     const chatContent = document.getElementById('chatContent');
@@ -95,7 +106,6 @@ const Chat: React.FC = () => {
           if (buttonText === 'Navegador') {
             (chatContent as HTMLElement).classList.remove('active');
             (browserContent as HTMLElement).classList.add('active');
-            setBrowserUrl('https://www.google.com');
           } else if (buttonText === 'Chat') {
             (browserContent as HTMLElement).classList.remove('active');
             (chatContent as HTMLElement).classList.add('active');
@@ -110,10 +120,6 @@ const Chat: React.FC = () => {
         item.addEventListener('click', () => {
           accountItems.forEach(acc => acc.classList.remove('active'));
           item.classList.add('active');
-
-          if (browserContent?.classList.contains('active')) {
-            setBrowserUrl('https://www.google.com');
-          }
         });
       });
     }
@@ -160,7 +166,7 @@ const Chat: React.FC = () => {
     const textarea = document.querySelector('textarea');
     if (textarea) {
       textarea.addEventListener('input', () => adjustTextareaHeight(textarea as HTMLTextAreaElement));
-      adjustTextareaHeight(textarea as HTMLTextAreaElement); // Initial adjustment
+      adjustTextareaHeight(textarea as HTMLTextAreaElement); 
     }
   }, []);
 
@@ -176,15 +182,7 @@ const Chat: React.FC = () => {
 
   useEffect(() => {
     console.log('Updating AccountSidebar with activeCustomers:', activeCustomers);
-    // Update AccountSidebar or any other necessary components here
   }, [activeCustomers]);
-
-  useEffect(() => {
-    const session = getSessionFromLocalStorage();
-    if (session?.user?.picture) {
-      dispatch(session.user.picture);
-    }
-  }, [dispatch]);
 
   const handleInitChat = () => {
     setSelectedThread(null);
@@ -196,82 +194,170 @@ const Chat: React.FC = () => {
     setVisibleThreads((prev) => prev + 5);
   };
 
-  const handleLogout = async () => {
-    await logoutUser(dispatch);
-    navigate('/login'); // Redireciona para a página de login após o logout
+  const handleLikeFeedback = (messageId: string) => {
+    setMessageFeedback(prev => ({
+      ...prev,
+      [messageId]: prev[messageId] === 'like' ? null : 'like'
+    }));
   };
 
-  const toggleMenu = () => {
-    const userMenuTooltip = document.querySelector('.user-menu-tooltip');
-    if (userMenuTooltip) {
-      (userMenuTooltip as HTMLElement).style.display = (userMenuTooltip as HTMLElement).style.display === 'block' ? 'none' : 'block';
-    }
+  const handleDislikeFeedback = (messageId: string) => {
+    setMessageFeedback(prev => ({
+      ...prev,
+      [messageId]: prev[messageId] === 'dislike' ? null : 'dislike'
+    }));
+  };
+
+  const handleCopyMessage = (messageId: string, messageContent: string) => {
+    navigator.clipboard.writeText(messageContent)
+      .then(() => {
+        setCopiedMessages(prev => ({
+          ...prev,
+          [messageId]: true
+        }));
+
+        setTimeout(() => {
+          setCopiedMessages(prev => ({
+            ...prev,
+            [messageId]: false
+          }));
+        }, 2000);
+      })
+      .catch(err => {
+        console.error('Failed to copy message: ', err);
+      });
+  };
+
+  const formatThreadDate = (date: number) => {
+    const threadDate = new Date(date * 1000);
+    return threadDate.toLocaleTimeString('pt-BR', {
+      hour: '2-digit',
+      minute: '2-digit'
+    });
   };
 
   return (
     <div className="app">
-      <button id="fullscreen-btn" className="fullscreen-toggle">
-        <i className="fullscreen-icon"></i>
-        <span className="tooltip">Expandir tela cheia</span>
-      </button>
       <AccountSidebar
         selectedAccount={selectedAccount}
         setSelectedAccount={handleAccountClick}
         activeCustomers={activeCustomers}
       />
-      <div className="vertical-separator"></div>
-      <nav className="sidebar">
+      {!isOpen && (
+        <button 
+          className="expand-sidebar-btn"
+          onClick={() => setIsOpen(true)}
+          title="Abrir barra lateral"
+        >
+          <FontAwesomeIcon icon={faBars} />
+        </button>
+      )}
+      <nav className={`sidebar ${isOpen ? 'expanded' : 'collapsed'}`}>
         <div className="user-section">
-          <div className="user-profile-header" onClick={toggleMenu}>
-            {profileImage ? (
-              <img src={profileImage} alt="Profile" className="profile-image" />
-            ) : (
-              <span className="placeholder-icon">👤</span>
-            )}
-            <button className="menu-button">
-              <i className="fas fa-bars"></i>
+          <div className="user-profile-header">
+            <button 
+              className="collapse-btn"
+              title="Recolher Sidebar"
+              onClick={() => setIsOpen(!isOpen)}
+            >
+              <FontAwesomeIcon icon={faChevronLeft} />
             </button>
-          </div>
-          <div className="user-menu-tooltip" style={{ display: 'none' }}>
-            <div className="tooltip-item" onClick={() => navigate('/settings')}>
-              <i className="fas fa-cog"></i>
-              <span>Configurações</span>
-            </div>
-            <div className="tooltip-item" onClick={() => navigate('/payment')}>
-              <i className="fas fa-credit-card"></i>
-              <span>Pagamento</span>
-            </div>
-            <div className="tooltip-item" onClick={handleLogout}>
-              <i className="fas fa-sign-out-alt"></i>
-              <span>Sair</span>
-            </div>
+            <button 
+              className="search-threads-btn"
+              title="Pesquisar Histórico de Threads"
+              onClick={() => {
+                console.log('Open thread search modal/functionality');
+              }}
+            >
+              <FontAwesomeIcon icon={faSearch} />
+            </button>
           </div>
         </div>
         <div className="main-nav">
-          <button className="nav-btn active">
-            <span>Chat</span>
-          </button>
-          <button className="nav-btn active">
-            <span>Requisições</span>
-          </button>
-          <button className="nav-btn">
-            <span>Navegador</span>
-          </button>
+          <div className="nav-buttons-container">
+            <button 
+              className={`nav-btn ${activeTab === 'chat' ? 'active' : ''}`}
+              onClick={() => setActiveTab('chat')}
+              title="Chat Menu"
+            >
+              <span>Chat</span>
+            </button>
+            <button 
+              className={`nav-btn ${activeTab === 'requests' ? 'active' : ''}`}
+              onClick={() => setActiveTab('requests')}
+              title="Requisições Menu"
+            >
+              <span>Requisições</span>
+            </button>
+          </div>
         </div>
         <ChatHeader onInitChat={handleInitChat} />
         <div className="chat-history">
-          {threads
-            .sort((a, b) => b.created_at - a.created_at)
-            .slice(0, visibleThreads)
-            .map((thread, index) => (
-              <div key={index} className="chat-group">
-                <div className="chat-group-title">{new Date(thread.created_at * 1000).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}</div>
-                <div className="chat-item" onClick={() => handleThreadClick(thread)}>
-                  <span>{thread.metadata ? thread?.metadata?.last_message : 'init message'}...</span>
+          {threads && threads.length > 0 ? Object.entries(
+            threads
+              .sort((a, b) => b.created_at - a.created_at)
+              .slice(0, visibleThreads)
+              .reduce((groups: { [key: string]: any[] }, thread) => {
+                const now = new Date();
+                now.setHours(0, 0, 0, 0); 
+                
+                const threadDate = new Date(thread.created_at * 1000);
+                threadDate.setHours(0, 0, 0, 0); 
+                
+                const diffTime = now.getTime() - threadDate.getTime();
+                const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+                
+                console.log('Thread date:', threadDate.toLocaleDateString(), 'Diff days:', diffDays);
+                
+                let groupTitle;
+                if (diffDays === 0) {
+                  groupTitle = 'Hoje';
+                } else if (diffDays === 1) {
+                  groupTitle = 'Ontem';
+                } else if (diffDays <= 7) {
+                  groupTitle = '7 dias atrás';
+                } else if (diffDays <= 30) {
+                  groupTitle = '30 dias atrás';
+                } else {
+                  return groups; 
+                }
+
+                if (!groups[groupTitle]) {
+                  groups[groupTitle] = [];
+                }
+                groups[groupTitle].push({
+                  ...thread,
+                  formattedDate: new Date(thread.created_at * 1000).toLocaleTimeString('pt-BR', {
+                    hour: '2-digit',
+                    minute: '2-digit'
+                  })
+                });
+                return groups;
+              }, {})
+          ).map(([groupTitle, groupThreads]) => (
+            <div key={groupTitle} className="chat-group">
+              <div className="chat-group-title">{groupTitle}</div>
+              {groupThreads.map((thread: any, _index: number) => (
+                <div 
+                  key={thread.id} 
+                  className={`thread-item ${selectedThread?.id === thread.id ? 'selected' : ''}`}
+                  onClick={() => handleThreadClick(thread)}
+                >
+                  <div className="thread-title">
+                    {thread.title}
+                  </div>
+                  <div className="thread-date">
+                    {formatThreadDate(thread.created_at)}
+                  </div>
                 </div>
-              </div>
-          ))}
-          {visibleThreads < threads.length && (
+              ))}
+            </div>
+          )) : (
+            <div className="no-threads">
+              <span>Nenhuma conversa encontrada</span>
+            </div>
+          )}
+          {threads && visibleThreads < threads.length && (
             <button className="load-more-button" onClick={handleLoadMore}>Ver Mais</button>
           )}
         </div>
@@ -282,49 +368,92 @@ const Chat: React.FC = () => {
           <div className="chat-container">
             <div className="messages-container">
                 {selectedThread ? (
-                Array.isArray(messages) && messages.length > 0 && messages.sort((a, b) => a.created_at - b.created_at).map((message) => (
-                  <div key={message.id} className={`message-box ${message.role}`}>
-                    {(message.content.startsWith('API response received') || message.content.startsWith('```json')) ? (
-                      <MessageDropdown message={message} />
-                    ) : (
-                      <SafeMarkdown content={message.content} />
+                Array.isArray(messages) && messages.length > 0 && messages.sort((a, b) => a.created_at - b.created_at).map((message, index) => (
+                  <div 
+                    key={index} 
+                    className={`message-container ${message.role}`}
+                  >
+                    {message.role === 'assistant' && (
+                      <img 
+                        src={ChatGPTAvatar} 
+                        alt="ChatGPT Avatar" 
+                        className="message-avatar" 
+                      />
                     )}
-                    <button className={`comment-button ${message.role === 'user' ? 'left' : 'right'}`} onClick={() => handleAddComment(message.id)}>
-                      <i className="fas fa-reply"></i>
-                    </button>
-                    {showCommentInput === message.id && (
-                      <div className="comment-input-container">
-                        <input
-                          type="text"
-                          value={comment}
-                          onChange={(e) => setComment(e.target.value)}
-                          placeholder="Type a comment"
-                        />
-                        <button onClick={() => handleCommentSubmit(message.id)}>Submit</button>
-                      </div>
+                    <div 
+                      className={`message-box ${message.role}`}
+                    >
+                      {(message.content.startsWith('API response received') || message.content.startsWith('```json')) ? (
+                        <MessageDropdown message={message} />
+                      ) : (
+                        <SafeMarkdown content={message.content} />
+                      )}
+                      {message.role === 'assistant' && (
+                        <div className="message-feedback-buttons">
+                          {(!messageFeedback[message.id] || messageFeedback[message.id] === 'like') && (
+                            <button 
+                              className={`feedback-btn like-btn ${messageFeedback[message.id] === 'like' ? 'active' : ''}`}
+                              onClick={() => handleLikeFeedback(message.id)}
+                            >
+                              <FontAwesomeIcon icon={faThumbsUp} />
+                            </button>
+                          )}
+                          {(!messageFeedback[message.id] || messageFeedback[message.id] === 'dislike') && (
+                            <button 
+                              className={`feedback-btn dislike-btn ${messageFeedback[message.id] === 'dislike' ? 'active' : ''}`}
+                              onClick={() => handleDislikeFeedback(message.id)}
+                            >
+                              <FontAwesomeIcon icon={faThumbsDown} />
+                            </button>
+                          )}
+                          <button 
+                            className="feedback-btn copy-btn"
+                            onClick={() => handleCopyMessage(message.id, message.content)}
+                          >
+                            <FontAwesomeIcon 
+                              icon={copiedMessages[message.id] ? faCircleCheck : faClone} 
+                            />
+                          </button>
+                        </div>
+                      )}
+                      <button 
+                        className={`comment-button ${message.role === 'user' ? 'left' : 'right'}`} 
+                        onClick={() => handleAddComment(message.id)}
+                        title="Adicionar comentário"
+                      >
+                        <i className="fas fa-reply"></i>
+                      </button>
+                      {showCommentInput === message.id && (
+                        <div className="comment-input-container">
+                          <input
+                            type="text"
+                            value={comment}
+                            onChange={(e) => setComment(e.target.value)}
+                            placeholder="Type a comment"
+                          />
+                          <button onClick={() => handleCommentSubmit(message.id)}>Submit</button>
+                        </div>
+                      )}
+                    </div>
+                    {message.role === 'user' && (
+                      <img 
+                        src={UserAvatar} 
+                        alt="User Avatar" 
+                        className="message-avatar" 
+                      />
                     )}
                   </div>
                 ))
                 ) : (
-                <div className="welcome-screen">
-                  <h1>Bem-vindo! Como posso ajudar você hoje?</h1>
-                  <div className="welcome-buttons">
-                  <button className="welcome-button" onClick={() => sendFirstMessage('Quero informações sobre minhas campanhas')}>Informações</button>
-                  <button className="welcome-button" onClick={() => sendFirstMessage('Quero criar uma campanha')}>Criar Campanhas</button>
-                  <button className="welcome-button" onClick={() => sendFirstMessage('Quero otimizar minhas campanhas')}>Otimizar Campanhas</button>
-                  </div>
+                <div className="welcome-container">
+                  <img src={EasyAdLogo} alt="Easy.ad Logo" className="welcome-logo" />
+                  <h2>Olá! Vamos criar sua campanha de anúncios.</h2>
+                  <p>Para começar, onde deseja anunciar? Você pode utilizar os atalhos de ações rápidas para agilizar o processo.</p>
                 </div>
                 )}
               {isTyping && (
-                <div className="message-box assistant typing">
-                  <div className="typing-indicator">
-                    <DotLottieReact
-                      src="https://lottie.host/818fa9d2-a249-4790-a71a-88762b83001f/ONEzhcNpiD.lottie"
-                      loop
-                      autoplay
-                      style={{ width: '48px', height: '48px' }}
-                    />
-                  </div>
+                <div className="loading-container">
+                  {/* <LoadingMessage /> */}
                 </div>
               )}
               <div ref={messagesEndRef} />
@@ -332,9 +461,6 @@ const Chat: React.FC = () => {
 
             <ChatInput onSendMessage={handleSendMessage} />
           </div>
-        </div>
-        <div id="browserContent" className="content-section">
-          <Browser initialUrl={browserUrl} />
         </div>
       </main>
 

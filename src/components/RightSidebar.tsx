@@ -72,15 +72,26 @@ const RightSidebar: React.FC<RightSidebarProps> = ({ isOpen, onClose }) => {
   const fetchMessagesForThread = async (threadId: string) => {
     try {
       const response = await fetchMessages(threadId);
+      
+      // Verificar estrutura da resposta
+      if (!response || !Array.isArray(response)) {
+        console.error('Invalid messages structure:', response);
+        return [];
+      }
+
       const formattedMessages = response.map((msg: any) => ({
         id: msg.id,
         role: msg.role,
-        content: msg.content.map((c: any) => c.text.value).join(' ')
+        content: Array.isArray(msg.content) 
+          ? msg.content.map((c: any) => c.text?.value || '').filter(Boolean).join(' ')
+          : msg.content || ''
       }));
+
       setMessages(formattedMessages);
       setToSessionStorage('messages', formattedMessages);
     } catch (error) {
       console.error('Error fetching messages:', error);
+      setMessages([]);
     }
   };
 

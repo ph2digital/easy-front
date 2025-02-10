@@ -10,8 +10,6 @@
     flex-direction: column;
     align-items: flex-start;
     position: relative;
-    border-radius: 10px;
-    margin-right: 20px;
 }
 
 .sidebar.expanded {
@@ -156,4 +154,13 @@
 
 .profile-menu li a:hover {
     background-color: #f0f0f0;
+}
+
+/* Sidebar Header */
+.sidebar-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    position: relative;
 }

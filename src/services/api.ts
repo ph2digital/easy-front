@@ -638,22 +638,58 @@ export const createCustomAudience = async (accessToken: string, adAccountId: str
     }
 };
 
-export const getGPTResponse = async (prompt: string, userId: string, activeThread: string | null, selectedCustomer?: string, accessToken?: string, customerGestor?: string) => {
-  console.log('[getGPTResponse] Starting GPT response', { prompt, userId, activeThread, selectedCustomer, accessToken, customerGestor });
+export const getGPTResponse = async (
+  prompt: string, 
+  userId: string, 
+  activeThread: string | null, 
+  selectedCustomer?: string, 
+  accessToken?: string, 
+  customerGestor?: string
+) => {
+  console.log('[getGPTResponse] Starting GPT response', { 
+    prompt, 
+    userId, 
+    activeThread, 
+    selectedCustomer, 
+    accessToken, 
+    customerGestor 
+  });
+
   try {
-    const response = await axios.post(`${API_URL}/gpt`, { prompt, userId, activeThread, selectedCustomer, accessToken, customerGestor });
-    console.log('[getGPTResponse] GPT response received', { response: response.data });
+    const response = await axios.post(`${API_URL}/gpt`, { 
+      prompt, 
+      userId, 
+      activeThread, 
+      selectedCustomer, 
+      accessToken, 
+      customerGestor 
+    });
+
+    // Extrai a resposta do assistente
+    const assistantResponse = response.data?.result?.data?.content || '';
+
+    // Gera título para a thread (primeiros 50 caracteres)
+    const threadTitle = assistantResponse.length > 0
+      ? assistantResponse.substring(0, 50).trim() + (assistantResponse.length > 50 ? '...' : '')
+      : 'Nova Conversa';
+
+    // Se for uma thread existente, atualiza o título
+    if (activeThread) {
+      try {
+        await axios.patch(`${API_URL}/gpt/threads/${activeThread}`, { 
+          metadata: { 
+            title: threadTitle 
+          } 
+        });
+      } catch (updateError) {
+        console.warn('[getGPTResponse] Erro ao atualizar título da thread', updateError);
+      }
+    }
+
     return response.data;
   } catch (error) {
-    console.error('[getGPTResponse] Error getting GPT response', { error });
-    if (axios.isAxiosError(error)) {
-      console.error('Axios error details:', { response: error.response?.data, message: error.message });
-    } else if (error instanceof Error) {
-      console.error('Non-Axios error details:', { message: error.message, stack: error.stack });
-    } else {
-      console.error('Unknown error:', error);
-    }
-    throw new Error('Error getting GPT response');
+    console.error('[getGPTResponse] Error getting GPT response', error);
+    throw error;
   }
 };
 
@@ -754,7 +790,13 @@ export const fetchThreads = async (userId: string) => {
 
 export const createThread = async (prompt: string, userId: string, selectedCustomer?: string, accessToken?: string, customerGestor?: string) => {
     try {
-        const response = await axios.post(`${API_URL}/gpt/threads`, { prompt, userId, selectedCustomer, accessToken, customerGestor });
+        const response = await axios.post(`${API_URL}/gpt/threads`, { 
+            prompt: prompt, 
+            userId, 
+            selectedCustomer, 
+            accessToken, 
+            customerGestor 
+        });
         return response.data;
     } catch (error) {
         console.error('Error creating thread:', error);

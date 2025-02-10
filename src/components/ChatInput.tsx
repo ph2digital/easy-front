@@ -32,7 +32,11 @@ const ChatInput: React.FC<ChatInputProps> = ({ onSendMessage }) => {
           placeholder="Envie uma mensagem"
         />
       </div>
-      <button className="send-button" onClick={handleSendMessage}>
+      <button 
+        className="send-button" 
+        onClick={handleSendMessage}
+        title="Enviar mensagem"
+      >
         <i className="fas fa-paper-plane"></i>
       </button>
     </div>
