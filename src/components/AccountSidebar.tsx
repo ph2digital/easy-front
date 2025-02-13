@@ -13,7 +13,6 @@ interface AccountSidebarProps {
 
 const AccountSidebar: React.FC<AccountSidebarProps> = ({ selectedAccount, setSelectedAccount, activeCustomers }) => {
   const [selectedChannel, setSelectedChannel] = useState<string | null>(null);
-  const [scrollPosition, setScrollPosition] = useState(0);
   const accountGridRef = useRef<HTMLDivElement>(null);
   const isDraggingRef = useRef(false);
   const startYRef = useRef(0);
