@@ -1,4 +1,6 @@
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
+import { useSelector } from 'react-redux';
+import { selectProfileImage } from '../store/authSlice';
 import './styles/AccountSidebar.css';
 import GoogleAdsLogo from '../assets/Logo Google Ads.svg';
 import GoogleAdsLogoIluminado from '../assets/Logo Google Ads-iluminado.svg';
@@ -13,9 +15,13 @@ interface AccountSidebarProps {
 
 const AccountSidebar: React.FC<AccountSidebarProps> = ({ selectedAccount, setSelectedAccount, activeCustomers }) => {
   const [selectedChannel, setSelectedChannel] = useState<string | null>(null);
+  const [hoveredAccountName, setHoveredAccountName] = useState<string | null>(null);
+  const [tooltipVisible, setTooltipVisible] = useState(false);
+  const [tooltipPosition, setTooltipPosition] = useState<{ top: number; left: number }>({ top: 0, left: 0 });
   const accountGridRef = useRef<HTMLDivElement>(null);
   const isDraggingRef = useRef(false);
   const startYRef = useRef(0);
+  const tooltipTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const googleAccounts = activeCustomers.filter(account => account.type === 'google_ads');
   const facebookAccounts = activeCustomers.filter(account => account.type === 'meta_ads');
@@ -28,6 +34,10 @@ const AccountSidebar: React.FC<AccountSidebarProps> = ({ selectedAccount, setSel
   const getAccountInitials = (account: any): string => {
     const name = account.accountdetails_name || account.accountdetails_business_name || account.customer_id;
     return name.substring(0, 2).toUpperCase();
+  };
+
+  const getAccountName = (account: any): string => {
+    return account.accountdetails_name || account.accountdetails_business_name || account.customer_id;
   };
 
   const handleChannelToggle = (channel: string) => {
@@ -59,6 +69,43 @@ const AccountSidebar: React.FC<AccountSidebarProps> = ({ selectedAccount, setSel
     document.addEventListener('mouseup', handleMouseUp);
   }, []);
 
+  const handleMouseEnter = (accountName: string, event: React.MouseEvent) => {
+    if (tooltipTimeoutRef.current) {
+      clearTimeout(tooltipTimeoutRef.current);
+    }
+    const { top, left, width, height } = (event.target as HTMLDivElement).getBoundingClientRect();
+    tooltipTimeoutRef.current = setTimeout(() => {
+      setHoveredAccountName(accountName);
+      setTooltipPosition({ top: top + height / 2, left: left + width + 10 });
+      setTooltipVisible(true);
+    }, 500); // Delay before showing tooltip
+  };
+
+  const handleMouseLeave = () => {
+    if (tooltipTimeoutRef.current) {
+      clearTimeout(tooltipTimeoutRef.current);
+    }
+    setTooltipVisible(false);
+    setHoveredAccountName(null);
+  };
+
+  const openProfileSettings = () => {
+    // Exemplo: abrir um modal com um formulário de edição de perfil
+    alert('Abrir configurações de perfil');
+  };
+
+  const openSystemSettings = () => {
+    // Exemplo: abrir um modal com opções de configuração do sistema
+    alert('Abrir configurações do sistema');
+  };
+
+  const addNewAccount = () => {
+    // Exemplo: abrir um modal para adicionar uma nova conta
+    alert('Adicionar nova conta');
+  };
+
+  const profileImage = useSelector(selectProfileImage);
+
   return (
     <div className="account-sidebar">
       <div className="account-list">
@@ -87,9 +134,12 @@ const AccountSidebar: React.FC<AccountSidebarProps> = ({ selectedAccount, setSel
                 <div
                   key={`google-${account.id}`}
                   className={`account-square ${selectedAccount === account.id ? 'selected' : ''}`}
+                  onMouseEnter={(event) => handleMouseEnter(getAccountName(account), event)}
+                  onMouseLeave={handleMouseLeave}
                   onClick={() => handleAccountClick(account.customer_id)}
                   aria-label={`Select Google Ads Account ${account.customer_id}`}
                   role="button"
+                  style={{ position: 'relative', display: 'inline-block' }}
                 >
                   {getAccountInitials(account)}
                 </div>
@@ -123,15 +173,30 @@ const AccountSidebar: React.FC<AccountSidebarProps> = ({ selectedAccount, setSel
                 <div
                   key={`facebook-${account.id}`}
                   className={`account-square ${selectedAccount === account.id ? 'selected' : ''}`}
+                  onMouseEnter={(event) => handleMouseEnter(getAccountName(account), event)}
+                  onMouseLeave={handleMouseLeave}
                   onClick={() => handleAccountClick(account.customer_id)}
                   aria-label={`Select Meta Ads Account ${account.customer_id}`}
                   role="button"
+                  style={{ position: 'relative', display: 'inline-block' }}
                 >
                   {getAccountInitials(account)}
                 </div>
               ))}
             </div>
           )}
+        </div>
+      </div>
+      {tooltipVisible && hoveredAccountName && (
+        <div className="popup-tooltip" style={{ top: tooltipPosition.top, left: tooltipPosition.left, color: 'black' }}>
+          {hoveredAccountName}
+        </div>
+      )}
+      <div className="account-sidebar-footer">
+        <button className="add-account-button" onClick={() => addNewAccount()}>+</button>
+        <div className="settings-icon" onClick={() => openSystemSettings()}>⚙️</div>
+        <div className="profile-icon" onClick={() => openProfileSettings()}>
+          {profileImage ? <img src={profileImage} alt="Profile" /> : '📷'}
         </div>
       </div>
     </div>

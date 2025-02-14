@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
+import { useSelector } from 'react-redux';
 import ReactMarkdown from 'react-markdown';
 import './styles/Chat.css';
 import AccountPopup from '../components/AccountPopup';
@@ -21,6 +22,7 @@ import {
   faThumbsDown,
   faCircleCheck 
 } from '@fortawesome/free-regular-svg-icons';
+import { selectProfileImage } from '../store/authSlice';
 
 function SafeMarkdown({ content }: { content: any }) {
   const safeContent = typeof content === 'string' ? content : JSON.stringify(content, null, 2);
@@ -61,6 +63,7 @@ const Chat: React.FC = () => {
   const [activeTab, setActiveTab] = useState('chat');
   const [messageFeedback, setMessageFeedback] = useState<MessageFeedback>({});
   const [copiedMessages, setCopiedMessages] = useState<{[key: string]: boolean}>({});
+  const profileImage = useSelector(selectProfileImage);
   const {
     selectedAccount,
     googleAccounts,
@@ -437,7 +440,7 @@ const Chat: React.FC = () => {
                     </div>
                     {message.role === 'user' && (
                       <img 
-                        src={UserAvatar} 
+                        src={profileImage || UserAvatar} 
                         alt="User Avatar" 
                         className="message-avatar" 
                       />

@@ -150,73 +150,73 @@ export const useChatFunctions = () => {
     return context ? JSON.parse(context) : null;
   };
 
-  // const formatMessages = (messages: any[]): Message[] => {
-  //   console.group('📋 Message Formatting');
-  //   console.log('🔢 Total Messages:', messages.length);
+  const formatMessages = (messages: any[]): Message[] => {
+    console.group('📋 Message Formatting');
+    console.log('🔢 Total Messages:', messages.length);
     
-  //   // Log detalhado de todas as mensagens antes da formatação
-  //   messages.forEach((msg, index) => {
-  //     console.log(`🔍 Message ${index + 1} Raw Details:`, {
-  //       id: msg.id,
-  //       role: msg.role,
-  //       metadata: msg.metadata,
-  //       content: msg.content,
-  //       technical_init: msg.metadata?.technical_init,
-  //       system: msg.metadata?.system
-  //     });
-  //   });
+    // Log detalhado de todas as mensagens antes da formatação
+    messages.forEach((msg, index) => {
+      console.log(`🔍 Message ${index + 1} Raw Details:`, {
+        id: msg.id,
+        role: msg.role,
+        metadata: msg.metadata,
+        content: msg.content,
+        technical_init: msg.metadata?.technical_init,
+        system: msg.metadata?.system
+      });
+    });
 
-  //   // Identificar mensagem de inicialização
-  //   const initMessage = messages.find(msg => 
-  //     msg.metadata?.technical_init === 'true' ||
-  //     (msg.role === 'system' && msg.content.some((c: any) => 
-  //       c.text?.value?.includes('Inicialização de conversa')
-  //     ))
-  //   );
+    // Identificar mensagem de inicialização
+    const initMessage = messages.find(msg => 
+      msg.metadata?.technical_init === 'true' ||
+      (msg.role === 'system' && msg.content.some((c: any) => 
+        c.text?.value?.includes('Inicialização de conversa')
+      ))
+    );
 
-  //   // Preservar metadados de inicialização
-  //   if (initMessage) {
-  //     localStorage.setItem('thread_initialization_context', JSON.stringify(initMessage.metadata));
-  //     console.log('🔐 Initialization Metadata Preserved:', initMessage);
-  //   }
+    // Preservar metadados de inicialização
+    if (initMessage) {
+      localStorage.setItem('thread_initialization_context', JSON.stringify(initMessage.metadata));
+      console.log('🔐 Initialization Metadata Preserved:', initMessage);
+    }
 
-  //   // Filtrar mensagens
-  //   const filteredMessages = messages.filter(msg => {
-  //     const isInitMessage = 
-  //       msg.metadata?.technical_init === 'true' ||
-  //       (msg.role === 'system' && msg.content.some((c: any) => 
-  //         c.text?.value?.includes('Inicialização de conversa')
-  //       ));
+    // Filtrar mensagens
+    const filteredMessages = messages.filter(msg => {
+      const isInitMessage = 
+        msg.metadata?.technical_init === 'true' ||
+        (msg.role === 'system' && msg.content.some((c: any) => 
+          c.text?.value?.includes('Inicialização de conversa')
+        ));
 
-  //     console.log(`🚫 Filtering Message: ${isInitMessage ? 'REMOVED' : 'KEPT'}`, {
-  //       id: msg.id,
-  //       role: msg.role,
-  //       content: msg.content
-  //     });
+      console.log(`🚫 Filtering Message: ${isInitMessage ? 'REMOVED' : 'KEPT'}`, {
+        id: msg.id,
+        role: msg.role,
+        content: msg.content
+      });
 
-  //     return !isInitMessage;
-  //   }).map((msg: any) => {
-  //     const formattedMessage = {
-  //       id: msg.id || `temp-${Date.now()}-${msg.role}`,
-  //       role: msg.role,
-  //       system: msg.metadata?.system || false,
-  //       content: Array.isArray(msg.content) 
-  //         ? msg.content.map((c: any) => c.text?.value || c.text).join(' ') 
-  //         : msg.content,
-  //       created_at: msg.created_at || new Date().toISOString(),
-  //       metadata: msg.metadata || {}
-  //     };
+      return !isInitMessage;
+    }).map((msg: any) => {
+      const formattedMessage = {
+        id: msg.id || `temp-${Date.now()}-${msg.role}`,
+        role: msg.role,
+        system: msg.metadata?.system || false,
+        content: Array.isArray(msg.content) 
+          ? msg.content.map((c: any) => c.text?.value || c.text).join(' ') 
+          : msg.content,
+        created_at: msg.created_at || new Date().toISOString(),
+        metadata: msg.metadata || {}
+      };
 
-  //     console.log('✅ Formatted Message:', formattedMessage);
-  //     return formattedMessage;
-  //   }).sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+      console.log('✅ Formatted Message:', formattedMessage);
+      return formattedMessage;
+    }).sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
 
-  //   console.log('🧹 Messages After Formatting:', filteredMessages.length);
-  //   console.log('📋 Formatted Messages Details:', filteredMessages);
-  //   console.groupEnd();
+    console.log('🧹 Messages After Formatting:', filteredMessages.length);
+    console.log('📋 Formatted Messages Details:', filteredMessages);
+    console.groupEnd();
 
-  //   return filteredMessages;
-  // };
+    return filteredMessages;
+  };
 
   const formatThreads = (threads: any[]): ThreadItem[] => {
     // Ordena threads por data de criação em ordem decrescente

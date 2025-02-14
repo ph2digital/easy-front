@@ -1,4 +1,6 @@
 .account-sidebar {
+  display: flex;
+  flex-direction: column;
   height: 100vh;
   width: 80px; /* Reduzir a largura */
   background-color: #333333;
@@ -62,11 +64,8 @@
   background-color: #2a5aa7;
 }
 
-.account-list h3 {
-  color: #ffffff;
-  font-size: 12px;
-  margin-bottom: 10px;
-  text-align: center;
+.account-list {
+  flex: 1; /* Permite que a lista de contas ocupe o espaço restante */
 }
 
 .account-grid {
@@ -75,11 +74,13 @@
   align-items: center;
   gap: 10px;
   padding-top: 10px;
-  max-height: 250px; /* Altura para 5 contas (5 * 40px + 4 * 10px gap) */
+  max-height: 350px; /* Altura para 5 contas (5 * 40px + 4 * 10px gap) */
   overflow-y: scroll;
   background-color: #333333;
   scrollbar-width: none; /* Firefox */
   -ms-overflow-style: none;  /* Internet Explorer 10+ */
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
 .account-grid::-webkit-scrollbar { /* WebKit */
@@ -100,19 +101,19 @@
   align-items: center;
   color: white;
   font-weight: bold;
-  transition: background-color 0.2s ease, transform 0.1s ease;
+  transition: background-color 0.3s ease, box-shadow 0.3s ease;
   padding: 8px;
   user-select: none;
   -webkit-user-select: none;
   -moz-user-select: none;
   -ms-user-select: none;
   -webkit-touch-callout: none;
+  position: relative;
 }
 
 .account-square:hover {
-  background-color: #5a5a5a;
-  transform: scale(1.05);
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  background-color: rgba(255, 255, 255, 0.2);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 }
 
 .account-square.selected {
@@ -124,4 +125,137 @@
 
 .account-square.selected:hover {
   background-color: #0066cc;
+}
+
+.account-name {
+  opacity: 0;
+  position: absolute;
+  bottom: 10px;
+  left: 10px;
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.account-square:hover .account-name {
+  opacity: 1;
+  transform: translateY(-5px);
+  color: #007bff;
+}
+
+.custom-tooltip {
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: white;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    padding: 5px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    z-index: 100;
+    white-space: nowrap;
+    margin-bottom: 5px;
+    opacity: 0;
+    transition: opacity 0.3s ease, transform 0.3s ease;
+    transform: translateY(-10px);
+}
+
+.account-square:hover .custom-tooltip {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.ne2Ple-oshW8e-V67aGc {
+    position: absolute;
+    background-color: white;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    padding: 5px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    z-index: 100;
+    white-space: nowrap;
+    margin-top: 5px;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.account-square:hover .ne2Ple-oshW8e-V67aGc {
+    opacity: 1;
+}
+
+.ne2Ple-oshW8e-V67aGc {
+    position: absolute;
+    background-color: white;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    padding: 5px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    z-index: 100;
+    white-space: nowrap;
+    margin-top: 5px;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.account-square:hover .ne2Ple-oshW8e-V67aGc {
+    opacity: 1;
+}
+
+.popup-tooltip {
+  position: fixed; /* Change to fixed position */
+  background-color: white;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  padding: 5px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  z-index: 1000; /* Ensure it is on top of everything */
+  white-space: nowrap;
+  opacity: 0;
+  transition: opacity 0.3s ease, transform 0.3s ease;
+  transform: translateY(-10px);
+  color: black; /* Change text color to black */
+}
+
+.popup-tooltip {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.account-sidebar-footer {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding: 5px;
+    border-top: 1px solid #ccc;
+    flex: 0 0 auto;
+}
+
+.profile-icon, .settings-icon {
+    cursor: pointer;
+    font-size: 24px;
+    margin: 5px 0;
+}
+
+.profile-icon img {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.add-account-button {
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    font-size: 24px;
+    cursor: pointer;
+    margin-top: 5px;
+    transition: background-color 0.3s;
+}
+
+.add-account-button:hover {
+    background-color: #0056b3;
 }
