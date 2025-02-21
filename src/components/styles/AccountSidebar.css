@@ -1,202 +1,195 @@
 .account-sidebar {
-  width: 80px;
-  height: 100%;
-  background-color: #333333;
+  width: 72px;
+  height: 100vh;
+  background-color: #18181B;
   display: flex;
   flex-direction: column;
+  border-right: 1px solid #27272A;
+  overflow: hidden;
+  position: fixed;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  will-change: transform;
 }
 
-.account-list {
+.menu-button {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #27272A;
+  border: 1px solid #3F3F46;
+  cursor: pointer;
+  color: #71717A;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+  margin: 16px auto;
+  padding: 0;
+  will-change: transform;
+}
+
+.menu-button:hover {
+  transform: translateY(-1px);
+  background-color: #3F3F46;
+  border-color: #52525B;
+  color: #E4E4E7;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.menu-button svg {
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+}
+
+.account-section {
   flex: 1;
-  overflow-y: auto;
-  padding: 8px;
-  position: relative;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  justify-content: flex-start;
+  padding: 0;
+  min-height: 0;
+  gap: 32px;
+  overflow: hidden;
+  margin: 0;
 }
 
 .channel-section {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 8px;
+  min-height: 0;
+  overflow: visible;
+  padding: 0 16px;
+  margin: 0;
+  position: relative;
 }
 
-.channel-button {
-  cursor: pointer;
-  padding: 8px;
-  border-radius: 8px;
-  transition: background-color 0.2s;
+.channel-header {
   width: 40px;
   height: 40px;
   display: flex;
   align-items: center;
   justify-content: center;
-  background-color: #4a4a4a;
+  cursor: pointer;
+  border-radius: 8px;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease, border-color 0.2s ease;
+  flex-shrink: 0;
+  background-color: #27272A;
+  border: 1px solid #3F3F46;
+  padding: 0;
+  margin: 0;
+  will-change: transform;
 }
 
-.channel-button:hover {
-  background-color: #5a5a5a;
+.channel-header[data-channel="google"]:hover {
+  background-color: #3F3F46;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  border-color: #52525B;
 }
 
-.channel-button.active {
-  background-color: #2196f3;
+.channel-header[data-channel="google"].active {
+  background: linear-gradient(135deg, #4285F4 0%, #34A853 33%, #FBBC05 66%, #EA4335 100%);
+  border-color: transparent;
+}
+
+.channel-header[data-channel="facebook"]:hover {
+  background-color: #3F3F46;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  border-color: #52525B;
+}
+
+.channel-header[data-channel="facebook"].active {
+  background: linear-gradient(45deg, #0064E0 0%, #0099FF 100%);
+  border-color: transparent;
 }
 
 .channel-logo {
   width: 24px;
   height: 24px;
+  flex-shrink: 0;
+  transition: opacity 0.2s ease;
+  opacity: 0.8;
+  display: block;
+  padding: 0;
+  margin: 0;
 }
 
-.channel-content {
+.channel-header:hover .channel-logo {
+  opacity: 1;
+}
+
+.channel-header.active .channel-logo {
+  filter: brightness(0) invert(1);
+  opacity: 1;
+}
+
+.accounts-list {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 8px;
-  width: 100%;
-}
-
-.account-grid {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  width: 100%;
-  align-items: center;
-  max-height: 200px;
-  overflow-y: auto;
-  padding-right: 4px;
-  cursor: grab;
-}
-
-.account-grid:active {
-  cursor: grabbing;
-}
-
-.account-grid::-webkit-scrollbar {
-  width: 4px;
-}
-
-.account-grid::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.account-grid::-webkit-scrollbar-thumb {
-  background: #4a4a4a;
-  border-radius: 2px;
-}
-
-.account-grid::-webkit-scrollbar-thumb:hover {
-  background: #5a5a5a;
-}
-
-.account-square {
-  width: 40px;
-  height: 40px;
-  background-color: #4a4a4a;
-  border-radius: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  position: relative;
-  transition: all 0.2s ease;
-  padding: 4px;
-}
-
-.account-square:hover {
-  background-color: #5a5a5a;
-}
-
-.account-square.selected {
-  background-color: #2196f3;
-}
-
-.account-content {
-  width: 100%;
-  height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  position: relative;
-}
-
-.account-initials {
-  font-size: 12px;
-  font-weight: 500;
-  color: white;
-  text-align: center;
-  word-break: break-word;
-  max-width: 100%;
-  line-height: 1;
-}
-
-.edit-button {
-  position: absolute;
-  top: -4px;
-  right: -4px;
-  width: 16px;
-  height: 16px;
-  border-radius: 50%;
-  background-color: #f5f5f5;
-  border: 1px solid #e0e0e0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  opacity: 0;
-  transition: opacity 0.2s ease;
-  padding: 2px;
-}
-
-.account-square:hover .edit-button {
-  opacity: 1;
-}
-
-.edit-button:hover {
-  background-color: #e0e0e0;
-}
-
-.nav-button {
-  width: 40px;
-  height: 40px;
-  border-radius: 8px;
-  background-color: #4a4a4a;
-  border: none;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  color: #ffffff;
+  margin: 8px 0 0 0;
   padding: 0;
+  min-height: 0;
+  max-height: calc(100vh - 300px);
+  overflow-y: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  will-change: transform;
 }
 
-.nav-button:hover {
-  background-color: #5a5a5a;
+.accounts-list::-webkit-scrollbar {
+  display: none;
 }
 
-.nav-button svg {
-  width: 20px;
-  height: 20px;
-  transition: transform 0.2s ease;
+.account-block {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #27272A;
+  border: 1px solid #3F3F46;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 15px;
+  color: #A1A1AA;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+  flex-shrink: 0;
+  position: relative;
+  overflow: hidden;
+  padding: 0;
+  margin: 0;
+  will-change: transform;
 }
 
-.nav-button:hover svg {
-  transform: translateX(2px);
+.account-block:hover {
+  transform: translateY(-1px);
+  background-color: #3F3F46;
+  border-color: #52525B;
+  color: #E4E4E7;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 }
 
-.tooltip {
-  position: fixed;
-  background-color: #333;
+.account-block[data-type="google_ads"].selected {
+  background: linear-gradient(135deg, #4285F4 0%, #34A853 33%, #FBBC05 66%, #EA4335 100%);
   color: white;
-  padding: 4px 8px;
-  border-radius: 4px;
-  font-size: 12px;
-  pointer-events: none;
-  z-index: 1000;
-  transform: translate(-50%, -50%);
-  white-space: nowrap;
+  border-color: transparent;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+}
+
+.account-block[data-type="meta_ads"].selected {
+  background: linear-gradient(45deg, #0064E0 0%, #0099FF 100%);
+  color: white;
+  border-color: transparent;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
 }
 
 .account-sidebar-footer {
@@ -204,32 +197,95 @@
   flex-direction: column;
   align-items: center;
   gap: 8px;
-  padding: 16px 8px;
-  border-top: 1px solid #4a4a4a;
+  padding: 16px;
+  border-top: 1px solid #27272A;
+  margin-top: auto;
+  flex-shrink: 0;
+  background-color: #18181B;
 }
 
 .action-button {
   width: 40px;
   height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #27272A;
+  border: 1px solid #3F3F46;
+  cursor: pointer;
+  color: #71717A;
   border-radius: 8px;
-  background-color: #4a4a4a;
-  border: none;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+  flex-shrink: 0;
+  padding: 0;
+  margin: 0;
+  will-change: transform;
+}
+
+.action-button:hover {
+  transform: translateY(-1px);
+  background-color: #3F3F46;
+  border-color: #52525B;
+  color: #E4E4E7;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.action-button svg {
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+}
+
+.profile-image {
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  flex-shrink: 0;
+  opacity: 0.8;
+  transition: opacity 0.2s ease;
+  display: block;
+  padding: 0;
+  margin: 0;
+}
+
+.action-button:hover .profile-image {
+  opacity: 1;
+}
+
+.tooltip {
+  position: fixed;
+  background-color: #18181B;
+  color: #E4E4E7;
+  padding: 6px 10px;
+  border-radius: 6px;
+  font-size: 13px;
+  pointer-events: none;
+  z-index: 1000;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+  border: 1px solid #27272A;
+  will-change: transform;
+}
+
+.next-page-button {
+  width: 40px;
+  height: 32px;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: background-color 0.2s;
-  color: white;
-  padding: 0;
+  color: #71717A;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+  margin-top: 4px;
+  background-color: #27272A;
+  border: 1px solid #3F3F46;
 }
 
-.action-button:hover {
-  background-color: #5a5a5a;
-}
-
-.profile-image {
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  object-fit: cover;
+.next-page-button:hover {
+  transform: translateY(-1px);
+  background-color: #3F3F46;
+  border-color: #52525B;
+  color: #E4E4E7;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 }

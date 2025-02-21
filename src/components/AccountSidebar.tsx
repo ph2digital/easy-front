@@ -38,6 +38,7 @@ const AccountSidebar: React.FC<AccountSidebarProps> = ({ selectedAccount, setSel
     facebook: 0
   });
   const ITEMS_PER_PAGE = 5;
+  const profileImage = useSelector(selectProfileImage);
 
   useEffect(() => {
     const fetchCustomers = async () => {
@@ -74,9 +75,11 @@ const AccountSidebar: React.FC<AccountSidebarProps> = ({ selectedAccount, setSel
     return accounts.slice(startIndex, startIndex + ITEMS_PER_PAGE);
   };
 
-  const handleAccountClick = (customer_id: string) => {
-    setSelectedAccount(customer_id);
-    localStorage.setItem('selectedCustomer', customer_id);
+  const handleAccountClick = (customer: Customer) => {
+    setSelectedAccount(customer.id);
+    localStorage.setItem('selectedCustomer', customer.id);
+    localStorage.setItem('selectedCustomerName', getAccountName(customer));
+    localStorage.setItem('selectedCustomerType', customer.type);
   };
 
   const getAccountInitials = (account: Customer): string => {
@@ -109,134 +112,130 @@ const AccountSidebar: React.FC<AccountSidebarProps> = ({ selectedAccount, setSel
     setTooltipVisible(false);
   };
 
-  const openProfileSettings = () => {
-    alert('Abrir configurações de perfil');
+  const addNewAccount = () => {
+    alert('Adicionar nova conta');
   };
 
   const openSystemSettings = () => {
     alert('Abrir configurações do sistema');
   };
 
-  const addNewAccount = () => {
-    alert('Adicionar nova conta');
+  const openProfileSettings = () => {
+    alert('Abrir configurações de perfil');
   };
-
-  const profileImage = useSelector(selectProfileImage);
 
   return (
     <div className="account-sidebar">
-      <div className="account-list">
-        {/* Google Ads Channel */}
+      <button className="menu-button">
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="24"
+          height="24"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          className="lucide lucide-menu"
+        >
+          <line x1="4" x2="20" y1="12" y2="12"></line>
+          <line x1="4" x2="20" y1="6" y2="6"></line>
+          <line x1="4" x2="20" y1="18" y2="18"></line>
+        </svg>
+      </button>
+      <div className="account-section">
         <div className="channel-section">
           <div 
-            className={`channel-button ${selectedChannel === 'google' ? 'active' : ''}`}
-            onClick={() => setSelectedChannel(prev => prev === 'google' ? null : 'google')}
-            aria-label="Toggle Google Ads Accounts"
-            role="button"
+            className={`channel-header ${selectedChannel === 'google' ? 'active' : ''}`}
+            onClick={() => setSelectedChannel(selectedChannel === 'google' ? null : 'google')}
+            data-channel="google"
           >
-            <img 
-              src={selectedChannel === 'google' ? GoogleAdsLogoIluminado : GoogleAdsLogo} 
-              alt="Google Ads" 
-              className="channel-logo" 
+            <img
+              src={selectedChannel === 'google' ? GoogleAdsLogoIluminado : GoogleAdsLogo}
+              alt="Google Ads"
+              className="channel-logo"
             />
           </div>
           {selectedChannel === 'google' && (
-            <div className="channel-content">
-              <div 
-                className="account-grid" 
-                aria-label="Google Ads Accounts"
-              >
-                {getPageAccounts(googleAccounts, 'google').map((account) => (
-                  <div
-                    key={`google-${account.id}`}
-                    className={`account-square ${selectedAccount === account.customer_id ? 'selected' : ''}`}
-                    onMouseEnter={(event) => handleMouseEnter(getAccountName(account), event)}
-                    onMouseLeave={handleMouseLeave}
-                    onClick={() => handleAccountClick(account.customer_id)}
-                    aria-label={`Select Google Ads Account ${account.customer_id}`}
-                    role="button"
-                  >
-                    <div className="account-content">
-                      <span className="account-initials">{getAccountInitials(account)}</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-              {googleAccounts.length > ITEMS_PER_PAGE && (
-                <button 
-                  className="nav-button"
-                  onClick={() => handleNextPage('google')}
-                  aria-label="Next page of Google Ads accounts"
+            <div className="accounts-list">
+              {getPageAccounts(googleAccounts, 'google').map((account) => (
+                <div
+                  key={account.id}
+                  className={`account-block ${selectedAccount === account.id ? 'selected' : ''}`}
+                  onClick={() => handleAccountClick(account)}
+                  onMouseEnter={(e) => handleMouseEnter(getAccountName(account), e)}
+                  onMouseLeave={handleMouseLeave}
+                  data-type="google_ads"
                 >
-                  <ChevronRight />
-                </button>
+                  {getAccountInitials(account)}
+                </div>
+              ))}
+              {googleAccounts.length > ITEMS_PER_PAGE && (
+                <div className="next-page-button" onClick={() => handleNextPage('google')}>
+                  <ChevronRight size={20} />
+                </div>
               )}
             </div>
           )}
         </div>
 
-        {/* Facebook Ads Channel */}
         <div className="channel-section">
           <div 
-            className={`channel-button ${selectedChannel === 'facebook' ? 'active' : ''}`}
-            onClick={() => setSelectedChannel(prev => prev === 'facebook' ? null : 'facebook')}
-            aria-label="Toggle Meta Ads Accounts"
-            role="button"
+            className={`channel-header ${selectedChannel === 'facebook' ? 'active' : ''}`}
+            onClick={() => setSelectedChannel(selectedChannel === 'facebook' ? null : 'facebook')}
+            data-channel="facebook"
           >
-            <img 
-              src={selectedChannel === 'facebook' ? MetaAdsLogoIluminado : MetaAdsLogo} 
-              alt="Meta Ads" 
-              className="channel-logo" 
+            <img
+              src={selectedChannel === 'facebook' ? MetaAdsLogoIluminado : MetaAdsLogo}
+              alt="Meta Ads"
+              className="channel-logo"
             />
           </div>
           {selectedChannel === 'facebook' && (
-            <div className="channel-content">
-              <div 
-                className="account-grid" 
-                aria-label="Meta Ads Accounts"
-              >
-                {getPageAccounts(facebookAccounts, 'facebook').map((account) => (
-                  <div
-                    key={`facebook-${account.id}`}
-                    className={`account-square ${selectedAccount === account.customer_id ? 'selected' : ''}`}
-                    onMouseEnter={(event) => handleMouseEnter(getAccountName(account), event)}
-                    onMouseLeave={handleMouseLeave}
-                    onClick={() => handleAccountClick(account.customer_id)}
-                    aria-label={`Select Meta Ads Account ${account.customer_id}`}
-                    role="button"
-                  >
-                    <div className="account-content">
-                      <span className="account-initials">{getAccountInitials(account)}</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-              {facebookAccounts.length > ITEMS_PER_PAGE && (
-                <button 
-                  className="nav-button"
-                  onClick={() => handleNextPage('facebook')}
-                  aria-label="Next page of Meta Ads accounts"
+            <div className="accounts-list">
+              {getPageAccounts(facebookAccounts, 'facebook').map((account) => (
+                <div
+                  key={account.id}
+                  className={`account-block ${selectedAccount === account.id ? 'selected' : ''}`}
+                  onClick={() => handleAccountClick(account)}
+                  onMouseEnter={(e) => handleMouseEnter(getAccountName(account), e)}
+                  onMouseLeave={handleMouseLeave}
+                  data-type="meta_ads"
                 >
-                  <ChevronRight />
-                </button>
+                  {getAccountInitials(account)}
+                </div>
+              ))}
+              {facebookAccounts.length > ITEMS_PER_PAGE && (
+                <div className="next-page-button" onClick={() => handleNextPage('facebook')}>
+                  <ChevronRight size={20} />
+                </div>
               )}
             </div>
           )}
         </div>
       </div>
+
       {tooltipVisible && hoveredAccountName && (
-        <div className="tooltip" style={{ top: tooltipPosition.top, left: tooltipPosition.left }}>
+        <div
+          className="tooltip"
+          style={{
+            top: tooltipPosition.top,
+            left: tooltipPosition.left,
+          }}
+        >
           {hoveredAccountName}
         </div>
       )}
+
       <div className="account-sidebar-footer">
-        <button className="action-button" onClick={addNewAccount} aria-label="Add new account">
+        <button className="action-button" onClick={addNewAccount}>
           <Plus size={20} />
         </button>
-        <button className="action-button" onClick={openSystemSettings} aria-label="System settings">
+        <button className="action-button" onClick={openSystemSettings}>
           <Settings size={20} />
         </button>
-        <button className="action-button" onClick={openProfileSettings} aria-label="Profile settings">
+        <button className="action-button" onClick={openProfileSettings}>
           {profileImage ? (
             <img src={profileImage} alt="Profile" className="profile-image" />
           ) : (

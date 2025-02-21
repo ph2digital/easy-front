@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 
-interface Message {
+export interface Message {
   id: string;
   content: string[];
   role: 'user' | 'assistant';
@@ -8,7 +8,7 @@ interface Message {
   thread_id: string;
 }
 
-interface Conversation {
+export interface Conversation {
   id: string;
   title?: string;
   threadId?: string;
@@ -17,33 +17,55 @@ interface Conversation {
   updated_at: number;
 }
 
-interface ChatStore {
+interface ChatState {
   messages: Message[];
   loading: boolean;
-  currentConversation: Conversation | null;
   conversations: Conversation[];
-  sendMessage: (message: string) => Promise<void>;
-  createConversation: () => Promise<void>;
+  currentConversation: Conversation | null;
+  model: string;
+  setModel: (model: string) => void;
   setCurrentConversation: (conversation: Conversation) => void;
+  createConversation: () => Promise<void>;
+  sendMessage: (content: string) => Promise<void>;
 }
 
-export const useChatStore = create<ChatStore>((set) => ({
+export const useChatStore = create<ChatState>(set => ({
   messages: [],
   loading: false,
-  currentConversation: null,
   conversations: [],
-  sendMessage: async (message: string) => {
+  currentConversation: null,
+  model: 'gpt-3.5-turbo',
+  setModel: (model: string) => set({ model }),
+  setCurrentConversation: (conversation: Conversation) => {
+    set({ 
+      currentConversation: conversation,
+      messages: conversation.messages || []
+    });
+  },
+  createConversation: async () => {
+    const newConversation: Conversation = {
+      id: Date.now().toString(),
+      title: 'Nova Conversa',
+      created_at: Date.now(),
+      updated_at: Date.now()
+    };
+    set(state => ({
+      conversations: [...state.conversations, newConversation],
+      currentConversation: newConversation
+    }));
+  },
+  sendMessage: async (content: string) => {
     set({ loading: true });
     try {
       // Implement your message sending logic here
       const newMessage: Message = {
         id: Date.now().toString(),
-        content: [message],
+        content: [content],
         role: 'user',
         created_at: Date.now(),
         thread_id: 'temp-thread'
       };
-      set((state) => ({ messages: [...state.messages, newMessage] }));
+      set(state => ({ messages: [...state.messages, newMessage] }));
       
       // Simulate API response
       setTimeout(() => {
@@ -54,7 +76,7 @@ export const useChatStore = create<ChatStore>((set) => ({
           created_at: Date.now(),
           thread_id: 'temp-thread'
         };
-        set((state) => ({ 
+        set(state => ({ 
           messages: [...state.messages, response],
           loading: false
         }));
@@ -63,20 +85,5 @@ export const useChatStore = create<ChatStore>((set) => ({
       console.error('Error sending message:', error);
       set({ loading: false });
     }
-  },
-  createConversation: async () => {
-    const newConversation: Conversation = {
-      id: Date.now().toString(),
-      title: 'Nova Conversa',
-      created_at: Date.now(),
-      updated_at: Date.now()
-    };
-    set((state) => ({
-      conversations: [...state.conversations, newConversation],
-      currentConversation: newConversation
-    }));
-  },
-  setCurrentConversation: (conversation: Conversation) => {
-    set({ currentConversation: conversation });
   }
 }));
