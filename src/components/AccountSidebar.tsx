@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback, useEffect } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useSelector } from 'react-redux';
 import { selectProfileImage } from '../store/authSlice';
 import './styles/AccountSidebar.css';
@@ -6,79 +6,100 @@ import GoogleAdsLogo from '../assets/Logo Google Ads.svg';
 import GoogleAdsLogoIluminado from '../assets/Logo Google Ads-iluminado.svg';
 import MetaAdsLogo from '../assets/Logo Meta Ads.svg';
 import MetaAdsLogoIluminado from '../assets/Logo Meta Ads-iluminado.svg';
+import { Settings, Plus, User, ChevronRight } from 'lucide-react';
+import axios from 'axios';
+
+interface Customer {
+  id: string;
+  customer_id: string;
+  type: 'google_ads' | 'meta_ads';
+  is_active: boolean;
+  accountdetails_name: string | null;
+  accountdetails_business_name: string | null;
+  user_id: string;
+  created_at: string;
+  updated_at: string;
+}
 
 interface AccountSidebarProps {
   selectedAccount: string | null;
   setSelectedAccount: (customer_id: string) => void;
-  activeCustomers: any[];
 }
 
-const AccountSidebar: React.FC<AccountSidebarProps> = ({ selectedAccount, setSelectedAccount, activeCustomers }) => {
+const AccountSidebar: React.FC<AccountSidebarProps> = ({ selectedAccount, setSelectedAccount }) => {
   const [selectedChannel, setSelectedChannel] = useState<string | null>(null);
   const [hoveredAccountName, setHoveredAccountName] = useState<string | null>(null);
   const [tooltipVisible, setTooltipVisible] = useState(false);
   const [tooltipPosition, setTooltipPosition] = useState<{ top: number; left: number }>({ top: 0, left: 0 });
-  const accountGridRef = useRef<HTMLDivElement>(null);
-  const isDraggingRef = useRef(false);
-  const startYRef = useRef(0);
   const tooltipTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const [customers, setCustomers] = useState<Customer[]>([]);
+  const [currentPage, setCurrentPage] = useState<Record<string, number>>({
+    google: 0,
+    facebook: 0
+  });
+  const ITEMS_PER_PAGE = 5;
 
-  const googleAccounts = activeCustomers.filter(account => account.type === 'google_ads');
-  const facebookAccounts = activeCustomers.filter(account => account.type === 'meta_ads');
+  useEffect(() => {
+    const fetchCustomers = async () => {
+      try {
+        const response = await axios.get('http://localhost:8080/api/accounts/customers/3893aa0b-650d-430a-b6db-62da3be1633a', {
+          headers: {
+            'accept': 'application/json',
+            'Content-Type': 'application/json',
+          },
+        });
+        setCustomers(response.data.linked_customers || []);
+      } catch (error) {
+        console.error('Erro ao buscar customers:', error);
+      }
+    };
+
+    fetchCustomers();
+  }, []);
+
+  const googleAccounts = customers.filter(account => account.type === 'google_ads' && account.is_active);
+  const facebookAccounts = customers.filter(account => account.type === 'meta_ads' && account.is_active);
+
+  const handleNextPage = (channel: string) => {
+    const accounts = channel === 'google' ? googleAccounts : facebookAccounts;
+    const maxPage = Math.ceil(accounts.length / ITEMS_PER_PAGE) - 1;
+    setCurrentPage(prev => ({
+      ...prev,
+      [channel]: prev[channel] >= maxPage ? 0 : prev[channel] + 1
+    }));
+  };
+
+  const getPageAccounts = (accounts: Customer[], channel: string) => {
+    const startIndex = currentPage[channel] * ITEMS_PER_PAGE;
+    return accounts.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+  };
 
   const handleAccountClick = (customer_id: string) => {
     setSelectedAccount(customer_id);
     localStorage.setItem('selectedCustomer', customer_id);
   };
 
-  const getAccountInitials = (account: any): string => {
+  const getAccountInitials = (account: Customer): string => {
     const name = account.accountdetails_name || account.accountdetails_business_name || account.customer_id;
     return name.substring(0, 2).toUpperCase();
   };
 
-  const getAccountName = (account: any): string => {
+  const getAccountName = (account: Customer): string => {
     return account.accountdetails_name || account.accountdetails_business_name || account.customer_id;
   };
 
-  const handleChannelToggle = (channel: string) => {
-    setSelectedChannel(prevChannel => prevChannel === channel ? null : channel);
-  };
-
-  const handleMouseDown = useCallback((e: React.MouseEvent) => {
-    if (!accountGridRef.current) return;
-    
-    isDraggingRef.current = true;
-    startYRef.current = e.clientY;
-    
-    const handleMouseMove = (moveEvent: MouseEvent) => {
-      if (!isDraggingRef.current || !accountGridRef.current) return;
-      
-      const deltaY = startYRef.current - moveEvent.clientY;
-      startYRef.current = moveEvent.clientY;
-      
-      accountGridRef.current.scrollTop += deltaY;
-    };
-
-    const handleMouseUp = () => {
-      isDraggingRef.current = false;
-      document.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('mouseup', handleMouseUp);
-    };
-
-    document.addEventListener('mousemove', handleMouseMove);
-    document.addEventListener('mouseup', handleMouseUp);
-  }, []);
-
   const handleMouseEnter = (accountName: string, event: React.MouseEvent) => {
+    const rect = (event.target as HTMLElement).getBoundingClientRect();
+    setHoveredAccountName(accountName);
+    setTooltipPosition({ top: rect.top, left: rect.left + rect.width + 8 });
+    
     if (tooltipTimeoutRef.current) {
       clearTimeout(tooltipTimeoutRef.current);
     }
-    const { top, left, width, height } = (event.target as HTMLDivElement).getBoundingClientRect();
+    
     tooltipTimeoutRef.current = setTimeout(() => {
-      setHoveredAccountName(accountName);
-      setTooltipPosition({ top: top + height / 2, left: left + width + 10 });
       setTooltipVisible(true);
-    }, 500); // Delay before showing tooltip
+    }, 500);
   };
 
   const handleMouseLeave = () => {
@@ -86,21 +107,17 @@ const AccountSidebar: React.FC<AccountSidebarProps> = ({ selectedAccount, setSel
       clearTimeout(tooltipTimeoutRef.current);
     }
     setTooltipVisible(false);
-    setHoveredAccountName(null);
   };
 
   const openProfileSettings = () => {
-    // Exemplo: abrir um modal com um formulário de edição de perfil
     alert('Abrir configurações de perfil');
   };
 
   const openSystemSettings = () => {
-    // Exemplo: abrir um modal com opções de configuração do sistema
     alert('Abrir configurações do sistema');
   };
 
   const addNewAccount = () => {
-    // Exemplo: abrir um modal para adicionar uma nova conta
     alert('Adicionar nova conta');
   };
 
@@ -112,8 +129,8 @@ const AccountSidebar: React.FC<AccountSidebarProps> = ({ selectedAccount, setSel
         {/* Google Ads Channel */}
         <div className="channel-section">
           <div 
-            className="channel-button"
-            onClick={() => handleChannelToggle('google')}
+            className={`channel-button ${selectedChannel === 'google' ? 'active' : ''}`}
+            onClick={() => setSelectedChannel(prev => prev === 'google' ? null : 'google')}
             aria-label="Toggle Google Ads Accounts"
             role="button"
           >
@@ -124,26 +141,36 @@ const AccountSidebar: React.FC<AccountSidebarProps> = ({ selectedAccount, setSel
             />
           </div>
           {selectedChannel === 'google' && (
-            <div 
-              ref={accountGridRef}
-              className="account-grid"
-              onMouseDown={handleMouseDown}
-              aria-label="Google Ads Accounts"
-            >
-              {googleAccounts.map((account) => (
-                <div
-                  key={`google-${account.id}`}
-                  className={`account-square ${selectedAccount === account.id ? 'selected' : ''}`}
-                  onMouseEnter={(event) => handleMouseEnter(getAccountName(account), event)}
-                  onMouseLeave={handleMouseLeave}
-                  onClick={() => handleAccountClick(account.customer_id)}
-                  aria-label={`Select Google Ads Account ${account.customer_id}`}
-                  role="button"
-                  style={{ position: 'relative', display: 'inline-block' }}
+            <div className="channel-content">
+              <div 
+                className="account-grid" 
+                aria-label="Google Ads Accounts"
+              >
+                {getPageAccounts(googleAccounts, 'google').map((account) => (
+                  <div
+                    key={`google-${account.id}`}
+                    className={`account-square ${selectedAccount === account.customer_id ? 'selected' : ''}`}
+                    onMouseEnter={(event) => handleMouseEnter(getAccountName(account), event)}
+                    onMouseLeave={handleMouseLeave}
+                    onClick={() => handleAccountClick(account.customer_id)}
+                    aria-label={`Select Google Ads Account ${account.customer_id}`}
+                    role="button"
+                  >
+                    <div className="account-content">
+                      <span className="account-initials">{getAccountInitials(account)}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              {googleAccounts.length > ITEMS_PER_PAGE && (
+                <button 
+                  className="nav-button"
+                  onClick={() => handleNextPage('google')}
+                  aria-label="Next page of Google Ads accounts"
                 >
-                  {getAccountInitials(account)}
-                </div>
-              ))}
+                  <ChevronRight />
+                </button>
+              )}
             </div>
           )}
         </div>
@@ -151,8 +178,8 @@ const AccountSidebar: React.FC<AccountSidebarProps> = ({ selectedAccount, setSel
         {/* Facebook Ads Channel */}
         <div className="channel-section">
           <div 
-            className="channel-button"
-            onClick={() => handleChannelToggle('facebook')}
+            className={`channel-button ${selectedChannel === 'facebook' ? 'active' : ''}`}
+            onClick={() => setSelectedChannel(prev => prev === 'facebook' ? null : 'facebook')}
             aria-label="Toggle Meta Ads Accounts"
             role="button"
           >
@@ -163,41 +190,59 @@ const AccountSidebar: React.FC<AccountSidebarProps> = ({ selectedAccount, setSel
             />
           </div>
           {selectedChannel === 'facebook' && (
-            <div 
-              ref={accountGridRef}
-              className="account-grid"
-              onMouseDown={handleMouseDown}
-              aria-label="Meta Ads Accounts"
-            >
-              {facebookAccounts.map((account) => (
-                <div
-                  key={`facebook-${account.id}`}
-                  className={`account-square ${selectedAccount === account.id ? 'selected' : ''}`}
-                  onMouseEnter={(event) => handleMouseEnter(getAccountName(account), event)}
-                  onMouseLeave={handleMouseLeave}
-                  onClick={() => handleAccountClick(account.customer_id)}
-                  aria-label={`Select Meta Ads Account ${account.customer_id}`}
-                  role="button"
-                  style={{ position: 'relative', display: 'inline-block' }}
+            <div className="channel-content">
+              <div 
+                className="account-grid" 
+                aria-label="Meta Ads Accounts"
+              >
+                {getPageAccounts(facebookAccounts, 'facebook').map((account) => (
+                  <div
+                    key={`facebook-${account.id}`}
+                    className={`account-square ${selectedAccount === account.customer_id ? 'selected' : ''}`}
+                    onMouseEnter={(event) => handleMouseEnter(getAccountName(account), event)}
+                    onMouseLeave={handleMouseLeave}
+                    onClick={() => handleAccountClick(account.customer_id)}
+                    aria-label={`Select Meta Ads Account ${account.customer_id}`}
+                    role="button"
+                  >
+                    <div className="account-content">
+                      <span className="account-initials">{getAccountInitials(account)}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              {facebookAccounts.length > ITEMS_PER_PAGE && (
+                <button 
+                  className="nav-button"
+                  onClick={() => handleNextPage('facebook')}
+                  aria-label="Next page of Meta Ads accounts"
                 >
-                  {getAccountInitials(account)}
-                </div>
-              ))}
+                  <ChevronRight />
+                </button>
+              )}
             </div>
           )}
         </div>
       </div>
       {tooltipVisible && hoveredAccountName && (
-        <div className="popup-tooltip" style={{ top: tooltipPosition.top, left: tooltipPosition.left, color: 'black' }}>
+        <div className="tooltip" style={{ top: tooltipPosition.top, left: tooltipPosition.left }}>
           {hoveredAccountName}
         </div>
       )}
       <div className="account-sidebar-footer">
-        <button className="add-account-button" onClick={() => addNewAccount()}>+</button>
-        <div className="settings-icon" onClick={() => openSystemSettings()}>⚙️</div>
-        <div className="profile-icon" onClick={() => openProfileSettings()}>
-          {profileImage ? <img src={profileImage} alt="Profile" /> : '📷'}
-        </div>
+        <button className="action-button" onClick={addNewAccount} aria-label="Add new account">
+          <Plus size={20} />
+        </button>
+        <button className="action-button" onClick={openSystemSettings} aria-label="System settings">
+          <Settings size={20} />
+        </button>
+        <button className="action-button" onClick={openProfileSettings} aria-label="Profile settings">
+          {profileImage ? (
+            <img src={profileImage} alt="Profile" className="profile-image" />
+          ) : (
+            <User size={20} />
+          )}
+        </button>
       </div>
     </div>
   );

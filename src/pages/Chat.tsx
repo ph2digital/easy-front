@@ -1,484 +1,652 @@
-import React, { useEffect, useState, useRef } from 'react';
-import { useSelector } from 'react-redux';
+import React, { useState, useRef, useEffect } from 'react';
+import {
+  Box,
+  Button,
+  Divider,
+  HStack,
+  IconButton,
+  SimpleGrid,
+  Text,
+  Textarea,
+  useDisclosure,
+  VStack,
+  Image
+} from '@chakra-ui/react';
+
+import { 
+  Send, 
+  ChevronDown, 
+  ChevronUp, 
+  Plus, 
+  Eye, 
+  Edit, 
+  Activity,
+  FileText,
+  FileSpreadsheet,
+  MessageSquare,
+  Menu
+} from 'lucide-react';
+import { useChatStore } from '../lib/store';
 import ReactMarkdown from 'react-markdown';
-import './styles/Chat.css';
-import AccountPopup from '../components/AccountPopup';
 import AccountSidebar from '../components/AccountSidebar';
-import ChatInput from '../components/ChatInput';
-import ChatHeader from '../components/ChatHeader';
-import { useChatFunctions } from '../components/ChatFunctions';
-import ChatGPTAvatar from '../assets/Logo_branco.svg';
-import UserAvatar from '../assets/user-avatar.svg';
-import EasyAdLogo from '../assets/easy.ad_branco.svg';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { 
-  faBars, 
-  faChevronLeft, 
-  faSearch 
-} from '@fortawesome/free-solid-svg-icons';
-import { 
-  faClone,
-  faThumbsUp,
-  faThumbsDown,
-  faCircleCheck 
-} from '@fortawesome/free-regular-svg-icons';
-import { selectProfileImage } from '../store/authSlice';
+import { useSelector, useDispatch } from 'react-redux';
+import { setCustomers } from '../store/customersSlice';
+import { listCustomers } from '../services/api';
 
-function SafeMarkdown({ content }: { content: any }) {
-  const safeContent = typeof content === 'string' ? content : JSON.stringify(content, null, 2);
-  return <ReactMarkdown>{safeContent}</ReactMarkdown>;
+interface Conversation {
+  id: string;
+  title?: string;
+  threadId?: string;
+  created_at: number;
+  updated_at: number;
 }
 
-function MessageDropdown({ message }: { message: any }) {
-  const [isOpen, setIsOpen] = useState(false);
-
-  const toggleDropdown = () => {
-    setIsOpen(!isOpen);
-  };
-
-  const displayText = message.role === 'user' ? 'REQUISIÇÃO FEITA' : 'REQUISIÇÃO SUGERIDA';
-
-  return (
-    <div className="message-dropdown">
-      <div className="dropdown-header" onClick={toggleDropdown}>
-        {displayText}
-      </div>
-      {isOpen && (
-        <div className="dropdown-content">
-          <SafeMarkdown content={message.content} />
-        </div>
-      )}
-    </div>
-  );
+interface ChatMessage {
+  id: string;
+  role: 'user' | 'assistant';
+  content: string | string[];
+  created_at: number;
 }
 
-interface MessageFeedback {
-  [key: string]: 'like' | 'dislike' | null;
-}
+type ActionType = {
+  type: string;
+  text: string;
+  icon: any;
+  description: string;
+  actions: Array<{
+    text: string;
+    message: string;
+    icon: any;
+  }>;
+};
 
-const Chat: React.FC = () => {
-  const [showPopup] = useState(false); 
-  const [visibleThreads, setVisibleThreads] = useState(10);
-  const [isOpen, setIsOpen] = useState(true); 
-  const [activeTab, setActiveTab] = useState('chat');
-  const [messageFeedback, setMessageFeedback] = useState<MessageFeedback>({});
-  const [copiedMessages, setCopiedMessages] = useState<{[key: string]: boolean}>({});
-  const profileImage = useSelector(selectProfileImage);
-  const {
-    selectedAccount,
-    googleAccounts,
-    facebookAccounts,
-    activeCustomers,
-    loadingGoogleAccounts,
-    loadingFacebookAccounts,
-    threads,
-    selectedThread,
-    messages,
-    showCommentInput,
-    comment,
-    isTyping,
-    setComment,
-    handleFacebookLogin,
-    handleAccountClick,
-    handleThreadClick,
-    handleSendMessage,
-    handleAddComment,
-    handleCommentSubmit,
-    adjustTextareaHeight,
-    setSelectedThread,
-    setMessages,
-  } = useChatFunctions();
-
+export default function Chat() {
+  const [input, setInput] = useState('');
+  const [loadingMessageIndex, setLoadingMessageIndex] = useState(0);
+  const [isSuggestionsMinimized, setIsSuggestionsMinimized] = useState(false);
+  const { isOpen, onOpen, onClose } = useDisclosure();
+  const [selectedActionType, setSelectedActionType] = useState<string | null>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  
+  const { messages, loading, conversations, currentConversation, setCurrentConversation, createConversation } = useChatStore();
+  const [selectedCustomer, setSelectedCustomer] = useState<string | null>(
+    localStorage.getItem('selectedCustomer')
+  );
+  const dispatch = useDispatch();
+  const userId = useSelector((state: any) => state.auth.user?.id);
+  const customers = useSelector((state: any) => state.customers.linked_customers || []);
 
   useEffect(() => {
-    localStorage.removeItem('messages'); 
-
-    const navButtons = document.querySelectorAll('.nav-btn');
-    const chatContent = document.getElementById('chatContent');
-    const browserContent = document.getElementById('browserContent');
-
-    if (navButtons && chatContent && browserContent) {
-      navButtons.forEach(button => {
-        button.addEventListener('click', () => {
-          const buttonText = button.querySelector('span')?.textContent?.trim();
-          
-          navButtons.forEach(btn => btn.classList.remove('active'));
-          button.classList.add('active');
-          
-          if (buttonText === 'Navegador') {
-            (chatContent as HTMLElement).classList.remove('active');
-            (browserContent as HTMLElement).classList.add('active');
-          } else if (buttonText === 'Chat') {
-            (browserContent as HTMLElement).classList.remove('active');
-            (chatContent as HTMLElement).classList.add('active');
-          }
-        });
-      });
-    }
-
-    const accountItems = document.querySelectorAll('.account-item');
-    if (accountItems) {
-      accountItems.forEach(item => {
-        item.addEventListener('click', () => {
-          accountItems.forEach(acc => acc.classList.remove('active'));
-          item.classList.add('active');
-        });
-      });
-    }
-
-    const fullscreenBtn = document.getElementById('fullscreen-btn');
-    if (fullscreenBtn) {
-      fullscreenBtn.addEventListener('click', toggleFullScreen);
-    }
-
-    function toggleFullScreen() {
-      const expandIcon = fullscreenBtn?.querySelector('i');
-      
-      if (!document.fullscreenElement) {
-        if (document.documentElement.requestFullscreen) {
-          document.documentElement.requestFullscreen();
-        }
-        expandIcon?.classList.remove('fa-expand');
-        expandIcon?.classList.add('fa-compress');
-      } else {
-        if (document.exitFullscreen) {
-          document.exitFullscreen();
-        }
-        expandIcon?.classList.remove('fa-compress');
-        expandIcon?.classList.add('fa-expand');
+    const fetchCustomers = async () => {
+      try {
+        if (!userId) return;
+        const data = await listCustomers(userId);
+        dispatch(setCustomers(data));
+      } catch (error) {
+        console.error('Error fetching customers:', error);
       }
+    };
+
+    if (userId && !customers.length) {
+      fetchCustomers();
+    }
+  }, [userId, dispatch, customers.length]);
+
+  const actionTypes: ActionType[] = [
+    {
+      type: 'create',
+      text: 'Criar',
+      icon: Plus,
+      description: 'Criar novos recursos',
+      actions: [
+        { text: 'Nova Conta', message: '/create account', icon: Plus },
+        { text: 'Nova Campanha', message: '/create campaign', icon: Plus },
+        { text: 'Novo Post', message: '/create post', icon: FileText }
+      ]
+    },
+    {
+      type: 'view',
+      text: 'Visualizar',
+      icon: Eye,
+      description: 'Ver recursos existentes',
+      actions: [
+        { text: 'Ver Contas', message: '/view accounts', icon: Eye },
+        { text: 'Ver Campanhas', message: '/view campaigns', icon: Eye },
+        { text: 'Ver Posts', message: '/view posts', icon: Eye }
+      ]
+    },
+    {
+      type: 'update',
+      text: 'Atualizar',
+      icon: Edit,
+      description: 'Atualizar recursos',
+      actions: [
+        { text: 'Atualizar Conta', message: '/update account', icon: Edit },
+        { text: 'Atualizar Campanha', message: '/update campaign', icon: Edit },
+        { text: 'Atualizar Post', message: '/update post', icon: Edit }
+      ]
+    },
+    {
+      type: 'status',
+      text: 'Status',
+      icon: Activity,
+      description: 'Ver status dos recursos',
+      actions: [
+        { text: 'Status da Conta', message: '/status account', icon: Activity },
+        { text: 'Status da Campanha', message: '/status campaign', icon: Activity },
+        { text: 'Status do Post', message: '/status post', icon: Activity }
+      ]
+    },
+    {
+      type: 'report',
+      text: 'Relatórios',
+      icon: FileText,
+      description: 'Gerar relatórios',
+      actions: [
+        { text: 'Relatório da Conta', message: '/report account', icon: FileSpreadsheet },
+        { text: 'Relatório da Campanha', message: '/report campaign', icon: FileSpreadsheet },
+        { text: 'Relatório do Post', message: '/report post', icon: FileSpreadsheet }
+      ]
+    }
+  ];
+
+  const handleActionTypeClick = (type: string) => {
+    setSelectedActionType(type);
+  };
+
+  const handleBackToTypes = () => {
+    setSelectedActionType(null);
+  };
+
+  const renderSuggestions = () => {
+    if (!selectedActionType) {
+      return (
+        <Box
+          height={isSuggestionsMinimized ? "40px" : "auto"}
+          overflow="hidden"
+          transition="all 0.2s ease-in-out"
+        >
+          <HStack spacing={2} h="40px" alignItems="center" px={1}>
+            <IconButton
+              aria-label="Minimizar/Expandir sugestões"
+              icon={isSuggestionsMinimized ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+              size="sm"
+              variant="ghost"
+              padding={0}
+              minW="24px"
+              height="24px"
+              onClick={() => setIsSuggestionsMinimized(!isSuggestionsMinimized)}
+            />
+            <Text fontWeight="medium" color="gray.600" fontSize="sm" noOfLines={1}>
+              Digite / para ver todas as sugestões
+            </Text>
+          </HStack>
+          <Box
+            sx={{
+              opacity: isSuggestionsMinimized ? 0 : 1,
+              height: isSuggestionsMinimized ? 0 : 'auto',
+              overflow: 'hidden',
+              transition: 'all 0.2s ease-in-out',
+              transform: isSuggestionsMinimized ? 'translateY(10px)' : 'translateY(0)',
+            }}
+          >
+            <Text 
+              fontSize="sm" 
+              color="gray.600" 
+              mb={2}
+              px={1}
+            >
+              Selecione o tipo de ação
+            </Text>
+            <SimpleGrid 
+              columns={{ base: 1, sm: 2, md: 3 }} 
+              spacing={2}
+              templateColumns="repeat(auto-fit, minmax(140px, 1fr))"
+              width="100%"
+            >
+              {actionTypes.map((type) => (
+                <Box
+                  key={type.text}
+                  p={3}
+                  borderRadius="md"
+                  bg="white"
+                  boxShadow="sm"
+                  cursor="pointer"
+                  onClick={() => handleActionTypeClick(type.type)}
+                  _hover={{ bg: 'gray.50' }}
+                >
+                  <HStack spacing={3} mb={1}>
+                    <type.icon size={20} color="var(--chakra-colors-blue-500)" />
+                    <Text fontWeight="medium">{type.text}</Text>
+                  </HStack>
+                  <Text fontSize="sm" color="gray.600">
+                    {type.description}
+                  </Text>
+                </Box>
+              ))}
+            </SimpleGrid>
+          </Box>
+        </Box>
+      );
     }
 
-    const menuButton = document.querySelector('.menu-button');
-    const userMenuTooltip = document.querySelector('.user-menu-tooltip');
+    const currentType = actionTypes.find(at => at.type === selectedActionType);
+    if (!currentType) return null;
 
-    if (menuButton && userMenuTooltip) {
-      menuButton.addEventListener('click', (e) => {
-        e.stopPropagation();
-        (userMenuTooltip as HTMLElement).style.display = (userMenuTooltip as HTMLElement).style.display === 'block' ? 'none' : 'block';
-      });
+    return (
+      <Box 
+        display="flex" 
+        flexDirection="column"
+      >
+        <HStack spacing={2} h="40px" alignItems="center">
+          <IconButton
+            aria-label="Voltar"
+            icon={<ChevronUp size={14} />}
+            size="sm"
+            variant="ghost"
+            onClick={handleBackToTypes}
+          />
+          <Text fontWeight="medium" color="gray.600" fontSize="sm" noOfLines={1}>
+            {currentType.text}
+          </Text>
+        </HStack>
+        <Box
+          style={{
+            height: isSuggestionsMinimized ? 0 : 'auto',
+            opacity: isSuggestionsMinimized ? 0 : 1,
+            overflow: 'hidden'
+          }}
+        >
+          <SimpleGrid 
+            columns={{ base: 1, sm: 2, md: 3 }} 
+            spacing={2}
+            templateColumns="repeat(auto-fit, minmax(140px, 1fr))"
+          >
+            {currentType.actions.map((action) => (
+              <Box
+                key={action.text}
+                p={3}
+                bg="white"
+                borderRadius="lg"
+                border="1px"
+                borderColor="gray.200"
+                _hover={{ bg: 'blue.50', borderColor: 'blue.200', cursor: 'pointer' }}
+                onClick={() => {
+                  handleCommandClick(action.message);
+                  setSelectedActionType(null);
+                }}
+                display="flex"
+                flexDirection="column"
+                overflow="hidden"
+                minH="85px"
+                gap={1}
+              >
+                <HStack spacing={2}>
+                  <action.icon size={24} color="var(--chakra-colors-blue-500)" flexShrink={0} />
+                  <Text 
+                    fontWeight="medium" 
+                    color="blue.700" 
+                    fontSize="sm"
+                    noOfLines={1}
+                    flex="1"
+                  >
+                    {action.text}
+                  </Text>
+                </HStack>
+                <Text 
+                  fontSize="sm" 
+                  color="gray.600" 
+                  noOfLines={1}
+                >
+                  {action.message}
+                </Text>
+              </Box>
+            ))}
+          </SimpleGrid>
+        </Box>
+      </Box>
+    );
+  };
 
-      document.addEventListener('click', (e) => {
-        if (!userMenuTooltip.contains(e.target as Node) && !menuButton.contains(e.target as Node)) {
-          (userMenuTooltip as HTMLElement).style.display = 'none';
-        }
-      });
-    }
+  const loadingMessages = [
+    "Pensando...",
+    "Processando sua mensagem...",
+    "Gerando resposta...",
+  ];
 
-    const textarea = document.querySelector('textarea');
-    if (textarea) {
-      textarea.addEventListener('input', () => adjustTextareaHeight(textarea as HTMLTextAreaElement));
-      adjustTextareaHeight(textarea as HTMLTextAreaElement); 
-    }
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setLoadingMessageIndex((prev) => prev + 1);
+    }, 2000);
+
+    return () => clearInterval(interval);
   }, []);
 
   useEffect(() => {
     if (messagesEndRef.current) {
-      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+      messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
     }
   }, [messages]);
 
-  useEffect(() => {
-    localStorage.setItem('isTyping', JSON.stringify(isTyping));
-  }, [isTyping]);
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!input.trim() || loading) return;
 
-  useEffect(() => {
-    console.log('Updating AccountSidebar with activeCustomers:', activeCustomers);
-  }, [activeCustomers]);
-
-  const handleInitChat = () => {
-    setSelectedThread(null);
-    setMessages([]);
-    localStorage.removeItem('selectedThread');
+    setInput('');
+    if (textareaRef.current) {
+      textareaRef.current.style.height = 'auto';
+    }
   };
 
-  const handleLoadMore = () => {
-    setVisibleThreads((prev) => prev + 5);
+  const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setInput(e.target.value);
+    adjustTextareaHeight();
   };
 
-  const handleLikeFeedback = (messageId: string) => {
-    setMessageFeedback(prev => ({
-      ...prev,
-      [messageId]: prev[messageId] === 'like' ? null : 'like'
-    }));
+  const adjustTextareaHeight = () => {
+    if (textareaRef.current) {
+      const lineHeight = 20;
+      const padding = 16;
+      const maxLines = 10;
+      const maxHeight = (maxLines * lineHeight) + padding;
+      
+      textareaRef.current.style.height = 'auto';
+      const contentHeight = textareaRef.current.scrollHeight;
+      
+      if (contentHeight <= maxHeight) {
+        textareaRef.current.style.height = `${contentHeight}px`;
+        textareaRef.current.style.overflowY = 'hidden';
+      } else {
+        textareaRef.current.style.height = `${maxHeight}px`;
+        textareaRef.current.style.overflowY = 'auto';
+      }
+    }
   };
 
-  const handleDislikeFeedback = (messageId: string) => {
-    setMessageFeedback(prev => ({
-      ...prev,
-      [messageId]: prev[messageId] === 'dislike' ? null : 'dislike'
-    }));
+  const handleFocus = () => {
+    adjustTextareaHeight();
   };
 
-  const handleCopyMessage = (messageId: string, messageContent: string) => {
-    navigator.clipboard.writeText(messageContent)
-      .then(() => {
-        setCopiedMessages(prev => ({
-          ...prev,
-          [messageId]: true
-        }));
-
-        setTimeout(() => {
-          setCopiedMessages(prev => ({
-            ...prev,
-            [messageId]: false
-          }));
-        }, 2000);
-      })
-      .catch(err => {
-        console.error('Failed to copy message: ', err);
-      });
+  const handleBlur = () => {
+    if (textareaRef.current && !input.trim()) {
+      textareaRef.current.style.height = '40px';
+      textareaRef.current.style.overflowY = 'hidden';
+    }
   };
 
-  const formatThreadDate = (date: number) => {
-    const threadDate = new Date(date * 1000);
-    return threadDate.toLocaleTimeString('pt-BR', {
-      hour: '2-digit',
-      minute: '2-digit'
-    });
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSubmit(e as any);
+    }
   };
+
+  const handleCommandClick = (command: string) => {
+    setInput(command + ' ');
+    setSelectedActionType(null);
+  };
+
+  const sortedMessages = [...messages].sort((a, b) => a.created_at - b.created_at);
 
   return (
-    <div className="app">
-      <AccountSidebar
-        selectedAccount={selectedAccount}
-        setSelectedAccount={handleAccountClick}
-        activeCustomers={activeCustomers}
-      />
-      {!isOpen && (
-        <button 
-          className="expand-sidebar-btn"
-          onClick={() => setIsOpen(true)}
-          title="Abrir barra lateral"
+    <Box
+      display="flex"
+      height="100vh"
+      bg="gray.50"
+    >
+      {/* Account Sidebar */}
+      <Box
+        width="80px"
+        bg="white"
+        borderRight="1px"
+        borderColor="gray.200"
+        position="relative"
+        display="flex"
+        flexDirection="column"
+      >
+        <Box p={4} display="flex" flexDirection="column" alignItems="center">
+          <IconButton
+            aria-label="Menu"
+            icon={<Menu size={20} />}
+            variant="ghost"
+            onClick={onOpen}
+            colorScheme="blue"
+          />
+        </Box>
+        <Box flex={1}>
+          <AccountSidebar 
+            selectedAccount={selectedCustomer} 
+            setSelectedAccount={setSelectedCustomer}
+          />
+        </Box>
+      </Box>
+
+      {/* Drawer Overlay */}
+      {isOpen && (
+        <Box
+          position="fixed"
+          top={0}
+          left={0}
+          width="100%"
+          height="100%"
+          bg="rgba(0, 0, 0, 0.5)"
+          zIndex={3}
+          onClick={onClose}
         >
-          <FontAwesomeIcon icon={faBars} />
-        </button>
-      )}
-      <nav className={`sidebar ${isOpen ? 'expanded' : 'collapsed'}`}>
-        <div className="user-section">
-          <div className="user-profile-header">
-            <button 
-              className="collapse-btn"
-              title="Recolher Sidebar"
-              onClick={() => setIsOpen(!isOpen)}
-            >
-              <FontAwesomeIcon icon={faChevronLeft} />
-            </button>
-            <button 
-              className="search-threads-btn"
-              title="Pesquisar Histórico de Threads"
-              onClick={() => {
-                console.log('Open thread search modal/functionality');
-              }}
-            >
-              <FontAwesomeIcon icon={faSearch} />
-            </button>
-          </div>
-        </div>
-        <div className="main-nav">
-          <div className="nav-buttons-container">
-            <button 
-              className={`nav-btn ${activeTab === 'chat' ? 'active' : ''}`}
-              onClick={() => setActiveTab('chat')}
-              title="Chat Menu"
-            >
-              <span>Chat</span>
-            </button>
-            <button 
-              className={`nav-btn ${activeTab === 'requests' ? 'active' : ''}`}
-              onClick={() => setActiveTab('requests')}
-              title="Requisições Menu"
-            >
-              <span>Requisições</span>
-            </button>
-          </div>
-        </div>
-        <ChatHeader onInitChat={handleInitChat} />
-        <div className="chat-history">
-          {threads && threads.length > 0 ? Object.entries(
-            threads
-              .sort((a, b) => b.created_at - a.created_at)
-              .slice(0, visibleThreads)
-              .reduce((groups: { [key: string]: any[] }, thread) => {
-                const now = new Date();
-                now.setHours(0, 0, 0, 0); 
-                
-                const threadDate = new Date(thread.created_at * 1000);
-                threadDate.setHours(0, 0, 0, 0); 
-                
-                const diffTime = now.getTime() - threadDate.getTime();
-                const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-                
-                console.log('Thread date:', threadDate.toLocaleDateString(), 'Diff days:', diffDays);
-                
-                let groupTitle;
-                if (diffDays === 0) {
-                  groupTitle = 'Hoje';
-                } else if (diffDays === 1) {
-                  groupTitle = 'Ontem';
-                } else if (diffDays <= 7) {
-                  groupTitle = '7 dias atrás';
-                } else if (diffDays <= 30) {
-                  groupTitle = '30 dias atrás';
-                } else {
-                  return groups; 
-                }
-
-                if (!groups[groupTitle]) {
-                  groups[groupTitle] = [];
-                }
-                groups[groupTitle].push({
-                  ...thread,
-                  formattedDate: new Date(thread.created_at * 1000).toLocaleTimeString('pt-BR', {
-                    hour: '2-digit',
-                    minute: '2-digit'
-                  })
-                });
-                return groups;
-              }, {})
-          ).map(([groupTitle, groupThreads]) => (
-            <div key={groupTitle} className="chat-group">
-              <div className="chat-group-title">{groupTitle}</div>
-              {groupThreads.map((thread: any, _index: number) => (
-                <div 
-                  key={thread.id} 
-                  className={`thread-item ${selectedThread?.id === thread.id ? 'selected' : ''}`}
-                  onClick={() => handleThreadClick(thread)}
+          {/* Drawer Content */}
+          <Box
+            position="absolute"
+            top={0}
+            left="80px"
+            width="300px"
+            height="100%"
+            bg="white"
+            borderRight="1px"
+            borderColor="gray.200"
+            p={4}
+            onClick={e => e.stopPropagation()}
+          >
+            <Text fontSize="lg" fontWeight="bold" mb={4}>
+              Conversas
+            </Text>
+            <VStack spacing={2} align="stretch">
+              {conversations?.map((conv: Conversation) => (
+                <Button
+                  key={conv.id}
+                  variant={currentConversation?.id === conv.id ? "solid" : "ghost"}
+                  onClick={() => {
+                    setCurrentConversation(conv);
+                    onClose();
+                  }}
+                  leftIcon={<MessageSquare size={16} />}
+                  justifyContent="flex-start"
+                  w="100%"
                 >
-                  <div className="thread-title">
-                    {thread.title}
-                  </div>
-                  <div className="thread-date">
-                    {formatThreadDate(thread.created_at)}
-                  </div>
-                </div>
+                  <Text isTruncated>
+                    {conv.title || "Nova Conversa"}
+                  </Text>
+                </Button>
               ))}
-            </div>
-          )) : (
-            <div className="no-threads">
-              <span>Nenhuma conversa encontrada</span>
-            </div>
-          )}
-          {threads && visibleThreads < threads.length && (
-            <button className="load-more-button" onClick={handleLoadMore}>Ver Mais</button>
-          )}
-        </div>
-      </nav>
-
-      <main className="main-content">
-        <div id="chatContent" className="content-section active">
-          <div className="chat-container">
-            <div className="messages-container">
-                {selectedThread ? (
-                Array.isArray(messages) && messages.length > 0 && messages.sort((a, b) => a.created_at - b.created_at).map((message, index) => (
-                  <div 
-                    key={index} 
-                    className={`message-container ${message.role}`}
-                  >
-                    {message.role === 'assistant' && (
-                      <img 
-                        src={ChatGPTAvatar} 
-                        alt="ChatGPT Avatar" 
-                        className="message-avatar" 
-                      />
-                    )}
-                    <div 
-                      className={`message-box ${message.role}`}
-                    >
-                      {(message.content.startsWith('API response received') || message.content.startsWith('```json')) ? (
-                        <MessageDropdown message={message} />
-                      ) : (
-                        <SafeMarkdown content={message.content} />
-                      )}
-                      {message.role === 'assistant' && (
-                        <div className="message-feedback-buttons">
-                          {(!messageFeedback[message.id] || messageFeedback[message.id] === 'like') && (
-                            <button 
-                              className={`feedback-btn like-btn ${messageFeedback[message.id] === 'like' ? 'active' : ''}`}
-                              onClick={() => handleLikeFeedback(message.id)}
-                            >
-                              <FontAwesomeIcon icon={faThumbsUp} />
-                            </button>
-                          )}
-                          {(!messageFeedback[message.id] || messageFeedback[message.id] === 'dislike') && (
-                            <button 
-                              className={`feedback-btn dislike-btn ${messageFeedback[message.id] === 'dislike' ? 'active' : ''}`}
-                              onClick={() => handleDislikeFeedback(message.id)}
-                            >
-                              <FontAwesomeIcon icon={faThumbsDown} />
-                            </button>
-                          )}
-                          <button 
-                            className="feedback-btn copy-btn"
-                            onClick={() => handleCopyMessage(message.id, message.content)}
-                          >
-                            <FontAwesomeIcon 
-                              icon={copiedMessages[message.id] ? faCircleCheck : faClone} 
-                            />
-                          </button>
-                        </div>
-                      )}
-                      <button 
-                        className={`comment-button ${message.role === 'user' ? 'left' : 'right'}`} 
-                        onClick={() => handleAddComment(message.id)}
-                        title="Adicionar comentário"
-                      >
-                        <i className="fas fa-reply"></i>
-                      </button>
-                      {showCommentInput === message.id && (
-                        <div className="comment-input-container">
-                          <input
-                            type="text"
-                            value={comment}
-                            onChange={(e) => setComment(e.target.value)}
-                            placeholder="Type a comment"
-                          />
-                          <button onClick={() => handleCommentSubmit(message.id)}>Submit</button>
-                        </div>
-                      )}
-                    </div>
-                    {message.role === 'user' && (
-                      <img 
-                        src={profileImage || UserAvatar} 
-                        alt="User Avatar" 
-                        className="message-avatar" 
-                      />
-                    )}
-                  </div>
-                ))
-                ) : (
-                <div className="welcome-container">
-                  <img src={EasyAdLogo} alt="Easy.ad Logo" className="welcome-logo" />
-                  <h2>Olá! Vamos criar sua campanha de anúncios.</h2>
-                  <p>Para começar, onde deseja anunciar? Você pode utilizar os atalhos de ações rápidas para agilizar o processo.</p>
-                </div>
-                )}
-              {isTyping && (
-                <div className="loading-container">
-                  {/* <LoadingMessage /> */}
-                </div>
-              )}
-              <div ref={messagesEndRef} />
-            </div>
-
-            <ChatInput onSendMessage={handleSendMessage} />
-          </div>
-        </div>
-      </main>
-
-      {showPopup && (
-        <AccountPopup
-          googleAccounts={googleAccounts}
-          facebookAccounts={facebookAccounts}
-          handleAccountClick={handleAccountClick}
-          handleFacebookLogin={handleFacebookLogin}
-          loadingGoogleAccounts={loadingGoogleAccounts}
-          loadingFacebookAccounts={loadingFacebookAccounts}
-        />
+              <Divider />
+              <Button
+                colorScheme="blue"
+                onClick={() => {
+                  createConversation();
+                  onClose();
+                }}
+                leftIcon={<Plus size={16} />}
+              >
+                Nova Conversa
+              </Button>
+            </VStack>
+          </Box>
+        </Box>
       )}
-    </div>
-  );
-};
 
-export default Chat;
+      {/* Main Chat Area */}
+      <Box
+        flex={1}
+        display="flex"
+        flexDirection="column"
+        overflow="hidden"
+      >
+        {/* Chat Header */}
+        <Box
+          py={3}
+          px={4}
+          borderBottom="1px"
+          borderColor="gray.200"
+          bg="white"
+          display="flex"
+          justifyContent="space-between"
+          alignItems="center"
+        >
+          <Text fontWeight="semibold" fontSize="lg">
+            É fácil...
+          </Text>
+          <Image
+            src="/logo.svg"
+            alt="Logo"
+            width="48px"
+            height="48px"
+            objectFit="contain"
+          />
+        </Box>
+        {/* Messages Area */}
+        <Box
+          flex={1}
+          overflowY="auto"
+          px={4}
+          py={6}
+          display="flex"
+          flexDirection="column"
+          gap={4}
+        >
+          {sortedMessages.map((message, index) => (
+            <Box
+              key={index}
+              alignSelf={message.role === "assistant" ? "flex-start" : "flex-end"}
+              maxW={{ base: "90%", md: "70%" }}
+            >
+              <Box
+                p={4}
+                bg={message.role === 'assistant' ? 'white' : 'blue.50'}
+                borderRadius="lg"
+                boxShadow="sm"
+              >
+                <ReactMarkdown className="markdown-content">
+                  {Array.isArray(message.content) ? message.content.join('\n') : message.content}
+                </ReactMarkdown>
+              </Box>
+            </Box>
+          ))}
+          {loading && (
+            <Box alignSelf="flex-start" maxW={{ base: "90%", md: "70%" }}>
+              <Box
+                bg="white"
+                px={4}
+                py={3}
+                borderRadius="lg"
+                boxShadow="sm"
+              >
+                <Text>
+                  {loadingMessages[loadingMessageIndex % loadingMessages.length]}
+                </Text>
+              </Box>
+            </Box>
+          )}
+        </Box>
+
+        {/* Bottom Area */}
+        <Box
+          bg="white"
+          borderTop="1px"
+          borderColor="gray.200"
+        >
+          <Box
+            display="flex"
+            flexDirection="column"
+            transition="all 0.2s ease-in-out"
+          >
+            {/* Suggestions Area */}
+            <Box 
+              flex={1} 
+              minH={0}
+              display="flex"
+              flexDirection="column"
+              p={4}
+              pb={0}
+            >
+              {renderSuggestions()}
+            </Box>
+
+            {/* Input Area */}
+            <Box 
+              p={4} 
+              pt={2}
+              borderTop="1px"
+              borderColor="gray.100"
+            >
+              <form onSubmit={handleSubmit}>
+                <HStack spacing={2} align="flex-end">
+                  <Box flex={1}>
+                    <Textarea
+                      ref={textareaRef}
+                      placeholder="Digite sua mensagem..."
+                      value={input}
+                      onChange={handleInputChange}
+                      onKeyDown={handleKeyDown}
+                      onFocus={handleFocus}
+                      onBlur={handleBlur}
+                      resize="none"
+                      minH="40px"
+                      h="40px"
+                      maxH="216px"
+                      py={2}
+                      px={3}
+                      lineHeight="20px"
+                      borderRadius="md"
+                      transition="all 0.2s"
+                      _focus={{
+                        borderColor: "blue.500",
+                        boxShadow: "0 0 0 1px var(--chakra-colors-blue-500)"
+                      }}
+                      sx={{
+                        '&::-webkit-scrollbar': {
+                          width: '4px',
+                          display: 'none'
+                        },
+                        '&:hover::-webkit-scrollbar': {
+                          display: 'block'
+                        },
+                        '&::-webkit-scrollbar-track': {
+                          background: 'transparent'
+                        },
+                        '&::-webkit-scrollbar-thumb': {
+                          background: 'rgba(0, 0, 0, 0.2)',
+                          borderRadius: '2px'
+                        },
+                        scrollbarWidth: 'thin',
+                        scrollbarColor: 'rgba(0, 0, 0, 0.2) transparent'
+                      }}
+                    />
+                  </Box>
+                  <IconButton
+                    type="submit"
+                    aria-label="Enviar mensagem"
+                    icon={<Send />}
+                    isDisabled={!input.trim()}
+                    colorScheme="blue"
+                    size="md"
+                    borderRadius="md"
+                  />
+                </HStack>
+              </form>
+            </Box>
+          </Box>
+        </Box>
+      </Box>
+    </Box>
+  );
+}

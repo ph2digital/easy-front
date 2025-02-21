@@ -3,6 +3,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { Routes, Route, useLocation } from 'react-router-dom';
 import { setUser, setGoogleTokens, setMetaTokens, selectIsAuthenticated, validateToken } from './store/authSlice';
 import { getSessionFromLocalStorage } from './services/api';
+import { ChakraProvider, extendTheme } from '@chakra-ui/react';
 import Home from './pages/Home';
 import Login from './pages/Login';
 import Gallery from './pages/Gallery';
@@ -17,6 +18,13 @@ import CustomAudienceCreation from './pages/CustomAudienceCreation';
 import PrivacyPolicy from './pages/PrivacyPolicy';
 import Chat from './pages/Chat';
 import ErrorBoundary from './components/ErrorBoundary';
+
+const theme = extendTheme({
+  config: {
+    initialColorMode: 'light',
+    useSystemColorMode: false,
+  },
+});
 
 const App = () => {
   const dispatch = useDispatch();
@@ -78,101 +86,98 @@ const App = () => {
   }
 
   return (
-    <Routes>
-      <Route path="/login" element={<Login />} />
-      <Route
-        path="/"
-        element={
-          <PrivateRoute>
-            <Home />
-          </PrivateRoute>
-        }
-      />
-      <Route
-        path="/home"
-        element={
-          <PrivateRoute>
-            <Home />
-          </PrivateRoute>
-        }
-      />
-      <Route
-        path="/gallery"
-        element={
-          <PrivateRoute>
-            <Gallery />
-          </PrivateRoute>
-        }
-      />
-      <Route
-        path="/settings"
-        element={
-          <PrivateRoute>
-            <Settings />
-          </PrivateRoute>
-        }
-      />
-      <Route
-        path="/profile"
-        element={
-          <PrivateRoute>
-            <Profile />
-          </PrivateRoute>
-        }
-      />
-      <Route
-        path="/accounts"
-        element={
-          <PrivateRoute>
-            <Accounts />
-          </PrivateRoute>
-        }
-      />
-      <Route path="/auth-callback" element={<AuthCallback />} />
-      <Route
-        path="/campaign-details/:id"
-        element={
-          <PrivateRoute>
-            <CampaignDetails />
-          </PrivateRoute>
-        }
-      />
-      <Route
-        path="/create-campaign"
-        element={
-          <PrivateRoute>
-            <CampaignCreation />
-          </PrivateRoute>
-        }
-      />
-      <Route
-        path="/chat"
-        element={
-          <PrivateRoute>
-            <ErrorBoundary>
-              <Chat />
-            </ErrorBoundary>
-          </PrivateRoute>
-        }
-      />
-      <Route
-        path="/create-custom-audience"
-        element={
-          <PrivateRoute>
-            <CustomAudienceCreation />
-          </PrivateRoute>
-        }
-      />
-      <Route path="/privacy-policy" element={<PrivacyPolicy />} />
-    </Routes>
+    <ChakraProvider theme={theme}>
+      <ErrorBoundary>
+        <Routes>
+          <Route path="/login" element={<Login />} />
+          <Route
+            path="/"
+            element={
+              <PrivateRoute>
+                <Home />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/home"
+            element={
+              <PrivateRoute>
+                <Home />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/gallery"
+            element={
+              <PrivateRoute>
+                <Gallery />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/settings"
+            element={
+              <PrivateRoute>
+                <Settings />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/profile"
+            element={
+              <PrivateRoute>
+                <Profile />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/accounts"
+            element={
+              <PrivateRoute>
+                <Accounts />
+              </PrivateRoute>
+            }
+          />
+          <Route path="/auth-callback" element={<AuthCallback />} />
+          <Route
+            path="/campaign-details/:id"
+            element={
+              <PrivateRoute>
+                <CampaignDetails />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/create-campaign"
+            element={
+              <PrivateRoute>
+                <CampaignCreation />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/chat"
+            element={
+              <PrivateRoute>
+                <ErrorBoundary>
+                  <Chat />
+                </ErrorBoundary>
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/create-custom-audience"
+            element={
+              <PrivateRoute>
+                <CustomAudienceCreation />
+              </PrivateRoute>
+            }
+          />
+          <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+        </Routes>
+      </ErrorBoundary>
+    </ChakraProvider>
   );
 };
 
 export default App;
-
-
-
-
-
-
-

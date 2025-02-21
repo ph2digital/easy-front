@@ -1,0 +1,80 @@
+.thread-list {
+  width: 300px;
+  height: 100%;
+  background-color: #333333;
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid #4a4a4a;
+}
+
+.thread-list-title {
+  color: #ffffff;
+  font-size: 18px;
+  font-weight: 500;
+  padding: 16px;
+  margin: 0;
+  border-bottom: 1px solid #4a4a4a;
+}
+
+.thread-list-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px;
+}
+
+.thread-list-content::-webkit-scrollbar {
+  width: 4px;
+}
+
+.thread-list-content::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.thread-list-content::-webkit-scrollbar-thumb {
+  background: #4a4a4a;
+  border-radius: 2px;
+}
+
+.thread-list-content::-webkit-scrollbar-thumb:hover {
+  background: #5a5a5a;
+}
+
+.thread-item {
+  padding: 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-bottom: 4px;
+  background-color: #4a4a4a;
+}
+
+.thread-item:hover {
+  background-color: #5a5a5a;
+}
+
+.thread-item.selected {
+  background-color: #2196f3;
+}
+
+.thread-item-title {
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 500;
+  margin-bottom: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.thread-item-date {
+  color: #a0a0a0;
+  font-size: 12px;
+}
+
+.thread-list-loading,
+.thread-list-empty {
+  color: #a0a0a0;
+  font-size: 14px;
+  text-align: center;
+  padding: 16px;
+}

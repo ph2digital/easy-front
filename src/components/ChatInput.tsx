@@ -2,15 +2,16 @@ import React, { useState } from 'react';
 import './styles/ChatInput.css';
 
 interface ChatInputProps {
-  onSendMessage: (message: string) => void;
+  onSendMessage: (message: string, thread: string) => Promise<void>;
+  thread?: string;
 }
 
-const ChatInput: React.FC<ChatInputProps> = ({ onSendMessage }) => {
+const ChatInput: React.FC<ChatInputProps> = ({ onSendMessage, thread }) => {
   const [message, setMessage] = useState('');
 
   const handleSendMessage = () => {
-    if (message.trim()) {
-      onSendMessage(message);
+    if (message.trim() && thread) {
+      onSendMessage(message, thread);
       setMessage('');
     }
   };
@@ -29,13 +30,15 @@ const ChatInput: React.FC<ChatInputProps> = ({ onSendMessage }) => {
           value={message}
           onChange={(e) => setMessage(e.target.value)}
           onKeyPress={handleKeyPress}
-          placeholder="Envie uma mensagem"
+          placeholder={thread ? "Envie uma mensagem" : "Selecione uma conversa para enviar mensagens"}
+          disabled={!thread}
         />
       </div>
       <button 
         className="send-button" 
         onClick={handleSendMessage}
         title="Enviar mensagem"
+        disabled={!thread}
       >
         <i className="fas fa-paper-plane"></i>
       </button>

@@ -5,10 +5,10 @@ import { AppDispatch } from '../store/index';
 // import { json } from 'react-router-dom';
 
 const api = axios.create({
-    baseURL: import.meta.env.VITE_API_URL,
+    baseURL: 'http://localhost:8080/api',
     withCredentials: true,
 });
-const API_URL = import.meta.env.VITE_API_URL;
+const API_URL = 'http://localhost:8080/api';
 const META_KEY = import.meta.env.VITE_META_KEY || 'default-META-token';
 const USER_KEY = 'user';
 const APP_STATE_KEY = 'app-state';
@@ -693,6 +693,73 @@ export const getGPTResponse = async (
   }
 };
 
+export const getGPTResponseStream = async (
+  prompt: string, 
+  userId: string, 
+  activeThread: string | null, 
+  selectedCustomer?: string, 
+  accessToken?: string, 
+  customerGestor?: string,
+  onChunk?: (chunk: string) => void
+) => {
+  try {
+    const response = await fetch(`${API_URL}/gpt/stream`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        prompt,
+        userId,
+        thread: activeThread,
+        selectedCustomer,
+        accessToken,
+        customerGestor
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const reader = response.body?.getReader();
+    if (!reader) {
+      throw new Error('Response body is null');
+    }
+
+    const decoder = new TextDecoder();
+    let buffer = '';
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop() || '';
+
+      for (const line of lines) {
+        if (line.trim() === '') continue;
+        if (line.startsWith('data: ')) {
+          const data = line.slice(6);
+          onChunk?.(data);
+        }
+      }
+    }
+
+    if (buffer) {
+      const data = buffer.replace('data: ', '');
+      if (data.trim()) {
+        onChunk?.(data);
+      }
+    }
+
+  } catch (error) {
+    console.error('Error in GPT stream:', error);
+    throw error;
+  }
+};
+
 export const listLinkedAccounts = async (accessToken: string, userId: string) => {
     const response = await api.get(`/accounts/${userId}`, {
         headers: {
@@ -895,6 +962,16 @@ export const identifyManagerAccount = async (accessToken: string, userId: string
   } catch (error) {
     console.error('Erro ao identificar conta gestora:', error);
     throw new Error('Erro ao identificar conta gestora');
+  }
+};
+
+export const listCustomers = async (userId: string) => {
+  try {
+    const response = await api.get(`/accounts/customers/${userId}`);
+    return response.data.linked_customers;
+  } catch (error) {
+    console.error('Error listing customers:', error);
+    throw error;
   }
 };
 

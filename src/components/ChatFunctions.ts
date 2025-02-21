@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
-import { linkMetaAds, getSessionFromLocalStorage, fetchThreads, createThread, submitComment, validateAndRefreshGoogleToken, getGPTResponse, fetchMessages as apiFetchMessages } from '../services/api';
+import { linkMetaAds, getSessionFromLocalStorage, fetchThreads, createThread, submitComment, validateAndRefreshGoogleToken, getGPTResponseStream, fetchMessages as apiFetchMessages } from '../services/api';
 
 // Exportar tipos para uso em outros componentes
 export interface Message {
@@ -15,17 +14,34 @@ export interface Message {
 
 export interface ThreadItem {
   id: string;
-  title: string;
-  created_at: number;
+  user_id: string;
+  created_at: string;
+  updated_at: string;
+  status: string;
+  metadata: {
+    title: string;
+    user_id: string;
+    customer_gestor: string;
+    selected_customer: string;
+  };
   object: string;
-  metadata: any;
-  tool_resources: any;
+  tool_resources: Record<string, any>;
 }
 
 interface Thread {
   id: string;
-  created_at: number;
-  metadata?: any;
+  user_id: string;
+  created_at: string;
+  updated_at: string;
+  status: string;
+  metadata: {
+    title: string;
+    user_id: string;
+    customer_gestor: string;
+    selected_customer: string;
+  };
+  object: string;
+  tool_resources: Record<string, any>;
 }
 
 export const useChatFunctions = () => {
@@ -150,74 +166,6 @@ export const useChatFunctions = () => {
     return context ? JSON.parse(context) : null;
   };
 
-  const formatMessages = (messages: any[]): Message[] => {
-    console.group('📋 Message Formatting');
-    console.log('🔢 Total Messages:', messages.length);
-    
-    // Log detalhado de todas as mensagens antes da formatação
-    messages.forEach((msg, index) => {
-      console.log(`🔍 Message ${index + 1} Raw Details:`, {
-        id: msg.id,
-        role: msg.role,
-        metadata: msg.metadata,
-        content: msg.content,
-        technical_init: msg.metadata?.technical_init,
-        system: msg.metadata?.system
-      });
-    });
-
-    // Identificar mensagem de inicialização
-    const initMessage = messages.find(msg => 
-      msg.metadata?.technical_init === 'true' ||
-      (msg.role === 'system' && msg.content.some((c: any) => 
-        c.text?.value?.includes('Inicialização de conversa')
-      ))
-    );
-
-    // Preservar metadados de inicialização
-    if (initMessage) {
-      localStorage.setItem('thread_initialization_context', JSON.stringify(initMessage.metadata));
-      console.log('🔐 Initialization Metadata Preserved:', initMessage);
-    }
-
-    // Filtrar mensagens
-    const filteredMessages = messages.filter(msg => {
-      const isInitMessage = 
-        msg.metadata?.technical_init === 'true' ||
-        (msg.role === 'system' && msg.content.some((c: any) => 
-          c.text?.value?.includes('Inicialização de conversa')
-        ));
-
-      console.log(`🚫 Filtering Message: ${isInitMessage ? 'REMOVED' : 'KEPT'}`, {
-        id: msg.id,
-        role: msg.role,
-        content: msg.content
-      });
-
-      return !isInitMessage;
-    }).map((msg: any) => {
-      const formattedMessage = {
-        id: msg.id || `temp-${Date.now()}-${msg.role}`,
-        role: msg.role,
-        system: msg.metadata?.system || false,
-        content: Array.isArray(msg.content) 
-          ? msg.content.map((c: any) => c.text?.value || c.text).join(' ') 
-          : msg.content,
-        created_at: msg.created_at || new Date().toISOString(),
-        metadata: msg.metadata || {}
-      };
-
-      console.log('✅ Formatted Message:', formattedMessage);
-      return formattedMessage;
-    }).sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
-
-    console.log('🧹 Messages After Formatting:', filteredMessages.length);
-    console.log('📋 Formatted Messages Details:', filteredMessages);
-    console.groupEnd();
-
-    return filteredMessages;
-  };
-
   const formatThreads = (threads: any[]): ThreadItem[] => {
     // Ordena threads por data de criação em ordem decrescente
     const sortedThreads = threads.sort((a, b) => b.created_at - a.created_at);
@@ -225,10 +173,12 @@ export const useChatFunctions = () => {
     // Mapeia threads para o formato esperado, incluindo título dos metadados
     return sortedThreads.map((thread) => ({
       id: thread.id,
-      title: thread.metadata?.title || 'Nova Conversa', // Usa título dos metadados ou padrão
+      user_id: thread.user_id,
       created_at: thread.created_at,
-      object: thread.object,
+      updated_at: thread.updated_at,
+      status: thread.status,
       metadata: thread.metadata || {},
+      object: thread.object,
       tool_resources: thread.tool_resources || {}
     }));
   };
@@ -379,6 +329,7 @@ export const useChatFunctions = () => {
         
         // Preprocessar mensagens
         const preprocessedMessages = preprocessThreadMessages(fetchedMessages.result.data);
+        
         console.log('🎨 Preprocessed Messages:', preprocessedMessages);
 
         // Definir mensagens
@@ -448,7 +399,7 @@ export const useChatFunctions = () => {
         console.log(`Fetching messages for new thread ${newThread.id}`);
         const fetchedMessages = await apiFetchMessages(newThread.id);
         console.log('Fetched messages for new thread:', fetchedMessages);
-        
+
         // Adicionar log e preprocessamento antes da renderização
         if (fetchedMessages?.result?.object === 'list' && Array.isArray(fetchedMessages.result.data)) {
           console.log('🚨 Raw Fetched Messages:', fetchedMessages.result.data);
@@ -456,7 +407,7 @@ export const useChatFunctions = () => {
           const preprocessedMessages = preprocessThreadMessages(fetchedMessages.result.data, messageContent);
           
           console.log('🎨 Preprocessed Messages:', preprocessedMessages);
-          
+
           setMessages(preprocessedMessages);
           localStorage.setItem('messages', JSON.stringify(preprocessedMessages));
         } else {
@@ -468,28 +419,11 @@ export const useChatFunctions = () => {
     }
   };
 
-  const handleSendMessage = async (messageContent: string, threadId?: string) => {
-    const textarea = document.querySelector('textarea') as HTMLTextAreaElement;
-    textarea.value = ''; // Clear the textarea
-  
-    const thread = threadId || selectedThread?.id;
-    if (!thread) {
-      sendFirstMessage(messageContent);
-      return;
-    }
-  
-    const newMessage: Message = { id: `temp-${Date.now()}-user`, role: 'user', system: false, content: messageContent, created_at: Date.now() };
-    setMessages((prevMessages) => {
-      const updatedMessages = [...prevMessages, newMessage].sort((a: Message, b: Message) => {
-        if (a.created_at === b.created_at) {
-          return a.role === 'assistant' ? -1 : 1;
-        }
-        return a.created_at - b.created_at;
-      });
-      localStorage.setItem('messages', JSON.stringify(updatedMessages)); // Save to localStorage
-      return updatedMessages;
-    });
-  
+  const handleSendMessage = async (messageContent: string, thread: string) => {
+    if (!messageContent.trim()) return;
+
+    setIsTyping(true);
+
     try {
       const user = localStorage.getItem('user') || undefined;
       const google = localStorage.getItem('googleAccounts') || undefined;
@@ -501,6 +435,7 @@ export const useChatFunctions = () => {
   
       const selectedCustomer = localStorage.getItem('selectedCustomer') || undefined;
       const customerGestor = localStorage.getItem('customerGestor') || undefined;
+      
       let validAccessToken;
       try {
         validAccessToken = await validateAndRefreshGoogleToken(accessToken, refreshToken);
@@ -509,90 +444,63 @@ export const useChatFunctions = () => {
         navigate('/login');
         return;
       }
-  
-      // Keep typing indicator active and fetch messages while waiting for GPT response
-      setIsTyping(true);
-      const gptResponsePromise = getGPTResponseWithToken(messageContent, userId, thread, selectedCustomer, validAccessToken, customerGestor);
-  
-      const pollingIntervalId = setInterval(async () => {
-        try {
-          console.log(`Polling messages for thread ${thread}`);
-          const fetchedMessages = await apiFetchMessages(thread);
-          console.log('Fetched messages during polling:', fetchedMessages);
-          if (fetchedMessages?.result?.object === 'list' && Array.isArray(fetchedMessages.result.data)) {
-            const formattedMessages = preprocessThreadMessages(fetchedMessages.result.data);
-            setMessages(formattedMessages);
-            localStorage.setItem('messages', JSON.stringify(formattedMessages)); // Save to localStorage
-          }
-        } catch (error) {
-          console.error('Error fetching messages:', error);
-          // Ignore the error and continue
-        }
-      }, 1000); // Poll every 1 second
-  
-      gptResponsePromise.finally(async () => {
-        clearInterval(pollingIntervalId);
-        setIsTyping(false);
-  
-        // Fetch messages two more times after GPT response is completed
-        for (let i = 0; i < 5; i++) {
-          try {
-            console.log(`Fetching messages for thread ${thread} after GPT response completion, attempt ${i + 1}`);
-            const fetchedMessages = await apiFetchMessages(thread);
-            console.log('Fetched messages after GPT response completion:', fetchedMessages);
-            if (fetchedMessages?.result?.object === 'list' && Array.isArray(fetchedMessages.result.data)) {
-              const formattedMessages = preprocessThreadMessages(fetchedMessages.result.data);
-              setMessages(formattedMessages);
-              localStorage.setItem('messages', JSON.stringify(formattedMessages)); // Save to localStorage
-            }
-          } catch (error) {
-            console.error('Error fetching messages after GPT response completion:', error);
-          }
-          await new Promise(resolve => setTimeout(resolve, 1000)); // Wait for 1 second before the next fetch
-        }
-      }).catch((error: unknown) => {
-        clearInterval(pollingIntervalId);
-        setIsTyping(false);
-        console.error('Error getting GPT response:', error);
-        setMessages((prevMessages) => {
-          const errorMessage: Message = { id: `error-${Date.now()}`, role: 'system', system: true, content: `Ocorreu um erro ao obter a resposta do GPT. Detalhes do erro: ${error instanceof Error ? error.message : 'Erro desconhecido'}`, created_at: Date.now() };
-          const updatedMessages = [...prevMessages, errorMessage];
-          localStorage.setItem('messages', JSON.stringify(updatedMessages)); // Save to localStorage
-          return updatedMessages;
-        });
-      });
-  
-      setElapsedTime(0); // Reset elapsed time after sending a message
-  
-    } catch (error: unknown) {
-      console.error('Error sending message:', error);
-      setMessages((prevMessages) => {
-        const errorMessage: Message = { id: `error-${Date.now()}`, role: 'system', system: true, content: `Ocorreu um erro ao enviar a mensagem. Detalhes do erro: ${error instanceof Error ? error.message : 'Erro desconhecido'}`, created_at: Date.now() };
-        const updatedMessages = [...prevMessages, errorMessage];
-        localStorage.setItem('messages', JSON.stringify(updatedMessages)); // Save to localStorage
-        return updatedMessages;
-      });
-    }
-  };
-  
 
-  const getGPTResponseWithToken = async (messageContent: string, userId: string, thread: string, selectedCustomer?: string, accessToken?: string, customerGestor?: string) => {
-    console.log('[getGPTResponseWithToken] Starting GPT response with token', { messageContent, userId, thread, selectedCustomer, accessToken, customerGestor });
-    try {
-      const response = await getGPTResponse(messageContent, userId, thread, selectedCustomer, accessToken, customerGestor);
-      console.log('[getGPTResponseWithToken] GPT response received', { response });
-      return response;
-    } catch (error: unknown) {
-      console.error('[getGPTResponseWithToken] Error getting GPT response', { error });
-      if (axios.isAxiosError(error)) {
-        console.error('Axios error details:', { response: error.response?.data, message: error.message });
-      } else {
-        console.error('Non-Axios error details:', { message: error instanceof Error ? error.message : 'Erro desconhecido', stack: error instanceof Error ? error.stack : 'No stack trace' });
-      }
-      throw new Error('Error getting GPT response');
+      // Adicionar a mensagem do usuário imediatamente
+      const userMessage: Message = {
+        id: `user-${Date.now()}`,
+        role: 'user',
+        system: false,
+        content: messageContent,
+        created_at: Date.now()
+      };
+
+      // Criar a mensagem do assistente que será atualizada com o streaming
+      const assistantMessage: Message = {
+        id: `assistant-${Date.now()}`,
+        role: 'assistant',
+        system: false,
+        content: '',
+        created_at: Date.now()
+      };
+
+      setMessages(prev => [...prev, userMessage, assistantMessage]);
+
+      // Iniciar o streaming
+      await getGPTResponseStream(
+        messageContent,
+        userId,
+        thread,
+        selectedCustomer,
+        validAccessToken,
+        customerGestor,
+        (chunk) => {
+          setMessages(prev => {
+            const newMessages = [...prev];
+            const lastMessage = newMessages[newMessages.length - 1];
+            if (lastMessage && lastMessage.role === 'assistant') {
+              lastMessage.content += chunk;
+            }
+            return newMessages;
+          });
+        }
+      );
+
+    } catch (error) {
+      console.error('Error in handleSendMessage:', error);
+      setMessages(prev => [
+        ...prev,
+        {
+          id: `error-${Date.now()}`,
+          role: 'system',
+          system: true,
+          content: `Ocorreu um erro ao obter a resposta do GPT. Detalhes do erro: ${error instanceof Error ? error.message : 'Erro desconhecido'}`,
+          created_at: Date.now()
+        }
+      ]);
+    } finally {
+      setIsTyping(false);
     }
   };
-  
 
   const handleAddComment = (messageId: string) => {
     setShowCommentInput(messageId);
