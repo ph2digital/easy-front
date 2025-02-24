@@ -2,7 +2,6 @@
 import axios from 'axios';
 import { logout } from '../store/authSlice';
 import { AppDispatch } from '../store/index';
-// import { json } from 'react-router-dom';
 
 const api = axios.create({
     baseURL: 'http://localhost:8080/api',
@@ -25,7 +24,6 @@ const isValidJSON = (str: string | null) => {
     }
 };
 
-// Função para obter sessão do token local armazenado
 export const getSessionFromLocalStorage = () => {
     const storedGoogleToken = localStorage.getItem(STORAGE_KEY_GOOGLE);
     const storedMetaToken = localStorage.getItem(STORAGE_KEY_META);
@@ -41,7 +39,6 @@ export const getSessionFromLocalStorage = () => {
     return null;
 };
 
-// Função para configurar sessão no localStorage
 export const setSession = (googleAccessToken: string, googleRefreshToken: string, metaAccessToken: string, metaRefreshToken: string, user: any, appState: any) => {
     localStorage.setItem(STORAGE_KEY_GOOGLE, JSON.stringify({ access_token: googleAccessToken, refresh_token: googleRefreshToken }));
     localStorage.setItem(STORAGE_KEY_META, JSON.stringify({ access_token: metaAccessToken, refresh_token: metaRefreshToken }));
@@ -49,7 +46,6 @@ export const setSession = (googleAccessToken: string, googleRefreshToken: string
     localStorage.setItem(APP_STATE_KEY, JSON.stringify(appState));
 };
 
-// Função para limpar sessão local
 export const clearSession = () => {
     localStorage.removeItem(STORAGE_KEY_GOOGLE);
     localStorage.removeItem(STORAGE_KEY_META);
@@ -57,13 +53,11 @@ export const clearSession = () => {
     localStorage.removeItem(APP_STATE_KEY);
 };
 
-// Função para obter o email do usuário da sessão
 export const getUserEmailFromSession = () => {
     const storedUser = localStorage.getItem('user');
     return storedUser ? JSON.parse(storedUser).email : null;
 };
 
-// Outros métodos
 export const logoutUser = async (dispatch: AppDispatch) => {
     try {
         await axios.post(`${API_URL}/auth/logout`);
@@ -474,7 +468,6 @@ export const createAutomaticCampaign = async (accessToken: string, campaignData:
     }
 };
 
-
 export const uploadCreativeFiles = async (accessToken: string, customerId: string, files: File[], pageId: string, link: string, message: string) => {
     const formData = new FormData();
     files.forEach(file => formData.append('files', file));
@@ -503,7 +496,6 @@ export const uploadCreativeFiles = async (accessToken: string, customerId: strin
         throw new Error('Erro inesperado durante o upload dos arquivos.');
     }
 };
-
 
 export const requestCreativeBasedOnCompetitor = async (accessToken: string, competitorAdId: string) => {
     try {
@@ -829,66 +821,96 @@ export const fetchGoogleAdsCampaigns = async (accessToken: string, accountId: st
 
 export const submitComment = async (userId: string, messageId: string, comment: string) => {
     try {
-        const response = await axios.post(`${API_URL}/gpt/comments`, {
-            userId,
-            messageId,
-            comment,
-        }, {
-            headers: {
-                'Content-Type': 'application/json',
-            },
-        });
+        const response = await api.post('/comments', { userId, messageId, comment });
         return response.data;
     } catch (error) {
         console.error('Error submitting comment:', error);
-        throw new Error('Error submitting comment');
+        throw error;
     }
+};
+
+export const sendChatMessage = async (content: string, threadId?: string, metadata?: any) => {
+  try {
+    if (!threadId) {
+      throw new Error('Thread ID is required to send a message');
+    }
+    const response = await api.post(`/gpt/threads/${threadId}/messages`, { 
+      content,
+      metadata,
+      role: 'user'  // Required by OpenAI API
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error sending chat message:', error);
+    throw error;
+  }
+};
+
+export const createThread = async (
+  prompt: string, 
+  userId: string, 
+  selectedCustomer?: string, 
+  customerGestor?: string, 
+  metadata?: any
+) => {
+  try {
+    const response = await api.post('/gpt/threads', {
+      prompt,
+      user_id: userId,
+      customer_id: selectedCustomer,
+      customer_gestor: customerGestor,
+      metadata: metadata || {
+        title: prompt,
+        user_id: userId,
+        customer_id: selectedCustomer,
+        gestor_id: customerGestor
+      }
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error creating thread:', error);
+    throw error;
+  }
 };
 
 export const fetchThreads = async (userId: string) => {
-    try {
-        const response = await axios.get(`${API_URL}/gpt/threads/user/${userId}`);
-        return response.data;
-    } catch (error) {
-        console.error('Error fetching threads:', error);
-        throw new Error('Error fetching threads');
-    }
-};
-
-export const createThread = async (prompt: string, userId: string, selectedCustomer?: string, accessToken?: string, customerGestor?: string) => {
-    try {
-        const response = await axios.post(`${API_URL}/gpt/threads`, { 
-            prompt: prompt, 
-            userId, 
-            selectedCustomer, 
-            accessToken, 
-            customerGestor 
-        });
-        return response.data;
-    } catch (error) {
-        console.error('Error creating thread:', error);
-        throw new Error('Error creating thread');
-    }
+  try {
+    const response = await api.get(`/gpt/threads/user/${userId}`);
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching threads:', error);
+    throw error;
+  }
 };
 
 export const fetchMessages = async (threadId: string) => {
-    try {
-        const response = await axios.get(`${API_URL}/gpt/threads/${threadId}/messages`);
-        return response.data;
-    } catch (error) {
-        console.error('Error fetching messages:', error);
-        throw new Error('Error fetching messages');
-    }
+  try {
+    const response = await api.get(`/gpt/threads/${threadId}/messages`);
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching messages:', error);
+    throw error;
+  }
 };
 
 export const fetchRuns = async (threadId: string) => {
-    try {
-        const response = await axios.get(`${API_URL}/gpt/threads/${threadId}/runs`);
-        return response.data;
-    } catch (error) {
-        console.error('Error fetching runs:', error);
-        throw new Error('Error fetching runs');
-    }
+  try {
+    const response = await api.get(`/gpt/threads/${threadId}/runs`);
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching runs:', error);
+    throw error;
+  }
+};
+
+export const fetchCustomersByUserId = async (userId: string) => {
+  try {
+    const response = await api.get(`/accounts/customers/${userId}`);
+    return response.data.linked_customers || [];
+  } catch (error) {
+    console.error('Error fetching customers:', error);
+    throw error;
+  }
 };
 
 export const validateGoogleToken = async (accessToken: string) => {

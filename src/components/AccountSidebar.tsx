@@ -1,12 +1,14 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { useSelector } from 'react-redux';
-import { selectProfileImage } from '../store/authSlice';
 import './styles/AccountSidebar.css';
 import GoogleAdsLogo from '../assets/Logo Google Ads.svg';
 import MetaAdsLogo from '../assets/Logo Meta Ads.svg';
 import MetaAdsLogoIluminado from '../assets/Logo Meta Ads-iluminado.svg';
-import { Settings, Plus, User, ChevronRight } from 'lucide-react';
-import axios from 'axios';
+import { Settings, Plus, User, ChevronRight, Menu } from 'lucide-react';
+import { selectCustomers, fetchCustomers } from '../store/customersSlice';
+import { useAppDispatch, useAppSelector } from '../store';
+import { selectProfileImage } from '../store/authSlice';
+import ConversationList from './ConversationList';
+import { useChatStore } from '../lib/store';
 
 interface Customer {
   id: string;
@@ -25,37 +27,30 @@ interface AccountSidebarProps {
   setSelectedAccount: (customer_id: string) => void;
 }
 
-const AccountSidebar: React.FC<AccountSidebarProps> = ({ selectedAccount, setSelectedAccount }) => {
+const AccountSidebar: React.FC<AccountSidebarProps> = ({
+  selectedAccount,
+  setSelectedAccount,
+}) => {
   const [selectedChannel, setSelectedChannel] = useState<string | null>(null);
   const [hoveredAccountName, setHoveredAccountName] = useState<string | null>(null);
   const [, setTooltipVisible] = useState(false);
   const [tooltipPosition, setTooltipPosition] = useState<{ top: number; left: number }>({ top: 0, left: 0 });
   const tooltipTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const [customers, setCustomers] = useState<Customer[]>([]);
   const [currentPage, setCurrentPage] = useState<Record<string, number>>({
     google: 0,
     facebook: 0
   });
+  const [isConversationListOpen, setIsConversationListOpen] = useState(false);
   const ITEMS_PER_PAGE = 5;
-  const profileImage = useSelector(selectProfileImage);
+  const dispatch = useAppDispatch();
+  const customers = useAppSelector(selectCustomers);
+  const profileImage = useAppSelector(selectProfileImage);
+  const { setCurrentConversation } = useChatStore();
 
   useEffect(() => {
-    const fetchCustomers = async () => {
-      try {
-        const response = await axios.get('http://localhost:8080/api/accounts/customers/3893aa0b-650d-430a-b6db-62da3be1633a', {
-          headers: {
-            'accept': 'application/json',
-            'Content-Type': 'application/json',
-          },
-        });
-        setCustomers(response.data.linked_customers || []);
-      } catch (error) {
-        console.error('Erro ao buscar customers:', error);
-      }
-    };
-
-    fetchCustomers();
-  }, []);
+    const userId = '3893aa0b-650d-430a-b6db-62da3be1633a';
+    dispatch(fetchCustomers(userId));
+  }, [dispatch]);
 
   const googleAccounts = customers.filter(account => account.type === 'google_ads' && account.is_active);
   const facebookAccounts = customers.filter(account => account.type === 'meta_ads' && account.is_active);
@@ -123,26 +118,31 @@ const AccountSidebar: React.FC<AccountSidebarProps> = ({ selectedAccount, setSel
     alert('Abrir configurações de perfil');
   };
 
+  const handleConversationSelect = (threadId: string) => {
+    // Find the thread in Redux state and update the chat store
+    setCurrentConversation({
+      id: threadId,
+      title: 'Nova Conversa',
+      created_at: Date.now(),
+      updated_at: Date.now()
+    });
+  };
+
   return (
     <div className="account-sidebar">
-      <button className="menu-button">
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          width="24"
-          height="24"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          className="lucide lucide-menu"
-        >
-          <line x1="4" x2="20" y1="12" y2="12"></line>
-          <line x1="4" x2="20" y1="6" y2="6"></line>
-          <line x1="4" x2="20" y1="18" y2="18"></line>
-        </svg>
+      <button 
+        className="menu-button"
+        onClick={() => setIsConversationListOpen(true)}
+      >
+        <Menu size={24} />
       </button>
+      
+      <ConversationList 
+        isOpen={isConversationListOpen}
+        onClose={() => setIsConversationListOpen(false)}
+        onSelectConversation={handleConversationSelect}
+      />
+
       <div className="account-section">
         <div className="channel-section">
           <div 

@@ -1,8 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import {
   Box,
-  Button,
-  Divider,
   HStack,
   IconButton,
   SimpleGrid,
@@ -23,25 +21,22 @@ import {
   Activity,
   FileText,
   FileSpreadsheet,
-  MessageSquare,
   Menu
 } from 'lucide-react';
-import { useChatStore } from '../lib/store';
-import ReactMarkdown from 'react-markdown';
+import { selectThreads, Thread } from '../store/threadsSlice';
+import { selectCustomers } from '../store/customersSlice';
+import { useAppSelector, useAppDispatch } from '../store';
 import AccountSidebar from '../components/AccountSidebar';
-import { useSelector, useDispatch } from 'react-redux';
-import { setCustomers } from '../store/customersSlice';
-import { listCustomers } from '../services/api';
+import ConversationList from '../components/ConversationList';
+import ReactMarkdown from 'react-markdown';
+import { fetchThreadsList, createThread, sendMessage } from '../store/threadsSlice';
+import { selectUser } from '../store/authSlice';
 
-interface Conversation {
-  id: string;
-  title?: string;
-  threadId?: string;
+interface Message {
+  role: 'user' | 'assistant';
+  content: string | string[];
   created_at: number;
-  updated_at: number;
 }
-
-
 
 type ActionType = {
   type: string;
@@ -64,29 +59,36 @@ export default function Chat() {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   
-  const { messages, loading, conversations, currentConversation, setCurrentConversation, createConversation } = useChatStore();
   const [selectedCustomer, setSelectedCustomer] = useState<string | null>(
     localStorage.getItem('selectedCustomer')
   );
-  const dispatch = useDispatch();
-  const userId = useSelector((state: any) => state.auth.user?.id);
-  const customers = useSelector((state: any) => state.customers.linked_customers || []);
+  
+  const dispatch = useAppDispatch();
+  const threads = useAppSelector(selectThreads);
+  const customers = useAppSelector(selectCustomers);
+  const user = useAppSelector(selectUser);
+  const [currentThread, setCurrentThread] = useState<Thread | null>(null);
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [loading] = useState(false);
+
+  // Fetch threads when component mounts
+  useEffect(() => {
+    if (user?.id) {
+      dispatch(fetchThreadsList(user.id));
+    }
+  }, [dispatch, user?.id]);
 
   useEffect(() => {
-    const fetchCustomers = async () => {
-      try {
-        if (!userId) return;
-        const data = await listCustomers(userId);
-        dispatch(setCustomers(data));
-      } catch (error) {
-        console.error('Error fetching customers:', error);
-      }
-    };
-
-    if (userId && !customers.length) {
-      fetchCustomers();
+    if (threads.length > 0 && !currentThread) {
+      setCurrentThread(threads[0]);
     }
-  }, [userId, dispatch, customers.length]);
+  }, [threads, currentThread]);
+
+  useEffect(() => {
+    if (currentThread?.messages) {
+      setMessages(currentThread.messages);
+    }
+  }, [currentThread]);
 
   const actionTypes: ActionType[] = [
     {
@@ -154,6 +156,14 @@ export default function Chat() {
     setSelectedActionType(null);
   };
 
+  const handleSelectConversation = (threadId: string) => {
+    const thread = threads.find(t => t.id === threadId);
+    if (thread) {
+      setCurrentThread(thread);
+      onClose();
+    }
+  };
+
   const renderSuggestions = () => {
     if (!selectedActionType) {
       return (
@@ -186,14 +196,6 @@ export default function Chat() {
               transform: isSuggestionsMinimized ? 'translateY(10px)' : 'translateY(0)',
             }}
           >
-            {/* <Text 
-              fontSize="sm" 
-              color="gray.600" 
-              mb={2}
-              px={1}
-            >
-              Selecione o tipo de ação
-            </Text> */}
             <SimpleGrid 
               columns={{ base: 1, sm: 2, md: 3 }} 
               spacing={2}
@@ -328,9 +330,42 @@ export default function Chat() {
     e.preventDefault();
     if (!input.trim() || loading) return;
 
+    const trimmedInput = input.trim();
     setInput('');
     if (textareaRef.current) {
       textareaRef.current.style.height = 'auto';
+    }
+
+    try {
+      if (!currentThread) {
+        // Create new thread
+        const selectedCustomerData = customers.find(c => c.id === selectedCustomer);
+        const newThread = await dispatch(createThread({
+          prompt: trimmedInput,
+          userId: user?.id || '',
+          customerId: selectedCustomer || '',
+          customerGestor: selectedCustomerData?.accountdetails_business_name || ''
+        })).unwrap();
+        setCurrentThread(newThread);
+      } else {
+        // Send message to existing thread
+        await dispatch(sendMessage({
+          content: trimmedInput,
+          threadId: currentThread.id,
+          metadata: {
+            user_id: user?.id || '',
+            customer_id: selectedCustomer || '',
+            gestor_id: customers.find(c => c.id === selectedCustomer)?.accountdetails_business_name || ''
+          }
+        }));
+      }
+
+      // Refresh threads list after sending message
+      if (user?.id) {
+        dispatch(fetchThreadsList(user.id));
+      }
+    } catch (error) {
+      console.error('Error sending message:', error);
     }
   };
 
@@ -382,14 +417,12 @@ export default function Chat() {
     setSelectedActionType(null);
   };
 
-  const sortedMessages = [...messages].sort((a, b) => a.created_at - b.created_at);
-
   const handleCustomerClick = (customer_id: string) => {
     setSelectedCustomer(customer_id);
     localStorage.setItem('selectedCustomer', customer_id);
   };
 
-  const selectedCustomerName = localStorage.getItem('selectedCustomerName');
+  const selectedCustomerName = customers.find(c => c.id === selectedCustomer)?.accountdetails_name || 'Chat';
 
   return (
     <Box
@@ -422,65 +455,12 @@ export default function Chat() {
         </Box>
       </Box>
 
-      {/* Drawer Overlay */}
-      {isOpen && (
-        <Box
-          position="fixed"
-          top={0}
-          left={0}
-          width="100%"
-          height="100%"
-          bg="rgba(0, 0, 0, 0.5)"
-          zIndex={3}
-          onClick={onClose}
-        >
-          {/* Drawer Content */}
-          <Box
-            position="absolute"
-            top={0}
-            left="80px"
-            width="300px"
-            height="100%"
-            bg="white"
-            p={4}
-            onClick={e => e.stopPropagation()}
-          >
-            <Text fontSize="lg" fontWeight="bold" mb={4}>
-              Conversas
-            </Text>
-            <VStack spacing={2} align="stretch">
-              {conversations?.map((conv: Conversation) => (
-                <Button
-                  key={conv.id}
-                  variant={currentConversation?.id === conv.id ? "solid" : "ghost"}
-                  onClick={() => {
-                    setCurrentConversation(conv);
-                    onClose();
-                  }}
-                  leftIcon={<MessageSquare size={16} />}
-                  justifyContent="flex-start"
-                  w="100%"
-                >
-                  <Text isTruncated>
-                    {conv.title || "Nova Conversa"}
-                  </Text>
-                </Button>
-              ))}
-              <Divider />
-              <Button
-                colorScheme="blue"
-                onClick={() => {
-                  createConversation();
-                  onClose();
-                }}
-                leftIcon={<Plus size={16} />}
-              >
-                Nova Conversa
-              </Button>
-            </VStack>
-          </Box>
-        </Box>
-      )}
+      {/* Conversation List */}
+      <ConversationList
+        isOpen={isOpen}
+        onClose={onClose}
+        onSelectConversation={handleSelectConversation}
+      />
 
       {/* Main Chat Area */}
       <Box
@@ -497,10 +477,10 @@ export default function Chat() {
           display="flex"
           justifyContent="space-between"
           alignItems="center"
-          height="50px" // Diminua a altura do Chat Header
+          height="50px"
         >
           <Text fontWeight="semibold" fontSize="lg">
-            {`${selectedCustomerName}` || 'Chat'}
+            {selectedCustomerName}
           </Text>
           <Image
             src="/logo.svg"
@@ -510,6 +490,7 @@ export default function Chat() {
             objectFit="contain"
           />
         </Box>
+
         {/* Messages Area */}
         <Box
           flex={1}
@@ -518,14 +499,8 @@ export default function Chat() {
           overflow="hidden"
           bg="white"
         >
-          {/* <Box py={3} px={4} borderBottom="1px" borderColor="gray.200" bg="white">
-            <HStack spacing={4}>
-              <Text fontWeight="medium">Chat</Text>
-            </HStack>
-          </Box> */}
-
           <Box flex={1} overflowY="auto" px={4} py={6} display="flex" flexDirection="column" gap={4} bg="gray.50">
-            {(!sortedMessages || sortedMessages.length === 0) ? (
+            {(!messages || messages.length === 0) ? (
               <Box flex={1} display="flex" flexDirection="column" justifyContent="center" alignItems="center" textAlign="center" px={4} minH="full" py={2}>
                 <VStack spacing={4} maxW="600px">
                   <Text fontSize="2xl" fontWeight="bold" bgGradient="linear(to-r, blue.500, blue.600)" bgClip="text">
@@ -553,7 +528,7 @@ export default function Chat() {
                     </HStack>
                   </VStack>
                   <Text color="gray.500" fontSize="sm" mt={2}>
-                    Digite "/" ou abra as açoes para ver sugetões de uso.
+                    Digite "/" ou abra as ações para ver sugestões de uso.
                   </Text>
                   <Text fontSize="lg" fontWeight="bold" color="blue.500" mt={4}>
                     Bem-vindo ao seu assistente de marketing digital!
@@ -565,7 +540,7 @@ export default function Chat() {
               </Box>
             ) : (
               <>
-                {sortedMessages.map((message, index) => (
+                {messages.map((message, index) => (
                   <Box key={index} alignSelf={message.role === "assistant" ? "flex-start" : "flex-end"} maxW={{ base: "90%", md: "70%" }}>
                     <Box p={4} bg={message.role === 'assistant' ? 'white' : 'blue.50'} borderRadius="lg" boxShadow="sm" position="relative">
                       {message.role === 'assistant' && (
