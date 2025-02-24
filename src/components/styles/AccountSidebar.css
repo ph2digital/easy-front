@@ -178,11 +178,13 @@
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 }
 
+.account-block:hover .tooltip {
+  display: block;
+  z-index: 1000000;
+}
+
 .account-block[data-type="google_ads"].selected {
-  background: linear-gradient(135deg, #4285F4 0%, #34A853 33%, #FBBC05 66%, #EA4335 100%);
-  color: white;
-  border-color: transparent;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+  background: orange;
 }
 
 .account-block[data-type="meta_ads"].selected {
@@ -260,10 +262,19 @@
   border-radius: 6px;
   font-size: 13px;
   pointer-events: none;
-  z-index: 1000;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
   border: 1px solid #27272A;
   will-change: transform;
+}
+
+.tooltip.visible {
+  display: block;
+  z-index: 1000000;
+  background-color: #000;
+  color: #fff;
+  padding: 8px 12px;
+  border-radius: 4px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
 }
 
 .next-page-button {

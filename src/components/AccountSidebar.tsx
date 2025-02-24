@@ -3,7 +3,6 @@ import { useSelector } from 'react-redux';
 import { selectProfileImage } from '../store/authSlice';
 import './styles/AccountSidebar.css';
 import GoogleAdsLogo from '../assets/Logo Google Ads.svg';
-import GoogleAdsLogoIluminado from '../assets/Logo Google Ads-iluminado.svg';
 import MetaAdsLogo from '../assets/Logo Meta Ads.svg';
 import MetaAdsLogoIluminado from '../assets/Logo Meta Ads-iluminado.svg';
 import { Settings, Plus, User, ChevronRight } from 'lucide-react';
@@ -29,7 +28,7 @@ interface AccountSidebarProps {
 const AccountSidebar: React.FC<AccountSidebarProps> = ({ selectedAccount, setSelectedAccount }) => {
   const [selectedChannel, setSelectedChannel] = useState<string | null>(null);
   const [hoveredAccountName, setHoveredAccountName] = useState<string | null>(null);
-  const [tooltipVisible, setTooltipVisible] = useState(false);
+  const [, setTooltipVisible] = useState(false);
   const [tooltipPosition, setTooltipPosition] = useState<{ top: number; left: number }>({ top: 0, left: 0 });
   const tooltipTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const [customers, setCustomers] = useState<Customer[]>([]);
@@ -76,8 +75,8 @@ const AccountSidebar: React.FC<AccountSidebarProps> = ({ selectedAccount, setSel
   };
 
   const handleAccountClick = (customer: Customer) => {
-    setSelectedAccount(customer.id);
-    localStorage.setItem('selectedCustomer', customer.id);
+    setSelectedAccount(customer.customer_id);
+    localStorage.setItem('selectedCustomer', customer.customer_id);
     localStorage.setItem('selectedCustomerName', getAccountName(customer));
     localStorage.setItem('selectedCustomerType', customer.type);
   };
@@ -152,9 +151,10 @@ const AccountSidebar: React.FC<AccountSidebarProps> = ({ selectedAccount, setSel
             data-channel="google"
           >
             <img
-              src={selectedChannel === 'google' ? GoogleAdsLogoIluminado : GoogleAdsLogo}
+              src={GoogleAdsLogo}
               alt="Google Ads"
               className="channel-logo"
+              style={{ width: '32px', height: '32px' }}
             />
           </div>
           {selectedChannel === 'google' && (
@@ -162,13 +162,19 @@ const AccountSidebar: React.FC<AccountSidebarProps> = ({ selectedAccount, setSel
               {getPageAccounts(googleAccounts, 'google').map((account) => (
                 <div
                   key={account.id}
-                  className={`account-block ${selectedAccount === account.id ? 'selected' : ''}`}
+                  className={`account-block ${selectedAccount === account.customer_id ? 'selected' : ''}`}
                   onClick={() => handleAccountClick(account)}
                   onMouseEnter={(e) => handleMouseEnter(getAccountName(account), e)}
                   onMouseLeave={handleMouseLeave}
                   data-type="google_ads"
+                  style={{ backgroundColor: selectedAccount === account.customer_id ? 'orange' : 'transparent' }}
                 >
                   {getAccountInitials(account)}
+                  {hoveredAccountName === getAccountName(account) && (
+                    <div className="tooltip" style={{ top: tooltipPosition.top, left: tooltipPosition.left }}>
+                      {hoveredAccountName}
+                    </div>
+                  )}
                 </div>
               ))}
               {googleAccounts.length > ITEMS_PER_PAGE && (
@@ -190,6 +196,7 @@ const AccountSidebar: React.FC<AccountSidebarProps> = ({ selectedAccount, setSel
               src={selectedChannel === 'facebook' ? MetaAdsLogoIluminado : MetaAdsLogo}
               alt="Meta Ads"
               className="channel-logo"
+              style={{ width: '32px', height: '32px' }}
             />
           </div>
           {selectedChannel === 'facebook' && (
@@ -197,13 +204,19 @@ const AccountSidebar: React.FC<AccountSidebarProps> = ({ selectedAccount, setSel
               {getPageAccounts(facebookAccounts, 'facebook').map((account) => (
                 <div
                   key={account.id}
-                  className={`account-block ${selectedAccount === account.id ? 'selected' : ''}`}
+                  className={`account-block ${selectedAccount === account.customer_id ? 'selected' : ''}`}
                   onClick={() => handleAccountClick(account)}
                   onMouseEnter={(e) => handleMouseEnter(getAccountName(account), e)}
                   onMouseLeave={handleMouseLeave}
                   data-type="meta_ads"
+                  style={{ backgroundColor: selectedAccount === account.customer_id ? 'orange' : 'transparent' }}
                 >
                   {getAccountInitials(account)}
+                  {hoveredAccountName === getAccountName(account) && (
+                    <div className="tooltip" style={{ top: tooltipPosition.top, left: tooltipPosition.left }}>
+                      {hoveredAccountName}
+                    </div>
+                  )}
                 </div>
               ))}
               {facebookAccounts.length > ITEMS_PER_PAGE && (
@@ -215,18 +228,6 @@ const AccountSidebar: React.FC<AccountSidebarProps> = ({ selectedAccount, setSel
           )}
         </div>
       </div>
-
-      {tooltipVisible && hoveredAccountName && (
-        <div
-          className="tooltip"
-          style={{
-            top: tooltipPosition.top,
-            left: tooltipPosition.left,
-          }}
-        >
-          {hoveredAccountName}
-        </div>
-      )}
 
       <div className="account-sidebar-footer">
         <button className="action-button" onClick={addNewAccount}>
