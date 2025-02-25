@@ -25,6 +25,7 @@ interface Customer {
 interface AccountSidebarProps {
   selectedAccount: string | null;
   setSelectedAccount: (customer_id: string) => void;
+  activeCustomers: any[]; // Adicione esta linha
 }
 
 const AccountSidebar: React.FC<AccountSidebarProps> = ({
@@ -74,6 +75,7 @@ const AccountSidebar: React.FC<AccountSidebarProps> = ({
     localStorage.setItem('selectedCustomer', customer.customer_id);
     localStorage.setItem('selectedCustomerName', getAccountName(customer));
     localStorage.setItem('selectedCustomerType', customer.type);
+    localStorage.setItem('selectedCustomerDetails', JSON.stringify(customer));
   };
 
   const getAccountInitials = (account: Customer): string => {

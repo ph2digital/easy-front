@@ -12,8 +12,9 @@ import {
   useColorModeValue,
   Badge,
   Divider,
+  Button,
 } from '@chakra-ui/react';
-import { MessageSquare, User } from 'lucide-react';
+import { MessageSquare, User, Plus } from 'lucide-react';
 import { useAppSelector } from '../store';
 import { selectThreads } from '../store/threadsSlice';
 import type { Thread } from '../store/threadsSlice';
@@ -91,10 +92,7 @@ const ConversationList: React.FC<ConversationListProps> = ({
             p={4}
             cursor="pointer"
             _hover={{ bg: bgHover }}
-            onClick={() => {
-              onSelectConversation(thread.id);
-              onClose();
-            }}
+            onClick={() => handleThreadClick(thread.id)}
             borderBottomWidth="1px"
           >
             <Box display="flex" alignItems="center" mb={2}>
@@ -126,6 +124,18 @@ const ConversationList: React.FC<ConversationListProps> = ({
     );
   };
 
+  const handleThreadClick = (threadId: string) => {
+    localStorage.setItem('activeThread', threadId);
+    onSelectConversation(threadId);
+    onClose();
+  };
+
+  const handleNewConversation = () => {
+    localStorage.removeItem('activeThread');
+    onSelectConversation('');
+    onClose();
+  };
+
   const groupedThreads = groupThreadsByDate(threads);
 
   return (
@@ -133,7 +143,18 @@ const ConversationList: React.FC<ConversationListProps> = ({
       <DrawerOverlay />
       <DrawerContent>
         <DrawerCloseButton />
-        <DrawerHeader borderBottomWidth="1px">Conversas</DrawerHeader>
+        <DrawerHeader borderBottomWidth="1px">
+          <Text mb={4}>Conversas</Text>
+          <Button
+            leftIcon={<Plus size={16} />}
+            colorScheme="blue"
+            size="sm"
+            onClick={handleNewConversation}
+            width="100%"
+          >
+            Nova Conversa
+          </Button>
+        </DrawerHeader>
         <DrawerBody p={0}>
           <VStack spacing={0} align="stretch">
             {threads.length === 0 ? (

@@ -29,7 +29,7 @@ import { useAppSelector, useAppDispatch } from '../store';
 import AccountSidebar from '../components/AccountSidebar';
 import ConversationList from '../components/ConversationList';
 import ReactMarkdown from 'react-markdown';
-import { fetchThreadsList, createThread, sendMessage } from '../store/threadsSlice';
+import { fetchThreadsList, sendMessage } from '../store/threadsSlice';
 import { selectUser } from '../store/authSlice';
 
 interface Message {
@@ -69,7 +69,7 @@ export default function Chat() {
   const user = useAppSelector(selectUser);
   const [currentThread, setCurrentThread] = useState<Thread | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
-  const [loading] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   // Fetch threads when component mounts
   useEffect(() => {
@@ -157,12 +157,18 @@ export default function Chat() {
   };
 
   const handleSelectConversation = (threadId: string) => {
+    localStorage.setItem('activeThread', threadId);
     const thread = threads.find(t => t.id === threadId);
     if (thread) {
       setCurrentThread(thread);
-      onClose();
+      setMessages(thread.messages || []);
+    } else {
+      setCurrentThread(null);
+      setMessages([]);
     }
+    onClose();
   };
+
 
   const renderSuggestions = () => {
     if (!selectedActionType) {
@@ -207,17 +213,17 @@ export default function Chat() {
                   key={type.text}
                   p={3}
                   borderRadius="md"
-                  bg="white"
+                  bg="gray.700" // Background mais escuro
                   boxShadow="sm"
                   cursor="pointer"
                   onClick={() => handleActionTypeClick(type.type)}
-                  _hover={{ bg: 'gray.50' }}
+                  _hover={{ bg: 'gray.600' }} // Background mais escuro
                 >
                   <HStack spacing={3} mb={1}>
                     <type.icon size={20} color="var(--chakra-colors-blue-500)" />
-                    <Text fontWeight="medium">{type.text}</Text>
+                    <Text fontWeight="medium" color="white">{type.text}</Text>
                   </HStack>
-                  <Text fontSize="sm" color="gray.600">
+                  <Text fontSize="sm" color="gray.300">
                     {type.description}
                   </Text>
                 </Box>
@@ -264,11 +270,11 @@ export default function Chat() {
               <Box
                 key={action.text}
                 p={3}
-                bg="white"
+                bg="gray.700" // Background mais escuro
                 borderRadius="lg"
                 border="1px"
-                borderColor="gray.200"
-                _hover={{ bg: 'blue.50', borderColor: 'blue.200', cursor: 'pointer' }}
+                borderColor="gray.600" // Background mais escuro
+                _hover={{ bg: 'gray.600', borderColor: 'gray.500', cursor: 'pointer' }} // Background mais escuro
                 onClick={() => {
                   handleCommandClick(action.message);
                   setSelectedActionType(null);
@@ -283,7 +289,7 @@ export default function Chat() {
                   <action.icon size={24} color="var(--chakra-colors-blue-500)" flexShrink={0} />
                   <Text 
                     fontWeight="medium" 
-                    color="blue.700" 
+                    color="white" 
                     fontSize="sm"
                     noOfLines={1}
                     flex="1"
@@ -293,7 +299,7 @@ export default function Chat() {
                 </HStack>
                 <Text 
                   fontSize="sm" 
-                  color="gray.600" 
+                  color="gray.300" // Background mais escuro
                   noOfLines={1}
                 >
                   {action.message}
@@ -310,12 +316,30 @@ export default function Chat() {
     "Pensando...",
     "Processando sua mensagem...",
     "Gerando resposta...",
+    "Analisando o contexto...",
+    "Elaborando uma resposta...",
+    "Organizando as ideias...",
+    "Quase lá...",
+    "Finalizando o raciocínio...",
+    "Revisando a resposta...",
+    "Preparando a resposta...",
+    "Aguarde um momento...",
+    "Refinando a resposta...",
+    "Quase pronto...",
+    "Ajustando detalhes...",
+    "Verificando informações...",
+    "Compilando dados...",
+    "Formatando a resposta...",
+    "Checando consistência...",
+    "Validando informações...",
+    "Finalizando...",
+    "Aguarde, por favor..."
   ];
 
   useEffect(() => {
     const interval = setInterval(() => {
       setLoadingMessageIndex((prev) => prev + 1);
-    }, 2000);
+    }, 2000); // Aumenta o intervalo para 5 segundos
 
     return () => clearInterval(interval);
   }, []);
@@ -336,38 +360,104 @@ export default function Chat() {
       textareaRef.current.style.height = 'auto';
     }
 
+    const newMessage: Message = {
+      role: 'user',
+      content: trimmedInput,
+      created_at: Date.now()
+    };
+
+    setMessages(prevMessages => [...prevMessages, newMessage]);
+    setLoading(true);
+
     try {
-      if (!currentThread) {
-        // Create new thread
-        const selectedCustomerData = customers.find(c => c.id === selectedCustomer);
-        const newThread = await dispatch(createThread({
+      const activeThread = localStorage.getItem('activeThread');
+      const selectedCustomer = localStorage.getItem('selectedCustomer');
+      const userId = user?.id || '';
+      const customerGestor = localStorage.getItem('customerGestor');
+      const token = localStorage.getItem('@Piloto:token');
+
+      const response = await fetch('http://localhost:8080/api/gpt/create-thread-and-send-message', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
           prompt: trimmedInput,
-          userId: user?.id || '',
-          customerId: selectedCustomer || '',
-          customerGestor: selectedCustomerData?.accountdetails_business_name || ''
-        })).unwrap();
-        setCurrentThread(newThread);
-      } else {
-        // Send message to existing thread
-        await dispatch(sendMessage({
-          content: trimmedInput,
-          threadId: currentThread.id,
+          userId,
+          thread: activeThread,
+          customerId: selectedCustomer,
+          customerGestor,
           metadata: {
-            user_id: user?.id || '',
-            customer_id: selectedCustomer || '',
-            gestor_id: customers.find(c => c.id === selectedCustomer)?.accountdetails_business_name || ''
+            title: trimmedInput,
+            user_id: userId,
+            customer_id: selectedCustomer,
+            gestor_id: customerGestor
           }
-        }));
+        })
+      });
+
+      const reader = response.body?.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+
+      while (true) {
+        const { done, value } = await reader?.read()!;
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || '';
+
+        for (const line of lines) {
+          if (line.trim() === '') continue;
+          if (line.startsWith('data: ')) {
+            const data = JSON.parse(line.slice(6));
+            if (data.type === 'init') {
+              localStorage.setItem('activeThread', data.threadId);
+              setCurrentThread({ id: data.threadId, messages: [data.userMessage] } as unknown as Thread);
+              setMessages(prevMessages => [...prevMessages, data.userMessage]);
+            } else if (data.type === 'status') {
+              console.log(`Status: ${data.status}`);
+            } else if (data.type === 'done') {
+              const assistantMessage: Message = {
+                role: 'assistant',
+                content: data.content,
+                created_at: Date.now()
+              };
+              setMessages(prevMessages => [
+                ...prevMessages,
+                assistantMessage
+              ]);
+              setLoading(false);
+            }
+          }
+        }
       }
 
       // Refresh threads list after sending message
-      if (user?.id) {
-        dispatch(fetchThreadsList(user.id));
+      if (userId) {
+        dispatch(fetchThreadsList(userId));
       }
     } catch (error) {
       console.error('Error sending message:', error);
+      setLoading(false);
     }
   };
+
+  useEffect(() => {
+    const activeThread = localStorage.getItem('activeThread');
+    if (activeThread) {
+      const thread = threads.find(t => t.id === activeThread);
+      if (thread) {
+        setCurrentThread(thread);
+        setMessages(thread.messages || []);
+      }
+    } else {
+      setCurrentThread(null);
+      setMessages([]);
+    }
+  }, [threads]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setInput(e.target.value);
@@ -422,18 +512,18 @@ export default function Chat() {
     localStorage.setItem('selectedCustomer', customer_id);
   };
 
-  const selectedCustomerName = customers.find(c => c.id === selectedCustomer)?.accountdetails_name || 'Chat';
+  const selectedCustomerName = localStorage.getItem('selectedCustomerName') || 'Chat';
 
   return (
     <Box
       display="flex"
       height="100vh"
-      bg="gray.50"
+      bg="gray.800" // Background mais escuro
     >
       {/* Account Sidebar */}
       <Box
         width="80px"
-        bg="white"
+        bg="gray.900" // Background mais escuro
         position="relative"
         display="flex"
         flexDirection="column"
@@ -449,9 +539,8 @@ export default function Chat() {
         </Box>
         <Box flex={1}>
           <AccountSidebar 
-            selectedAccount={selectedCustomer} 
-            setSelectedAccount={handleCustomerClick}
-          />
+            selectedAccount={selectedCustomer}
+            setSelectedAccount={handleCustomerClick} activeCustomers={[]}          />
         </Box>
       </Box>
 
@@ -473,13 +562,13 @@ export default function Chat() {
         <Box
           py={1}
           px={4}
-          bg="white"
+          bg="gray.900" // Background mais escuro
           display="flex"
           justifyContent="space-between"
           alignItems="center"
           height="50px"
         >
-          <Text fontWeight="semibold" fontSize="lg">
+          <Text fontWeight="semibold" fontSize="lg" color="white">
             {selectedCustomerName}
           </Text>
           <Image
@@ -497,72 +586,61 @@ export default function Chat() {
           display="flex"
           flexDirection="column"
           overflow="hidden"
-          bg="white"
+          bg="gray.800" // Background mais escuro
         >
-          <Box flex={1} overflowY="auto" px={4} py={6} display="flex" flexDirection="column" gap={4} bg="gray.50">
-            {(!messages || messages.length === 0) ? (
-              <Box flex={1} display="flex" flexDirection="column" justifyContent="center" alignItems="center" textAlign="center" px={4} minH="full" py={2}>
-                <VStack spacing={4} maxW="600px">
-                  <Text fontSize="2xl" fontWeight="bold" bgGradient="linear(to-r, blue.500, blue.600)" bgClip="text">
-                    Assistente de Marketing Digital
-                  </Text>
-                  <Text fontSize="md" color="gray.600">
-                    Gerencie suas campanhas de marketing e análise de dados de forma inteligente
-                  </Text>
-                  <VStack spacing={2} color="gray.600" width="100%" align="start">
-                    <HStack>
-                      <Box color="blue.500">✨</Box>
-                      <Text>Crie e gerencie campanhas de marketing</Text>
-                    </HStack>
-                    <HStack>
-                      <Box color="blue.500">📊</Box>
-                      <Text>Visualize relatórios e métricas</Text>
-                    </HStack>
-                    <HStack>
-                      <Box color="blue.500">🎯</Box>
-                      <Text>Otimize suas estratégias digitais</Text>
-                    </HStack>
-                    <HStack>
-                      <Box color="blue.500">💡</Box>
-                      <Text>Receba insights personalizados</Text>
-                    </HStack>
-                  </VStack>
+          <Box flex={1} overflowY="auto" px={4} py={6} display="flex" flexDirection="column" gap={4} bg="gray.800">
+            <Box flex={1} display="flex" flexDirection="column" justifyContent="center" alignItems="center" textAlign="center" px={4} minH="full" py={2}>
+              <VStack spacing={4} maxW="600px">
+                <Text fontSize="2xl" fontWeight="bold" bgGradient="linear(to-r, blue.500, blue.600)" bgClip="text">
+                  Assistente de Marketing Digital
+                </Text>
+                <Text fontSize="md" color="gray.400">
+                  Gerencie suas campanhas de marketing e análise de dados de forma inteligente
+                </Text>
+                <VStack spacing={2} color="gray.400" width="100%" align="start">
+                  <HStack>
+                    <Box color="blue.500">📊</Box>
+                    <Text>Crie e gerencie campanhas de marketing</Text>
+                  </HStack>
+                  <HStack>
+                    <Box color="blue.500">✨</Box>
+                    <Text>Visualize relatórios e métricas</Text>
+                  </HStack>
+                  <HStack>
+                    <Box color="blue.500">🎯</Box>
+                    <Text>Otimize suas estratégias digitais</Text>
+                  </HStack>
+                  <HStack>
+                    <Box color="blue.500">💡</Box>
+                    <Text>Receba insights personalizados</Text>
+                  </HStack>
                   <Text color="gray.500" fontSize="sm" mt={2}>
                     Digite "/" ou abra as ações para ver sugestões de uso.
                   </Text>
-                  <Text fontSize="lg" fontWeight="bold" color="blue.500" mt={4}>
-                    Bem-vindo ao seu assistente de marketing digital!
-                  </Text>
-                  <Text fontSize="md" color="gray.600">
-                    Estamos aqui para ajudar você a alcançar seus objetivos de marketing.
-                  </Text>
                 </VStack>
-              </Box>
-            ) : (
-              <>
-                {messages.map((message, index) => (
-                  <Box key={index} alignSelf={message.role === "assistant" ? "flex-start" : "flex-end"} maxW={{ base: "90%", md: "70%" }}>
-                    <Box p={4} bg={message.role === 'assistant' ? 'white' : 'blue.50'} borderRadius="lg" boxShadow="sm" position="relative">
-                      {message.role === 'assistant' && (
-                        <Box position="absolute" top={-6} left={2} bg="blue.500" color="white" px={2} py={1} borderRadius="md" fontSize="xs">
-                          Assistente
-                        </Box>
-                      )}
-                      <ReactMarkdown className="markdown-content">
-                        {Array.isArray(message.content) ? message.content.join('\n') : message.content}
-                      </ReactMarkdown>
+              </VStack>
+            </Box>
+            {messages.map((message, index) => (
+              <Box key={index} alignSelf={message.role === "assistant" ? "flex-start" : "flex-end"} maxW={{ base: "90%", md: "70%" }}>
+                <Box p={4} bg={message.role === 'assistant' ? 'gray.700' : 'blue.50'} borderRadius="lg" boxShadow="sm" position="relative">
+                  {message.role === 'assistant' && (
+                    <Box position="absolute" top={-6} left={2} bg="blue.500" color="white" px={2} py={1} borderRadius="md" fontSize="xs">
+                      Assistente
                     </Box>
-                  </Box>
-                ))}
-              </>
-            )}
+                  )}
+                  <ReactMarkdown className="markdown-content">
+                    {Array.isArray(message.content) ? message.content.join('\n') : message.content}
+                  </ReactMarkdown>
+                </Box>
+              </Box>
+            ))}
             {loading && (
               <Box alignSelf="flex-start" maxW={{ base: "90%", md: "70%" }}>
-                <Box bg="white" px={4} py={3} borderRadius="lg" boxShadow="sm" position="relative">
+                <Box bg="gray.700" px={4} py={3} borderRadius="lg" boxShadow="sm" position="relative">
                   <Box position="absolute" top={-6} left={2} bg="blue.500" color="white" px={2} py={1} borderRadius="md" fontSize="xs">
                     Assistente
                   </Box>
-                  <Text color="gray.600">
+                  <Text color="gray.400">
                     {loadingMessages[loadingMessageIndex % loadingMessages.length]}
                   </Text>
                 </Box>
@@ -570,12 +648,10 @@ export default function Chat() {
             )}
             <div ref={messagesEndRef} />
           </Box>
-
-          <Box borderTop="1px" borderColor="gray.200" bg="white">
+          <Box p={4} borderTop="1px" borderColor="gray.700" bg="gray.900">
             {renderSuggestions()}
           </Box>
-
-          <Box p={4} borderTop="1px" borderColor="gray.200" bg="white">
+          <Box p={4} borderTop="1px" borderColor="gray.700" bg="gray.900">
             <form onSubmit={handleSubmit}>
               <HStack spacing={2}>
                 <Textarea
@@ -590,6 +666,8 @@ export default function Chat() {
                   resize="none"
                   maxH="200px"
                   overflowY="auto"
+                  bg="gray.700"
+                  color="white"
                 />
                 <IconButton
                   aria-label="Enviar mensagem"
