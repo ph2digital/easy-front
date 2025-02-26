@@ -8,7 +8,7 @@ import { selectCustomers, fetchCustomers } from '../store/customersSlice';
 import { useAppDispatch, useAppSelector } from '../store';
 import { selectProfileImage } from '../store/authSlice';
 import ConversationList from './ConversationList';
-import { useChatStore } from '../lib/store';
+import type { Thread } from '../store/threadsSlice';
 
 interface Customer {
   id: string;
@@ -23,14 +23,17 @@ interface Customer {
 }
 
 interface AccountSidebarProps {
+  isOpen: boolean;
+  onSelectConversation: (thread: Thread | null) => void;
   selectedAccount: string | null;
   setSelectedAccount: (customer_id: string) => void;
-  activeCustomers: any[]; // Adicione esta linha
 }
 
 const AccountSidebar: React.FC<AccountSidebarProps> = ({
+  isOpen,
+  onSelectConversation,
   selectedAccount,
-  setSelectedAccount,
+  setSelectedAccount
 }) => {
   const [selectedChannel, setSelectedChannel] = useState<string | null>(null);
   const [hoveredAccountName, setHoveredAccountName] = useState<string | null>(null);
@@ -46,7 +49,6 @@ const AccountSidebar: React.FC<AccountSidebarProps> = ({
   const dispatch = useAppDispatch();
   const customers = useAppSelector(selectCustomers);
   const profileImage = useAppSelector(selectProfileImage);
-  const { setCurrentConversation } = useChatStore();
 
   useEffect(() => {
     const userId = '3893aa0b-650d-430a-b6db-62da3be1633a';
@@ -71,11 +73,11 @@ const AccountSidebar: React.FC<AccountSidebarProps> = ({
   };
 
   const handleAccountClick = (customer: Customer) => {
-    setSelectedAccount(customer.customer_id);
     localStorage.setItem('selectedCustomer', customer.customer_id);
     localStorage.setItem('selectedCustomerName', getAccountName(customer));
     localStorage.setItem('selectedCustomerType', customer.type);
-    localStorage.setItem('selectedCustomerDetails', JSON.stringify(customer));
+    localStorage.setItem('customerGestor', customer.user_id);
+    setSelectedAccount(customer.customer_id);
   };
 
   const getAccountInitials = (account: Customer): string => {
@@ -120,18 +122,8 @@ const AccountSidebar: React.FC<AccountSidebarProps> = ({
     alert('Abrir configurações de perfil');
   };
 
-  const handleConversationSelect = (threadId: string) => {
-    // Find the thread in Redux state and update the chat store
-    setCurrentConversation({
-      id: threadId,
-      title: 'Nova Conversa',
-      created_at: Date.now(),
-      updated_at: Date.now()
-    });
-  };
-
   return (
-    <div className="account-sidebar">
+    <div className={`account-sidebar ${isOpen ? 'open' : ''}`}>
       <button 
         className="menu-button"
         onClick={() => setIsConversationListOpen(true)}
@@ -139,10 +131,10 @@ const AccountSidebar: React.FC<AccountSidebarProps> = ({
         <Menu size={24} />
       </button>
       
-      <ConversationList 
+      <ConversationList
         isOpen={isConversationListOpen}
         onClose={() => setIsConversationListOpen(false)}
-        onSelectConversation={handleConversationSelect}
+        onSelectConversation={onSelectConversation}
       />
 
       <div className="account-section">
@@ -169,7 +161,6 @@ const AccountSidebar: React.FC<AccountSidebarProps> = ({
                   onMouseEnter={(e) => handleMouseEnter(getAccountName(account), e)}
                   onMouseLeave={handleMouseLeave}
                   data-type="google_ads"
-                  style={{ backgroundColor: selectedAccount === account.customer_id ? 'orange' : 'transparent' }}
                 >
                   {getAccountInitials(account)}
                   {hoveredAccountName === getAccountName(account) && (
@@ -211,7 +202,6 @@ const AccountSidebar: React.FC<AccountSidebarProps> = ({
                   onMouseEnter={(e) => handleMouseEnter(getAccountName(account), e)}
                   onMouseLeave={handleMouseLeave}
                   data-type="meta_ads"
-                  style={{ backgroundColor: selectedAccount === account.customer_id ? 'orange' : 'transparent' }}
                 >
                   {getAccountInitials(account)}
                   {hoveredAccountName === getAccountName(account) && (

@@ -15,8 +15,8 @@ import {
   Button,
 } from '@chakra-ui/react';
 import { MessageSquare, User, Plus } from 'lucide-react';
-import { useAppSelector } from '../store';
-import { selectThreads } from '../store/threadsSlice';
+import { useAppSelector, useAppDispatch } from '../store';
+import { selectThreads, createThread } from '../store/threadsSlice';
 import type { Thread } from '../store/threadsSlice';
 import { formatDistanceToNow, isValid, isToday, isWithinInterval, subDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -24,7 +24,7 @@ import { ptBR } from 'date-fns/locale';
 interface ConversationListProps {
   isOpen: boolean;
   onClose: () => void;
-  onSelectConversation: (threadId: string) => void;
+  onSelectConversation: (thread: Thread | null) => void;
 }
 
 interface GroupedThreads {
@@ -40,6 +40,7 @@ const ConversationList: React.FC<ConversationListProps> = ({
   onSelectConversation,
 }) => {
   const threads = useAppSelector(selectThreads);
+  const dispatch = useAppDispatch();
   const bgHover = useColorModeValue('gray.100', 'gray.700');
   const badgeBg = useColorModeValue('blue.100', 'blue.800');
   const dividerColor = useColorModeValue('gray.200', 'gray.700');
@@ -92,7 +93,10 @@ const ConversationList: React.FC<ConversationListProps> = ({
             p={4}
             cursor="pointer"
             _hover={{ bg: bgHover }}
-            onClick={() => handleThreadClick(thread.id)}
+            onClick={() => {
+              onSelectConversation(thread);
+              onClose();
+            }}
             borderBottomWidth="1px"
           >
             <Box display="flex" alignItems="center" mb={2}>
@@ -124,16 +128,44 @@ const ConversationList: React.FC<ConversationListProps> = ({
     );
   };
 
-  const handleThreadClick = (threadId: string) => {
-    localStorage.setItem('activeThread', threadId);
-    onSelectConversation(threadId);
-    onClose();
-  };
+  const handleNewConversation = async () => {
+    try {
+      const userData = JSON.parse(localStorage.getItem('user') || '{}');
+      const selectedCustomer = localStorage.getItem('selectedCustomer') || '';
+      const selectedCustomerName = localStorage.getItem('selectedCustomerName') || '';
+      const selectedCustomerType = localStorage.getItem('selectedCustomerType') || '';
+      const selectedAccount = localStorage.getItem('selectedAccount') || '';
+      const customerGestor = localStorage.getItem('customerGestor') || '';
+      
+      // Find active customer details
+      const activeCustomers = JSON.parse(localStorage.getItem('activeCustomers') || '[]');
+      const selectedCustomerDetails = activeCustomers.find(
+        (customer: any) => customer.customer_id === selectedAccount
+      );
 
-  const handleNewConversation = () => {
-    localStorage.removeItem('activeThread');
-    onSelectConversation('');
-    onClose();
+      const payload = {
+        prompt: '',
+        userId: userData.id,
+        customerId: selectedCustomer,
+        customerGestor,
+        metadata: {
+          title: `Nova Conversa - ${selectedCustomerName}`,
+          userId: userData.id,
+          customerId: selectedCustomer,
+          gestorId: customerGestor,
+          customerName: selectedCustomerName,
+          customerType: selectedCustomerType,
+          accountId: selectedAccount,
+          accountName: selectedCustomerDetails?.accountdetails_name || ''
+        }
+      };
+
+      const result = await dispatch(createThread(payload)).unwrap();
+      onSelectConversation(result);
+      onClose();
+    } catch (error) {
+      console.error('Failed to create new thread:', error);
+    }
   };
 
   const groupedThreads = groupThreadsByDate(threads);

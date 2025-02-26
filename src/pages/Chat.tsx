@@ -24,12 +24,11 @@ import {
   Menu
 } from 'lucide-react';
 import { selectThreads, Thread } from '../store/threadsSlice';
-import { selectCustomers } from '../store/customersSlice';
 import { useAppSelector, useAppDispatch } from '../store';
 import AccountSidebar from '../components/AccountSidebar';
 import ConversationList from '../components/ConversationList';
 import ReactMarkdown from 'react-markdown';
-import { fetchThreadsList, sendMessage } from '../store/threadsSlice';
+import { fetchThreadsList } from '../store/threadsSlice';
 import { selectUser } from '../store/authSlice';
 
 interface Message {
@@ -65,7 +64,6 @@ export default function Chat() {
   
   const dispatch = useAppDispatch();
   const threads = useAppSelector(selectThreads);
-  const customers = useAppSelector(selectCustomers);
   const user = useAppSelector(selectUser);
   const [currentThread, setCurrentThread] = useState<Thread | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -86,7 +84,13 @@ export default function Chat() {
 
   useEffect(() => {
     if (currentThread?.messages) {
-      setMessages(currentThread.messages);
+      const storedMessages = localStorage.getItem('messages');
+      if (storedMessages) {
+        setMessages(JSON.parse(storedMessages));
+      } else {
+        setMessages(currentThread.messages);
+        localStorage.setItem('messages', JSON.stringify(currentThread.messages));
+      }
     }
   }, [currentThread]);
 
@@ -156,15 +160,17 @@ export default function Chat() {
     setSelectedActionType(null);
   };
 
-  const handleSelectConversation = (threadId: string) => {
-    localStorage.setItem('activeThread', threadId);
-    const thread = threads.find(t => t.id === threadId);
+  const handleSelectConversation = (thread: Thread | null) => {
     if (thread) {
+      localStorage.setItem('activeThread', thread.id);
       setCurrentThread(thread);
       setMessages(thread.messages || []);
+      localStorage.setItem('messages', JSON.stringify(thread.messages || []));
     } else {
       setCurrentThread(null);
       setMessages([]);
+      localStorage.removeItem('messages');
+      localStorage.removeItem('activeThread');
     }
     onClose();
   };
@@ -361,12 +367,17 @@ export default function Chat() {
     }
 
     const newMessage: Message = {
-      role: 'user',
+      role: 'user' as const,
       content: trimmedInput,
       created_at: Date.now()
     };
 
-    setMessages(prevMessages => [...prevMessages, newMessage]);
+    // Adiciona a mensagem do usuário ao estado e localStorage
+    setMessages(prevMessages => {
+      const updatedMessages = [...prevMessages, newMessage];
+      localStorage.setItem('messages', JSON.stringify(updatedMessages));
+      return updatedMessages;
+    });
     setLoading(true);
 
     try {
@@ -376,7 +387,7 @@ export default function Chat() {
       const customerGestor = localStorage.getItem('customerGestor');
       const token = localStorage.getItem('@Piloto:token');
 
-      const response = await fetch('http://localhost:8080/api/gpt/create-thread-and-send-message', {
+      const response = await fetch('http://localhost:8080/api/gpt/prompt', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -400,6 +411,7 @@ export default function Chat() {
       const reader = response.body?.getReader();
       const decoder = new TextDecoder();
       let buffer = '';
+      let currentAssistantMessage = '';
 
       while (true) {
         const { done, value } = await reader?.read()!;
@@ -413,31 +425,71 @@ export default function Chat() {
           if (line.trim() === '') continue;
           if (line.startsWith('data: ')) {
             const data = JSON.parse(line.slice(6));
+            
             if (data.type === 'init') {
               localStorage.setItem('activeThread', data.threadId);
-              setCurrentThread({ id: data.threadId, messages: [data.userMessage] } as unknown as Thread);
-              setMessages(prevMessages => [...prevMessages, data.userMessage]);
+              // Atualiza a thread atual mantendo as mensagens existentes
+              setCurrentThread(prevThread => ({
+                ...(prevThread || {}),
+                id: data.threadId,
+                messages: prevThread?.messages || []
+              } as Thread));
             } else if (data.type === 'status') {
               console.log(`Status: ${data.status}`);
+            } else if (data.type === 'update') {
+              currentAssistantMessage += data.content;
+              setMessages(prevMessages => {
+                const newMessages = [...prevMessages];
+                const lastMessage = newMessages[newMessages.length - 1];
+                
+                if (lastMessage?.role === 'assistant') {
+                  lastMessage.content = currentAssistantMessage;
+                } else {
+                  newMessages.push({
+                    role: 'assistant' as const,
+                    content: currentAssistantMessage,
+                    created_at: Date.now()
+                  });
+                }
+                
+                localStorage.setItem('messages', JSON.stringify(newMessages));
+                return newMessages;
+              });
             } else if (data.type === 'done') {
-              const assistantMessage: Message = {
-                role: 'assistant',
-                content: data.content,
-                created_at: Date.now()
-              };
-              setMessages(prevMessages => [
-                ...prevMessages,
-                assistantMessage
-              ]);
+              setMessages(prevMessages => {
+                // Verifica se a última mensagem já é do assistente
+                const lastMessage = prevMessages[prevMessages.length - 1];
+                if (lastMessage?.role === 'assistant') {
+                  const updatedMessages = [...prevMessages];
+                  lastMessage.content = data.content;
+                  localStorage.setItem('messages', JSON.stringify(updatedMessages));
+                  return updatedMessages;
+                }
+                
+                // Adiciona nova mensagem do assistente
+                const updatedMessages = [...prevMessages, {
+                  role: 'assistant' as const,
+                  content: data.content,
+                  created_at: Date.now()
+                }];
+                
+                localStorage.setItem('messages', JSON.stringify(updatedMessages));
+                return updatedMessages;
+              });
+              
+              // Atualiza a thread com as novas mensagens
+              setCurrentThread(prevThread => {
+                if (!prevThread) return null;
+                return {
+                  ...prevThread,
+                  messages: JSON.parse(localStorage.getItem('messages') || '[]')
+                };
+              });
+              
               setLoading(false);
             }
           }
         }
-      }
-
-      // Refresh threads list after sending message
-      if (userId) {
-        dispatch(fetchThreadsList(userId));
       }
     } catch (error) {
       console.error('Error sending message:', error);
@@ -454,8 +506,13 @@ export default function Chat() {
         setMessages(thread.messages || []);
       }
     } else {
-      setCurrentThread(null);
-      setMessages([]);
+      const storedMessages = localStorage.getItem('messages');
+      if (storedMessages) {
+        setMessages(JSON.parse(storedMessages));
+      } else {
+        setCurrentThread(null);
+        setMessages([]);
+      }
     }
   }, [threads]);
 
@@ -540,7 +597,10 @@ export default function Chat() {
         <Box flex={1}>
           <AccountSidebar 
             selectedAccount={selectedCustomer}
-            setSelectedAccount={handleCustomerClick} activeCustomers={[]}          />
+            setSelectedAccount={handleCustomerClick}
+            isOpen={isOpen}
+            onSelectConversation={handleSelectConversation}
+          />
         </Box>
       </Box>
 
@@ -628,9 +688,11 @@ export default function Chat() {
                       Assistente
                     </Box>
                   )}
-                  <ReactMarkdown className="markdown-content">
-                    {Array.isArray(message.content) ? message.content.join('\n') : message.content}
-                  </ReactMarkdown>
+                  <Box color={message.role === 'assistant' ? 'white' : 'black'}>
+                    <ReactMarkdown className="markdown-content">
+                      {Array.isArray(message.content) ? message.content.join('\n') : message.content}
+                    </ReactMarkdown>
+                  </Box>
                 </Box>
               </Box>
             ))}
@@ -639,6 +701,7 @@ export default function Chat() {
                 <Box bg="gray.700" px={4} py={3} borderRadius="lg" boxShadow="sm" position="relative">
                   <Box position="absolute" top={-6} left={2} bg="blue.500" color="white" px={2} py={1} borderRadius="md" fontSize="xs">
                     Assistente
+
                   </Box>
                   <Text color="gray.400">
                     {loadingMessages[loadingMessageIndex % loadingMessages.length]}
