@@ -25,6 +25,8 @@ interface ConversationListProps {
   isOpen: boolean;
   onClose: () => void;
   onSelectConversation: (thread: Thread | null) => void;
+  threads?: Thread[];
+  currentThread?: Thread | null;
 }
 
 interface GroupedThreads {
@@ -38,8 +40,10 @@ const ConversationList: React.FC<ConversationListProps> = ({
   isOpen,
   onClose,
   onSelectConversation,
+  threads,
+  currentThread,
 }) => {
-  const threads = useAppSelector(selectThreads);
+  const threadsFromStore = useAppSelector(selectThreads);
   const dispatch = useAppDispatch();
   const bgHover = useColorModeValue('gray.100', 'gray.700');
   const badgeBg = useColorModeValue('blue.100', 'blue.800');
@@ -79,13 +83,28 @@ const ConversationList: React.FC<ConversationListProps> = ({
     });
   };
 
-  const renderThreadGroup = (title: string, threads: Thread[]) => {
+  const formatPeriodTitle = (period: string) => {
+    switch (period) {
+      case 'today':
+        return 'Hoje';
+      case 'lastWeek':
+        return 'Últimos 7 dias';
+      case 'lastMonth':
+        return 'Último mês';
+      case 'older':
+        return 'Mais antigas';
+      default:
+        return '';
+    }
+  };
+
+  const renderThreadGroup = (period: string, threads: Thread[]) => {
     if (threads.length === 0) return null;
 
     return (
       <Box>
         <Text px={4} py={2} fontWeight="bold" fontSize="sm" color="gray.500">
-          {title}
+          {formatPeriodTitle(period)}
         </Text>
         {threads.map((thread) => (
           <Box
@@ -93,6 +112,7 @@ const ConversationList: React.FC<ConversationListProps> = ({
             p={4}
             cursor="pointer"
             _hover={{ bg: bgHover }}
+            bg={currentThread?.id === thread.id ? bgHover : 'transparent'}
             onClick={() => {
               onSelectConversation(thread);
               onClose();
@@ -168,7 +188,7 @@ const ConversationList: React.FC<ConversationListProps> = ({
     }
   };
 
-  const groupedThreads = groupThreadsByDate(threads);
+  const groupedThreads = groupThreadsByDate(threads || threadsFromStore);
 
   return (
     <Drawer isOpen={isOpen} placement="left" onClose={onClose} size="md">
@@ -189,16 +209,17 @@ const ConversationList: React.FC<ConversationListProps> = ({
         </DrawerHeader>
         <DrawerBody p={0}>
           <VStack spacing={0} align="stretch">
-            {threads.length === 0 ? (
+            {(threads || threadsFromStore).length === 0 ? (
               <Box p={4}>
                 <Text color="gray.500">Nenhuma conversa encontrada</Text>
               </Box>
             ) : (
               <>
-                {renderThreadGroup('Hoje', groupedThreads.today)}
-                {renderThreadGroup('Últimos 7 dias', groupedThreads.lastWeek)}
-                {renderThreadGroup('Último mês', groupedThreads.lastMonth)}
-                {renderThreadGroup('Mais antigas', groupedThreads.older)}
+                {Object.entries(groupedThreads).map(([period, threads]) => (
+                  <Box key={period}>
+                    {renderThreadGroup(period, threads)}
+                  </Box>
+                ))}
               </>
             )}
           </VStack>

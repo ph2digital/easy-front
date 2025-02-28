@@ -1,0 +1,229 @@
+.account-sidebar {
+  width: 64px;
+  height: 100vh;
+  background: #fff;
+  border-right: 1px solid #e2e8f0;
+  display: flex;
+  flex-direction: column;
+  transition: width 0.3s ease;
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 50;
+}
+
+.account-sidebar.open {
+  width: 240px;
+}
+
+.menu-button {
+  width: 64px;
+  height: 64px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #4a5568;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.menu-button:hover {
+  color: #2d3748;
+  background-color: #f7fafc;
+}
+
+.account-section {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 8px 0;
+  overflow-y: auto;
+}
+
+.channel-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0 8px;
+}
+
+.channel-header {
+  width: 48px;
+  height: 48px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  margin-bottom: 4px;
+}
+
+.channel-header:hover {
+  background-color: #f7fafc;
+}
+
+.channel-header.active {
+  background-color: #ebf8ff;
+}
+
+.channel-logo {
+  width: 32px;
+  height: 32px;
+  object-fit: contain;
+}
+
+.accounts-list {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 0;
+  position: relative;
+}
+
+.account-block {
+  width: 48px;
+  height: 48px;
+  border-radius: 8px;
+  background-color: #f7fafc;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 14px;
+  color: #4a5568;
+  position: relative;
+  transition: all 0.2s;
+}
+
+.account-block:hover {
+  background-color: #ebf8ff;
+  color: #3182ce;
+  transform: translateY(-1px);
+}
+
+.account-block.selected {
+  background-color: #3182ce;
+  color: white;
+}
+
+.tooltip {
+  position: fixed;
+  background: #2d3748;
+  color: white;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  transform: translateX(-50%);
+  white-space: nowrap;
+  z-index: 1000;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.account-block:hover .tooltip {
+  opacity: 1;
+}
+
+.tooltip::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  margin-left: -5px;
+  border-width: 5px;
+  border-style: solid;
+  border-color: #2d3748 transparent transparent transparent;
+}
+
+.next-page-button {
+  width: 48px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #4a5568;
+  transition: all 0.2s;
+  margin-top: 4px;
+}
+
+.next-page-button:hover {
+  color: #3182ce;
+  background-color: #f7fafc;
+  border-radius: 6px;
+}
+
+.account-sidebar-footer {
+  height: 64px;
+  padding: 0 8px;
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  border-top: 1px solid #e2e8f0;
+  background-color: #fff;
+}
+
+.action-button {
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #4a5568;
+  transition: all 0.2s;
+}
+
+.action-button:hover {
+  background-color: #f7fafc;
+  color: #3182ce;
+  transform: translateY(-1px);
+}
+
+.profile-image {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+/* Scrollbar styles */
+.account-section::-webkit-scrollbar {
+  width: 4px;
+}
+
+.account-section::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.account-section::-webkit-scrollbar-thumb {
+  background: #cbd5e0;
+  border-radius: 2px;
+}
+
+.account-section::-webkit-scrollbar-thumb:hover {
+  background: #a0aec0;
+}
+
+/* Mobile styles */
+@media (max-width: 768px) {
+  .account-sidebar {
+    transform: translateX(-100%);
+  }
+
+  .account-sidebar.open {
+    transform: translateX(0);
+  }
+}

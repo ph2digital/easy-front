@@ -1,15 +1,12 @@
 .account-sidebar {
-  width: 72px;
+  width: fit-content;
   height: 100vh;
   background-color: #18181B;
   display: flex;
   flex-direction: column;
   border-right: 1px solid #27272A;
   overflow: hidden;
-  position: fixed;
-  left: 0;
-  top: 0;
-  bottom: 0;
+  position: relative;
   will-change: transform;
 }
 

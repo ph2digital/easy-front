@@ -689,9 +689,9 @@ export const getGPTResponseStream = async (
   prompt: string, 
   userId: string, 
   activeThread: string | null, 
-  selectedCustomer?: string, 
-  accessToken?: string, 
-  customerGestor?: string,
+  selectedCustomer: string | null, 
+  accessToken: string | null, 
+  customerGestor: string | null,
   onChunk?: (chunk: string) => void
 ) => {
   try {
@@ -993,6 +993,16 @@ export const listCustomers = async (userId: string) => {
     return response.data.linked_customers;
   } catch (error) {
     console.error('Error listing customers:', error);
+    throw error;
+  }
+};
+
+export const fetchCampaigns = async (userId: string) => {
+  try {
+    const response = await axios.get(`${API_URL}/campaigns/${userId}`);
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching campaigns:', error);
     throw error;
   }
 };

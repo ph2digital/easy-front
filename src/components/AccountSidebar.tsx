@@ -23,21 +23,22 @@ interface Customer {
 }
 
 interface AccountSidebarProps {
-  isOpen: boolean;
-  onSelectConversation: (thread: Thread | null) => void;
   selectedAccount: string | null;
-  setSelectedAccount: (customer_id: string) => void;
+  setSelectedAccount: (customerId: string) => void;
+  onSelectConversation: (thread: Thread | null) => void;
+  currentThread: Thread | null;
 }
 
+const ITEMS_PER_PAGE = 4;
+
 const AccountSidebar: React.FC<AccountSidebarProps> = ({
-  isOpen,
-  onSelectConversation,
   selectedAccount,
-  setSelectedAccount
+  setSelectedAccount,
+  onSelectConversation,
+  currentThread
 }) => {
   const [selectedChannel, setSelectedChannel] = useState<string | null>(null);
   const [hoveredAccountName, setHoveredAccountName] = useState<string | null>(null);
-  const [, setTooltipVisible] = useState(false);
   const [tooltipPosition, setTooltipPosition] = useState<{ top: number; left: number }>({ top: 0, left: 0 });
   const tooltipTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const [currentPage, setCurrentPage] = useState<Record<string, number>>({
@@ -45,7 +46,7 @@ const AccountSidebar: React.FC<AccountSidebarProps> = ({
     facebook: 0
   });
   const [isConversationListOpen, setIsConversationListOpen] = useState(false);
-  const ITEMS_PER_PAGE = 5;
+
   const dispatch = useAppDispatch();
   const customers = useAppSelector(selectCustomers);
   const profileImage = useAppSelector(selectProfileImage);
@@ -97,17 +98,13 @@ const AccountSidebar: React.FC<AccountSidebarProps> = ({
     if (tooltipTimeoutRef.current) {
       clearTimeout(tooltipTimeoutRef.current);
     }
-    
-    tooltipTimeoutRef.current = setTimeout(() => {
-      setTooltipVisible(true);
-    }, 500);
   };
 
   const handleMouseLeave = () => {
     if (tooltipTimeoutRef.current) {
       clearTimeout(tooltipTimeoutRef.current);
     }
-    setTooltipVisible(false);
+    setHoveredAccountName(null);
   };
 
   const addNewAccount = () => {
@@ -123,18 +120,19 @@ const AccountSidebar: React.FC<AccountSidebarProps> = ({
   };
 
   return (
-    <div className={`account-sidebar ${isOpen ? 'open' : ''}`}>
+    <div className="account-sidebar">
       <button 
         className="menu-button"
         onClick={() => setIsConversationListOpen(true)}
       >
         <Menu size={24} />
       </button>
-      
+
       <ConversationList
         isOpen={isConversationListOpen}
         onClose={() => setIsConversationListOpen(false)}
         onSelectConversation={onSelectConversation}
+        currentThread={currentThread}
       />
 
       <div className="account-section">

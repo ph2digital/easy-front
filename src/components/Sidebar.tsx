@@ -12,7 +12,7 @@ import {
   FaWallet, 
   FaPlus, 
   FaUsers,
-  FaChevronLeft  // Novo ícone para recolher
+  FaChevronLeft
 } from 'react-icons/fa';
 import { logoutUser } from '../services/api';
 import { selectProfileImage } from '../store/authSlice';
@@ -30,7 +30,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, toggleSidebar }) => {
 
   const handleLogout = async () => {
     await logoutUser(dispatch);
-    navigate('/login'); // Redireciona para a página de login após o logout
+    navigate('/login');
   };
 
   const toggleMenu = () => {
@@ -39,7 +39,6 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, toggleSidebar }) => {
 
   return (
     <div className={`sidebar ${isOpen ? 'expanded' : 'collapsed'}`}>
-      {/* Botão de Colapso */}
       <div className="sidebar-header">
         <button 
           onClick={toggleSidebar} 
@@ -49,7 +48,6 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, toggleSidebar }) => {
           <FaBars />
         </button>
         
-        {/* Novo botão de recolher */}
         <button 
           onClick={toggleSidebar} 
           className="collapse-btn"
@@ -59,7 +57,6 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, toggleSidebar }) => {
         </button>
       </div>
 
-      {/* Imagem de Perfil e Menu Interativo */}
       <div className="profile-container">
         <div className="profile-image-wrapper" onClick={toggleMenu}>
           {profileImage ? (
@@ -100,7 +97,6 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, toggleSidebar }) => {
         )}
       </div>
 
-      {/* Seção do Menu */}
       <div className="menu-section">
         <Link to="/dashboard" className="menu-item">
           <RiDashboardLine className="sidebar-icon" />
