@@ -989,20 +989,83 @@ export const identifyManagerAccount = async (accessToken: string, userId: string
 
 export const listCustomers = async (userId: string) => {
   try {
-    const response = await api.get(`/accounts/customers/${userId}`);
+    const accessToken = localStorage.getItem('accessToken');
+    if (!accessToken) {
+      throw new Error('Access token is required');
+    }
+
+    console.log('Fetching customers with:', { userId, hasAccessToken: !!accessToken });
+    
+    const response = await api.get(`/accounts/customers/${userId}`, {
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'userid': userId
+      }
+    });
+    
+    console.log('Customers API response:', response.data);
     return response.data.linked_customers;
   } catch (error) {
     console.error('Error listing customers:', error);
+    if (axios.isAxiosError(error)) {
+      console.error('Request details:', {
+        config: error.config,
+        response: error.response
+      });
+    }
     throw error;
   }
 };
 
-export const fetchCampaigns = async (userId: string) => {
+export const fetchCampaigns = async (userId: string, customerId: string) => {
+  if (!userId) {
+    console.error('fetchCampaigns called without userId');
+    throw new Error('UserId is required');
+  }
+
+  if (!customerId) {
+    console.error('fetchCampaigns called without customerId');
+    throw new Error('CustomerId is required');
+  }
+
+  const accessToken = localStorage.getItem('accessToken');
+  if (!accessToken) {
+    console.error('fetchCampaigns called without accessToken in localStorage');
+    throw new Error('Access token is required');
+  }
+
+  console.log('Fetching campaigns with:', {
+    userId,
+    customerId,
+    hasAccessToken: !!accessToken
+  });
+  
   try {
-    const response = await axios.get(`${API_URL}/campaigns/${userId}`);
-    return response.data;
+    console.log('Making API request...');
+    const response = await api.get(`/google-ads/campaigns/list`, {
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${accessToken}`,
+        'userid': userId,
+        'customerid': customerId
+      }
+    });
+    
+    console.log('API Response:', {
+      status: response.status,
+      statusText: response.statusText,
+      data: response.data
+    });
+    
+    return response;
   } catch (error) {
     console.error('Error fetching campaigns:', error);
+    if (axios.isAxiosError(error)) {
+      console.error('Request details:', {
+        config: error.config,
+        response: error.response?.data || error.response
+      });
+    }
     throw error;
   }
 };

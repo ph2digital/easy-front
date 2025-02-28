@@ -19,6 +19,15 @@ const AuthCallback = () => {
 
       if (accessToken && refreshToken) {
         try {
+          console.log('Received tokens:', { accessToken, refreshToken });
+          
+          // Store tokens immediately
+          localStorage.setItem('accessToken', accessToken);
+          localStorage.setItem('refreshToken', refreshToken);
+          
+          // Dispatch to Redux immediately
+          dispatch(setGoogleTokens({ accessToken, refreshToken }));
+          
           // Fetch user information
           const userInfoResponse = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
             headers: {
@@ -31,6 +40,7 @@ const AuthCallback = () => {
           }
 
           const userInfo = await userInfoResponse.json();
+          console.log('User info received:', userInfo);
 
           // Call backend with all necessary data
           const response = await saveGoogleSessionToDatabase(
@@ -41,10 +51,13 @@ const AuthCallback = () => {
             userInfo.picture
           );
 
+          console.log('Backend response:', response);
+
           if (response.user) {
-            dispatch(setGoogleTokens({ accessToken, refreshToken }));
             dispatch(setUser({ user: response.user, profileImage: userInfo.picture }));
             localStorage.setItem('user', JSON.stringify(response.user));
+            
+            // Navigate to home after everything is saved
             navigate('/home');
           } else {
             console.error('Erro ao salvar sessão: Dados do usuário indefinidos');
@@ -61,6 +74,8 @@ const AuthCallback = () => {
             const profileImage = response.user.picture?.data?.url || response.user.picture || '';
             dispatch(setMetaTokens({ accessToken: metaAccessToken, refreshToken: '' }));
             dispatch(setUser({ user: response.user, profileImage }));
+            localStorage.setItem('accessToken', metaAccessToken);
+            localStorage.setItem('refreshToken', '');
             localStorage.setItem('user', JSON.stringify(response.user));
           } else {
             console.error('Error saving session: User data is undefined');
@@ -88,6 +103,8 @@ const AuthCallback = () => {
             const profileImage = response.user.picture?.data?.url || response.user.picture || '';
             dispatch(setMetaTokens({ accessToken: facebookAccessToken, refreshToken: '' }));
             dispatch(setUser({ user: response.user, profileImage }));
+            localStorage.setItem('accessToken', facebookAccessToken);
+            localStorage.setItem('refreshToken', '');
             localStorage.setItem('user', JSON.stringify(response.user));
           } else {
             console.error('Error saving session: User data is undefined');

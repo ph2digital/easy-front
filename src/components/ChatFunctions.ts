@@ -377,9 +377,9 @@ export const useChatFunctions = () => {
   const sendFirstMessage = (messageContent: string) => {
     const session = getSessionFromLocalStorage();
     const userId = session?.user?.id;
-    const selectedCustomer = localStorage.getItem('selectedCustomer') || undefined;
+    const selectedCustomer = localStorage.getItem('selectedCustomer');
     const customerGestor = localStorage.getItem('customerGestor') || undefined;
-    handleOptionClick(messageContent, userId, selectedCustomer, customerGestor);
+    handleOptionClick(messageContent, userId, selectedCustomer || undefined, customerGestor);
   };
 
   const handleOptionClick = async (messageContent: string, userId?: string, selectedCustomer?: string, customerGestor?: string) => {
@@ -389,7 +389,7 @@ export const useChatFunctions = () => {
       const accessToken = parsedGoogle?.[0]?.access_token;
 
       if (userId) {
-        const newThreadResponse = await createThread(messageContent, userId, selectedCustomer, accessToken, customerGestor);
+        const newThreadResponse = await createThread(messageContent, userId, selectedCustomer || undefined, accessToken, customerGestor || undefined);
         const newThread = newThreadResponse.result;
         setThreads((prevThreads) => [...prevThreads, newThread]);
         setSelectedThread(newThread);
@@ -433,8 +433,8 @@ export const useChatFunctions = () => {
       const accessToken = parsedGoogle?.[0]?.access_token;
       const refreshToken = parsedGoogle?.[0]?.refresh_token;
   
-      const selectedCustomer = localStorage.getItem('selectedCustomer') || undefined;
-      const customerGestor = localStorage.getItem('customerGestor') || undefined;
+      const selectedCustomer = localStorage.getItem('selectedCustomer') || null;
+      const customerGestor = localStorage.getItem('customerGestor') || null;
       
       let validAccessToken;
       try {

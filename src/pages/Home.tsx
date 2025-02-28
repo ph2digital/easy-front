@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useSelector } from 'react-redux';
-import { fetchCampaigns } from '../services/api';
-import { selectUser } from '../store/authSlice';
+import axios from 'axios'; 
+import { fetchCampaigns, getGPTResponseStream, listCustomers } from '../services/api';
+import { selectUser, selectGoogleAccessToken } from '../store/authSlice';
 import { Thread } from '../store/threadsSlice';
 import AccountSidebar from '../components/AccountSidebar';
 import DashboardStats from '../components/DashboardStats';
@@ -16,6 +17,7 @@ import {
   Text, 
   Flex,
   useColorModeValue,
+  useToast,
 } from '@chakra-ui/react';
 import './Home.css';
 
@@ -34,9 +36,9 @@ interface ChunkData {
 const Home: React.FC = () => {
   const [selectedAccount, setSelectedAccount] = useState<string | null>(null);
   const [selectedCustomerName, setSelectedCustomerName] = useState<string | null>(localStorage.getItem('selectedCustomerName'));
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [campaigns, setCampaigns] = useState([]);
+  const [campaigns, setCampaigns] = useState<any[]>([]);
   const [activeFilter, setActiveFilter] = useState('all');
   const [currentThread, setCurrentThread] = useState<Thread | null>(null);
   
@@ -51,28 +53,100 @@ const Home: React.FC = () => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const user = useSelector(selectUser);
+  const googleAccessToken = useSelector(selectGoogleAccessToken);
 
   const bgCard = useColorModeValue('white', 'gray.700');
   const borderColor = useColorModeValue('gray.200', 'gray.600');
   const textColor = useColorModeValue('gray.600', 'gray.200');
   const headingColor = useColorModeValue('gray.700', 'white');
 
-  useEffect(() => {
-    const loadCampaigns = async () => {
-      if (user) {
-        try {
-          setLoading(true);
-          const response = await fetchCampaigns(user.id);
-          setCampaigns(response);
-        } catch (error) {
-          setError('Failed to load campaigns');
-        } finally {
-          setLoading(false);
-        }
+  const toast = useToast();
+
+  const loadCampaigns = async () => {
+    if (!user) {
+      console.log('No user found, skipping campaign load');
+      return;
+    }
+
+    if (!user.id) {
+      console.error('User found but no user.id:', user);
+      return;
+    }
+
+    // Try to get token from Redux first, then localStorage
+    const token = googleAccessToken || localStorage.getItem('accessToken');
+    if (!token) {
+      console.log('No Google access token found');
+      return;
+    }
+
+    // Log all localStorage data
+    console.log('All localStorage data:', {
+      accessToken: localStorage.getItem('accessToken'),
+      refreshToken: localStorage.getItem('refreshToken'),
+      selectedCustomer: localStorage.getItem('selectedCustomer'),
+      customerGestor: localStorage.getItem('customerGestor'),
+      customerId: localStorage.getItem('customerId'),
+      user: localStorage.getItem('user'),
+      session: localStorage.getItem('session')
+    });
+
+    try {
+      setLoading(true);
+      setError(null);
+
+      // First, get the list of customers
+      console.log('Fetching customers for user:', user.id);
+      const customers = await listCustomers(user.id);
+      console.log('Customers response:', customers);
+      
+      if (!customers || customers.length === 0) {
+        console.log('No customers found for user');
+        setError('Nenhuma conta encontrada');
+        return;
       }
-    };
+
+      // Use the first customer's ID
+      const firstCustomer = customers[0];
+      console.log('Selected customer:', firstCustomer);
+      
+      // Save customer ID in localStorage
+      localStorage.setItem('customerGestor', firstCustomer.id);
+      localStorage.setItem('customerId', firstCustomer.id);
+      
+      console.log('Loading campaigns with:', {
+        userId: user.id,
+        userEmail: user.email,
+        customerId: firstCustomer.id,
+        hasGoogleToken: !!token
+      });
+      
+      const response = await fetchCampaigns(user.id, firstCustomer.id);
+      console.log('Campaigns API response:', response);
+      
+      console.log('Campaigns loaded successfully:', response.status);
+      setCampaigns(response.data);
+    } catch (error) {
+      console.error('Error loading campaigns:', error);
+      setError('Falha ao carregar campanhas');
+      if (axios.isAxiosError(error)) {
+        console.error('Request details:', {
+          method: error.config?.method,
+          url: error.config?.url,
+          headers: error.config?.headers,
+          status: error.response?.status,
+          statusText: error.response?.statusText,
+          data: error.response?.data
+        });
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
     loadCampaigns();
-  }, [user]);
+  }, [user, googleAccessToken]);
 
   useEffect(() => {
     const handleStorageChange = (e: StorageEvent) => {
@@ -134,53 +208,51 @@ const Home: React.FC = () => {
     setMessages(prev => [...prev, assistantMessage]);
 
     try {
-      const response = await fetch(`http://localhost:8080/api/gpt/stream`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          prompt: newMessage,
-          userId: user.id,
-          activeThread: currentThread?.id || null,
-          selectedAccount,
-          accessToken: null,
-          customerGestor: null,
-        }),
-      });
+      const google = localStorage.getItem('googleAccounts');
+      const parsedGoogle = google ? JSON.parse(google) : [];
+      const accessToken = parsedGoogle?.[0]?.access_token || null;
+      const customerGestor = localStorage.getItem('customerGestor') || null;
 
-      const reader = response.body?.getReader();
-      if (!reader) throw new Error('Failed to get response reader');
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-
-        const chunk = new TextDecoder().decode(value);
-        try {
-          const data: ChunkData = JSON.parse(chunk);
-          if (data.type === 'update') {
-            setMessages(prev => {
-              const lastMessage = prev[prev.length - 1];
-              if (lastMessage?.role === 'assistant') {
-                return [
-                  ...prev.slice(0, -1),
-                  {
-                    ...lastMessage,
-                    content: lastMessage.content + data.content,
-                  },
-                ];
-              }
-              return prev;
-            });
+      await getGPTResponseStream(
+        newMessage,
+        user.id,
+        currentThread?.id || null,
+        selectedAccount,
+        accessToken,
+        customerGestor,
+        (chunk) => {
+          try {
+            const data: ChunkData = JSON.parse(chunk);
+            if (data.type === 'update') {
+              setMessages(prev => {
+                const lastMessage = prev[prev.length - 1];
+                if (lastMessage?.role === 'assistant') {
+                  return [
+                    ...prev.slice(0, -1),
+                    {
+                      ...lastMessage,
+                      content: lastMessage.content + data.content,
+                    },
+                  ];
+                }
+                return prev;
+              });
+            }
+          } catch (error) {
+            console.error('Error parsing chunk:', error);
           }
-        } catch (error) {
-          console.error('Error parsing chunk:', error);
         }
-      }
+      );
     } catch (error) {
       console.error('Error sending message:', error);
       setMessages(prev => prev.slice(0, -1));
+      toast({
+        title: 'Erro',
+        description: 'Não foi possível enviar a mensagem',
+        status: 'error',
+        duration: 5000,
+        isClosable: true,
+      });
     }
   };
 
