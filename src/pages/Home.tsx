@@ -63,69 +63,23 @@ const Home: React.FC = () => {
   const toast = useToast();
 
   const loadCampaigns = async () => {
-    if (!user) {
+    if (!user?.id) {
       console.log('No user found, skipping campaign load');
       return;
     }
 
-    if (!user.id) {
-      console.error('User found but no user.id:', user);
+    const selectedCustomer = localStorage.getItem('selectedCustomer');
+    if (!selectedCustomer) {
+      console.log('No customer selected, skipping campaign load');
       return;
     }
-
-    // Try to get token from Redux first, then localStorage
-    const token = googleAccessToken || localStorage.getItem('accessToken');
-    if (!token) {
-      console.log('No Google access token found');
-      return;
-    }
-
-    // Log all localStorage data
-    console.log('All localStorage data:', {
-      accessToken: localStorage.getItem('accessToken'),
-      refreshToken: localStorage.getItem('refreshToken'),
-      selectedCustomer: localStorage.getItem('selectedCustomer'),
-      customerGestor: localStorage.getItem('customerGestor'),
-      customerId: localStorage.getItem('customerId'),
-      user: localStorage.getItem('user'),
-      session: localStorage.getItem('session')
-    });
 
     try {
       setLoading(true);
       setError(null);
-
-      // First, get the list of customers
-      console.log('Fetching customers for user:', user.id);
-      const customers = await listCustomers(user.id);
-      console.log('Customers response:', customers);
       
-      if (!customers || customers.length === 0) {
-        console.log('No customers found for user');
-        setError('Nenhuma conta encontrada');
-        return;
-      }
-
-      // Use the first customer's ID
-      const firstCustomer = customers[0];
-      console.log('Selected customer:', firstCustomer);
-      
-      // Save customer ID in localStorage
-      localStorage.setItem('customerGestor', firstCustomer.id);
-      localStorage.setItem('customerId', firstCustomer.id);
-      
-      console.log('Loading campaigns with:', {
-        userId: user.id,
-        userEmail: user.email,
-        customerId: firstCustomer.id,
-        hasGoogleToken: !!token
-      });
-      
-      const response = await fetchCampaigns(user.id, firstCustomer.id);
-      console.log('Campaigns API response:', response);
-      
-      console.log('Campaigns loaded successfully:', response.status);
-      setCampaigns(response.data);
+      const response = await fetchCampaigns();
+      setCampaigns(response.data || []);
     } catch (error) {
       console.error('Error loading campaigns:', error);
       setError('Falha ao carregar campanhas');
@@ -144,24 +98,32 @@ const Home: React.FC = () => {
     }
   };
 
+  // Load campaigns when component mounts or when user/selectedCustomer changes
   useEffect(() => {
     loadCampaigns();
-  }, [user, googleAccessToken]);
+  }, [user]);
 
+  // Watch for changes in selectedCustomer
   useEffect(() => {
     const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === 'selectedCustomerName') {
-        setSelectedCustomerName(e.newValue);
+      if (e.key === 'selectedCustomer' || e.key === 'selectedCustomerName') {
+        loadCampaigns();
+        if (e.key === 'selectedCustomerName') {
+          setSelectedCustomerName(e.newValue);
+        }
       }
     };
 
     window.addEventListener('storage', handleStorageChange);
 
-    // Também verifica mudanças diretas no localStorage
+    // Check for direct changes to localStorage
     const checkLocalStorage = () => {
+      const currentCustomer = localStorage.getItem('selectedCustomer');
       const currentName = localStorage.getItem('selectedCustomerName');
+      
       if (currentName !== selectedCustomerName) {
         setSelectedCustomerName(currentName);
+        loadCampaigns();
       }
     };
 
@@ -172,11 +134,6 @@ const Home: React.FC = () => {
       clearInterval(interval);
     };
   }, [selectedCustomerName]);
-
-  useEffect(() => {
-    const name = localStorage.getItem('selectedCustomerName');
-    setSelectedCustomerName(name);
-  }, [selectedAccount]);
 
   useEffect(() => {
     const scrollToBottom = () => {

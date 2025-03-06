@@ -806,17 +806,85 @@ export const deleteGoogleAdsAdGroup = async (accessToken: string, accountId: str
     return response.data;
 };
 
-export const fetchGoogleAdsCampaigns = async (accessToken: string, accountId: string, startDate?: string, endDate?: string) => {
-  const response = await api.post(`/google-ads/${accountId}/campaigns`, {
-    startDate,
-    endDate
-  }, {
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-      accessToken,accountId
-    },
-  });
-  return response.data;
+export const fetchGoogleAdsCampaigns = async (accessToken: string) => {
+  const selectedCustomer = localStorage.getItem('selectedCustomer');
+  const selectedCustomerDetailsStr = localStorage.getItem('selectedCustomerDetails');
+
+  if (!selectedCustomer || !selectedCustomerDetailsStr) {
+    throw new Error('No customer selected or missing customer details');
+  }
+
+  try {
+    const customerDetails = JSON.parse(selectedCustomerDetailsStr);
+    const { customer_id, gestor_id } = customerDetails;
+
+    if (!customer_id) {
+      throw new Error('Selected customer is missing customer_id');
+    }
+
+    // Format IDs to XXX-XXX-XXXX format
+    const formattedCustomerId = customer_id.replace(/(\d{3})(\d{3})(\d{4})/, '$1-$2-$3');
+    const formattedGestorId = gestor_id?.replace(/(\d{3})(\d{3})(\d{4})/, '$1-$2-$3') || formattedCustomerId;
+
+    const response = await api.get('/google-ads/campaigns/list', {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        customerid: formattedCustomerId,
+        customergestor: formattedGestorId
+      }
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error in fetchGoogleAdsCampaigns:', error);
+    throw error;
+  }
+};
+
+export const setSelectedCustomer = (customer: any) => {
+  if (!customer) {
+    localStorage.removeItem('selectedCustomer');
+    localStorage.removeItem('selectedCustomerDetails');
+    localStorage.removeItem('selectedCustomerType');
+    return;
+  }
+
+  // Store all customer information
+  localStorage.setItem('selectedCustomer', customer.id);
+  localStorage.setItem('selectedCustomerType', customer.type);
+  localStorage.setItem('selectedCustomerDetails', JSON.stringify({
+    id: customer.id,
+    name: customer.name,
+    type: customer.type,
+    customer_id: customer.customer_id,
+    gestor_id: customer.gestor_id,
+    status: customer.status,
+    created_at: customer.created_at,
+    updated_at: customer.updated_at,
+    // Include any other relevant fields from the customer object
+  }));
+};
+
+export const fetchCampaigns = async () => {
+  const accessToken = localStorage.getItem('accessToken');
+  const selectedCustomer = localStorage.getItem('selectedCustomer');
+  const selectedCustomerType = localStorage.getItem('selectedCustomerType');
+
+  if (!accessToken || !selectedCustomer) {
+    throw new Error('Missing required authentication or customer information');
+  }
+
+  try {
+    if (selectedCustomerType === 'google_ads') {
+      return await fetchGoogleAdsCampaigns(accessToken);
+    } else if (selectedCustomerType === 'meta_ads') {
+      return await fetchMetaAdsCampaigns(accessToken, selectedCustomer);
+    } else {
+      throw new Error('Unsupported customer type');
+    }
+  } catch (error) {
+    console.error('Error fetching campaigns:', error);
+    throw error;
+  }
 };
 
 export const submitComment = async (userId: string, messageId: string, comment: string) => {
@@ -1011,59 +1079,6 @@ export const listCustomers = async (userId: string) => {
       console.error('Request details:', {
         config: error.config,
         response: error.response
-      });
-    }
-    throw error;
-  }
-};
-
-export const fetchCampaigns = async (userId: string, customerId: string) => {
-  if (!userId) {
-    console.error('fetchCampaigns called without userId');
-    throw new Error('UserId is required');
-  }
-
-  if (!customerId) {
-    console.error('fetchCampaigns called without customerId');
-    throw new Error('CustomerId is required');
-  }
-
-  const accessToken = localStorage.getItem('accessToken');
-  if (!accessToken) {
-    console.error('fetchCampaigns called without accessToken in localStorage');
-    throw new Error('Access token is required');
-  }
-
-  console.log('Fetching campaigns with:', {
-    userId,
-    customerId,
-    hasAccessToken: !!accessToken
-  });
-  
-  try {
-    console.log('Making API request...');
-    const response = await api.get(`/google-ads/campaigns/list`, {
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${accessToken}`,
-        'userid': userId,
-        'customerid': customerId
-      }
-    });
-    
-    console.log('API Response:', {
-      status: response.status,
-      statusText: response.statusText,
-      data: response.data
-    });
-    
-    return response;
-  } catch (error) {
-    console.error('Error fetching campaigns:', error);
-    if (axios.isAxiosError(error)) {
-      console.error('Request details:', {
-        config: error.config,
-        response: error.response?.data || error.response
       });
     }
     throw error;
